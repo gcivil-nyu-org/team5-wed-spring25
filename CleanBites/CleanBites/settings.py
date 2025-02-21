@@ -75,8 +75,12 @@ WSGI_APPLICATION = 'CleanBites.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'database-clean-bites',  
+        'USER': 'cleanbites',  
+        'PASSWORD': 'cleanbites123',  
+        'HOST': 'database-clean-bites.c3ayoouusmcp.us-east-2.rds.amazonaws.com',  
+        'PORT': '5432',  
     }
 }
 
