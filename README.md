@@ -1,14 +1,15 @@
-# CleanBites
----
 # CleanBites - Setup Guide
 
 ## Prerequisites
+
 Before setting up **CleanBites**, ensure you have the required dependencies installed.
 
 ### Install PostgreSQL Development Libraries
+
 CleanBites requires PostgreSQL development libraries to be installed.
 
 #### MacOS
+
 Use the following command to install them:
 
 ```sh
@@ -16,6 +17,7 @@ brew install postgresql
 ```
 
 #### Windows
+
 For Windows, download and install the PostgreSQL development libraries from the official PostgreSQL website:
 
 1. Visit [PostgreSQL Downloads](https://www.postgresql.org/download/)
@@ -27,64 +29,78 @@ After installation, verify that PostgreSQL is installed correctly by checking it
 ```sh
 pg_config --version
 ```
-
 or
-
 ```sh
 postgres --version
 ```
 
-## Environment Setup
 
-### Windows
-For Windows users, activate the **CleanBites** Python environment using:
+---
 
-```sh
-.cbenv\Scripts\activate
-```
 
-### MacOS
-For MacOS users, activate the **CleanBites** Python environment using:
 
-```sh
-source .cbenv_os/bin/activate
-```
+# 🛠 Running CleanBites with Docker
 
-## Ensuring Dependency Consistency
-After activating the environment, ensure that the installed dependencies match those in the `requirements.txt` file:
+To containerize **CleanBites**, follow these steps.
+
+### 1️⃣ Build the Docker Image
+
+Run the following command to build the Docker image:
 
 ```sh
-pip freeze > CleanBites/requirements.txt
+docker-compose build
 ```
 
-If there are discrepancies, install the required dependencies:
+---
+
+### 2️⃣ Start the Application in a Docker Container
+
+Run the application in a container:
 
 ```sh
-pip install -r CleanBites/requirements.txt
+docker-compose up -d
 ```
 
-## Running the Application Locally
+✅ This starts the backend API, which will be available at `http://localhost:8000`.
 
-### Run the API Instance
-Start the API server on port **8000**:
+---
+
+### 3️⃣ Stopping the Container
+
+To stop the running container:
 
 ```sh
-python manage.py runserver 8000
+docker-compose down
 ```
 
-### Run the Frontend Instance
-Start the frontend server on port **8001**:
+✅ This shuts down the application while preserving any persistent data.
 
-```sh
-python manage.py runserver 8001
-```
+
+
+---
+
+# 🚀 Updating Docker Container After Repo Changes
+## ✅ Summary of Commands
+
+| **Change Type**                           | **Command** |
+|-------------------------------------------|-------------|
+| Code changes only (Python, HTML, JS, CSS) | `docker-compose down && docker-compose up -d` |
+| Dependency updates (`requirements.txt`)   | `docker-compose down && docker-compose build && docker-compose up -d` |
+| `Dockerfile` or `docker-compose.yml` changes | `docker-compose down && docker-compose up --build -d` |
+| Check logs                                | `docker-compose logs -f` |
+| Access running container                  | `docker-compose exec api bash` |
+
+
+
 
 ## Notes
-- Ensure that your PostgreSQL instance is running and correctly configured.
-- Both backend and frontend instances must be running for full application functionality.
-- If any issues arise, check for missing dependencies or incorrect environment activation.
 
-Enjoy using **CleanBites**!
+- Ensure that your PostgreSQL instance (or AWS RDS database) is running and correctly configured.
+- The API is automatically exposed on **port 8000** inside the container.
+- If you encounter issues, check logs using:
 
+  ```sh
+  docker-compose logs -f
+  ```
 
-
+Enjoy using **CleanBites**! 🚀🎉

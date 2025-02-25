@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +26,9 @@ SECRET_KEY = 'django-insecure-sv-x4mn5*eh6!r5=g@pk24v5=rc!_@8@^85rhyb*a9ho7miys^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['ec2-54-190-192-108.us-west-2.compute.amazonaws.com',
+                 "localhost",
+                 "127.0.0.1"]
 
 
 # Application definition
@@ -76,11 +79,11 @@ WSGI_APPLICATION = 'CleanBites.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'database-clean-bites',  
-        'USER': 'cleanbites',  
-        'PASSWORD': 'cleanbites123',  
-        'HOST': 'database-clean-bites.c3ayoouusmcp.us-east-2.rds.amazonaws.com',  
-        'PORT': '5432',  
+        'NAME': os.getenv("DATABASE_NAME"),
+        'USER': os.getenv("DATABASE_USER"),
+        'PASSWORD': os.getenv("DATABASE_PASSWORD"),
+        'HOST': os.getenv("DATABASE_HOST"),
+        'PORT': os.getenv("DATABASE_PORT"), 
     }
 }
 
