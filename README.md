@@ -6,10 +6,32 @@
 Before setting up **CleanBites**, ensure you have the required dependencies installed.
 
 ### Install PostgreSQL Development Libraries
-CleanBites requires PostgreSQL development libraries to be installed. Use the following command to install them:
+CleanBites requires PostgreSQL development libraries to be installed.
+
+#### MacOS
+Use the following command to install them:
 
 ```sh
 brew install postgresql
+```
+
+#### Windows
+For Windows, download and install the PostgreSQL development libraries from the official PostgreSQL website:
+
+1. Visit [PostgreSQL Downloads](https://www.postgresql.org/download/)
+2. Select your Windows version and download the installer.
+3. Follow the installation steps, ensuring the development libraries are included.
+
+After installation, verify that PostgreSQL is installed correctly by checking its configuration:
+
+```sh
+pg_config --version
+```
+
+or
+
+```sh
+postgres --version
 ```
 
 ## Environment Setup
@@ -63,5 +85,6 @@ python manage.py runserver 8001
 - If any issues arise, check for missing dependencies or incorrect environment activation.
 
 Enjoy using **CleanBites**!
+
 
 
