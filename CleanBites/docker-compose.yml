@@ -1,9 +1,33 @@
-version: '3'
+version: '3.8'
+
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: _api/Dockerfile
     ports:
       - "8000:8000"
     env_file:
       - .env
+    networks:
+      - cleanbites-network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
+  frontend:
+    build:
+      context: .
+      dockerfile: _frontend/Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    depends_on:
+      - api
+    networks:
+      - cleanbites-network
+
+networks:
+  cleanbites-network:
+    driver: bridge
