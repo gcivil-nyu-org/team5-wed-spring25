@@ -1,0 +1,20 @@
+from django.db import models
+
+# Create your models here.
+class Restaurant(models.Model):
+    id = models.AutoField(primary_key=True)  # SERIAL in PostgreSQL
+    name = models.CharField(max_length=255)  # Restaurant name
+    email = models.EmailField(max_length=255)  # Email field
+    phone = models.CharField(max_length=15)  # Phone number
+    menu = models.BinaryField(null=True, blank=True)  # BYTEA for binary data (menu file)
+    building = models.IntegerField()  # Building number
+    street = models.CharField(max_length=255)  # Street name
+    zipcode = models.CharField(max_length=10)  # Zip code
+    hygiene_rating = models.IntegerField()  # Hygiene rating
+    inspection_date = models.DateField()  # Inspection date
+    borough = models.IntegerField()  # Borough ID
+    cuisine_description = models.CharField(max_length=255)  # Cuisine type
+    violation_description = models.TextField()  # Violation description
+
+    def __str__(self):
+        return f"{self.name} ({self.street}, {self.zipcode})"
