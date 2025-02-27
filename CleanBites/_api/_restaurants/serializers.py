@@ -5,3 +5,8 @@ class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         fields = '__all__'  # Include all fields in serialization
+
+class RestaurantAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Restaurant
+        fields = ["id", "name", "building", "street", "zipcode", "borough"]
