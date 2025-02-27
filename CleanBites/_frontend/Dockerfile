@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the full Django project, including `CleanBites/`
 COPY ../CleanBites /app/CleanBites
+COPY ../_frontend /app/_frontend/ 
+COPY ../_api /app/_api/ 
 COPY ../manage.py /app/
 
 EXPOSE 8001
