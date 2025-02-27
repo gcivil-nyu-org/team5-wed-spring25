@@ -1,4 +1,0 @@
-Django==2.2
-pytz==2025.1
-gunicorn
-sqlparse==0.5.3
