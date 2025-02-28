@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     '_frontend',
     '_api',
     '_api._restaurants',
+    '_api._users',
     'rest_framework',
     'corsheaders',
 ]

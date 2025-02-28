@@ -18,3 +18,30 @@ class Restaurant(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"
+    
+class Comment(models.Model):
+    id = models.AutoField(primary_key=True)
+    commenter = models.ForeignKey("_users.Customer", on_delete=models.CASCADE)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    comment = models.BinaryField(null=True, blank=True)  # BYTEA for binary data
+    karma = models.IntegerField(default=0)
+    flagged = models.BooleanField(default=False)
+    flagged_by = models.ForeignKey("_users.Moderator", null=True, blank=True, on_delete=models.SET_NULL)
+    posted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment {self.id} by {self.commenter}"
+
+
+class Reply(models.Model):
+    id = models.AutoField(primary_key=True)
+    commenter = models.ForeignKey("_users.Customer", on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    reply = models.BinaryField(null=True, blank=True)  # BYTEA for binary data
+    karma = models.IntegerField(default=0)
+    flagged = models.BooleanField(default=False)
+    flagged_by = models.ForeignKey("_users.Moderator", null=True, blank=True, on_delete=models.SET_NULL)
+    posted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Reply {self.id} to Comment {self.comment.id}"
