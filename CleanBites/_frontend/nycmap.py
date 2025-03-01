@@ -2,6 +2,7 @@ import folium
 import requests
 import json
 import random
+
 from shapely.geometry import shape, Point
 
 # Load NYC boundary from GeoJSON
@@ -46,19 +47,21 @@ filtered_elements = [
     )
 ]
 
+
 # Define a list of possible colors for markers
 colors = ["green", "orange", "red"]
 
 # Add NYC-Only Restaurants to the Map with random colors, hygiene ratings, and detailed popups
 for element in filtered_elements:
     # Determine the latitude/longitude
+
     if 'lat' in element and 'lon' in element:
         lat, lon = element['lat'], element['lon']
     elif 'center' in element:
         lat, lon = element['center']['lat'], element['center']['lon']
     else:
         continue
-
+       
     # Extract tags and details
     tags = element.get('tags', {})
     name = tags.get('name', 'Unnamed Restaurant')
