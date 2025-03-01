@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, generics, filters
-from .serializers import RestaurantSerializer, RestaurantAddressSerializer
-from .models import Restaurant
+from .serializers import RestaurantSerializer, RestaurantAddressSerializer, CommentSerializer, ReplySerializer
+from .models import Restaurant, Comment, Reply
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -55,3 +55,22 @@ class RestaurantGeoJSONView(APIView):
             })
 
         return Response(geojson_data)
+    
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
+    filterset_fields = ['restaurant', 'commenter', 'flagged']
+    search_fields = ['comment']
+    ordering_fields = ['posted_at', 'karma']
+
+class ReplyViewSet(viewsets.ModelViewSet):
+    queryset = Reply.objects.all()
+    serializer_class = ReplySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
+    filterset_fields = ['comment', 'commenter', 'flagged']
+    search_fields = ['reply']
+    ordering_fields = ['posted_at', 'karma']
+

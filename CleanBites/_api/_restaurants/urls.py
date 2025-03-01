@@ -1,9 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import RestaurantViewSet, RestaurantListView, RestaurantAddressListView, RestaurantGeoJSONView
+from .views import RestaurantViewSet, RestaurantListView, RestaurantAddressListView, RestaurantGeoJSONView, CommentViewSet, ReplyViewSet
 
 router = DefaultRouter()
-router.register(r'router', RestaurantViewSet)  # Maps API to ViewSet
+router.register(r'restaurants', RestaurantViewSet)  # Maps API to ViewSet
+router.register(r'comments', CommentViewSet)  # Maps API to ViewSet
+router.register(r'replies', ReplyViewSet)  # Maps API to ViewSet
 
 urlpatterns = [
     path('', include(router.urls)),  # Include the router URLs
