@@ -1,6 +1,8 @@
 import folium
 import requests
 import json
+import random
+
 from shapely.geometry import shape, Point
 
 # Load NYC boundary from GeoJSON
@@ -38,30 +40,90 @@ data = response.json()
 
 # Reduce markers & filter only NYC locations
 filtered_elements = [
-    element for element in data['elements'][::6]  # Reduce density
+    element for element in data['elements'][::12]  # Reduce density
     if (
         ('lat' in element and is_in_nyc(element['lat'], element['lon'])) or
         ('center' in element and is_in_nyc(element['center']['lat'], element['center']['lon']))
     )
 ]
 
-# Add NYC-Only Restaurants to the Map
+
+# Define a list of possible colors for markers
+colors = ["green", "orange", "red"]
+
+# Add NYC-Only Restaurants to the Map with random colors, hygiene ratings, and detailed popups
 for element in filtered_elements:
+    # Determine the latitude/longitude
+
     if 'lat' in element and 'lon' in element:
         lat, lon = element['lat'], element['lon']
     elif 'center' in element:
         lat, lon = element['center']['lat'], element['center']['lon']
     else:
         continue
+       
+    # Extract tags and details
+    tags = element.get('tags', {})
+    name = tags.get('name', 'Unnamed Restaurant')
+    cuisine = tags.get('cuisine', 'Cuisine not available')
 
-    # Get restaurant name if available
-    name = element.get('tags', {}).get('name', 'Unnamed Restaurant')
+    # Build address from available address tags
+    addr_housenumber = tags.get('addr:housenumber', '')
+    addr_street = tags.get('addr:street', '')
+    addr_city = tags.get('addr:city', '')
+    address_parts = []
+    street_info = f"{addr_housenumber} {addr_street}".strip()
+    if street_info:
+        address_parts.append(street_info)
+    if addr_city:
+        address_parts.append(addr_city)
+    address = ", ".join(address_parts) if address_parts else "Address not available"
 
-    # Add marker to map
+    # Randomly select a color from the list
+    color = random.choice(colors)
+
+    # Determine hygiene rating based on marker color
+    if color == "green":
+        hygiene_rating = "A"
+    elif color == "orange":
+        hygiene_rating = "B"
+    else:  # color == "red"
+        hygiene_rating = "C"
+
+
+
+    popup_html = f"""
+    <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
+      <!-- Title / Name -->
+      <div style="font-size: 14pt; font-weight: bold; color: #202124; margin-bottom: 4px;">
+        {name}
+      </div>
+      <!-- Subtitle / Cuisine -->
+      <div style="font-size: 10pt; color: #70757a; margin-bottom: 4px;">
+        Cuisine: {cuisine}
+      </div>
+      <!-- Address -->
+      <div style="font-size: 10pt; color: #70757a; margin-bottom: 8px;">
+        Address: {address}
+      </div>
+      <hr style="margin: 4px 0;">
+      <!-- Hygiene Rating -->
+      <div style="font-size: 10pt;">
+        <strong>Hygiene Rating:</strong> {hygiene_rating}
+      </div>
+    </div>
+    """
+
+    # Wrap the HTML in an IFrame, so we can set a custom size
+    iframe = folium.IFrame(html=popup_html, width=260, height=140)
+    popup = folium.Popup(iframe, max_width=300)
+
+    # Add marker to map with the randomly chosen color, the custom popup, and cutlery icon
     folium.Marker(
         location=[lat, lon],
-        popup=name,
-        icon=folium.Icon(color="red", icon="cutlery", prefix="fa")
+        popup=popup,
+        icon=folium.Icon(color=color, icon="cutlery", prefix="fa")
     ).add_to(m)
 
-m.save('nycmap.html')
+# Save the map to an HTML file
+m.save('templates/maps/nycmap.html')
