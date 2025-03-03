@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.gis.db import models
+
 
 # Create your models here.
 class Restaurant(models.Model):
@@ -15,6 +17,9 @@ class Restaurant(models.Model):
     borough = models.IntegerField()  # Borough ID
     cuisine_description = models.CharField(max_length=255)  # Cuisine type
     violation_description = models.TextField()  # Violation description
+    latitude = models.PointField() # latitude coord
+    longitude = models.PointField() # longitude coord
+
 
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"
