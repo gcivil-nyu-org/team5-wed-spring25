@@ -81,13 +81,13 @@ def fetch_and_store_data():
 
 def get_coords():
     """Call to update coordinates for null entries in the DB. Takes 2 seconds per entry updated."""
-    geolocator = Nominatim(user_agent = "CleanBites")
+    geolocator = Nominatim(user_agent = "CleanBites2025")
 
     for restaurant in Restaurant.objects:
         if restaurant.latitude is None and restaurant.street is not None:
             q_address = restaurant.building + restaurant.street
             location = geolocator.geocode(q_address)
-            time.sleep(2)
+            time.sleep(1.5)
             if location is None:
                 print(f"Error, {restaurant.name} failed to update, invalid address.")
             else:
