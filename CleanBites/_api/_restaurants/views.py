@@ -44,7 +44,10 @@ class RestaurantGeoJSONView(APIView):
                 "type": "Feature",
                 "geometry": {
                     "type": "Point",
-                    "coordinates": [0, 0]  # Placeholder for lat/lon
+                    "coordinates": [
+                        restaurant.geo_coords.x if restaurant.geo_coords else 0,  # Longitude (X)
+                        restaurant.geo_coords.y if restaurant.geo_coords else 0   # Latitude (Y)
+                    ]
                 },
                 "properties": {
                     "name": restaurant.name,
