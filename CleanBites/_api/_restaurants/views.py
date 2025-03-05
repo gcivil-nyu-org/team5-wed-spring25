@@ -53,7 +53,8 @@ class RestaurantGeoJSONView(APIView):
                     "name": restaurant.name,
                     "address": f"{restaurant.building} {restaurant.street}, {restaurant.zipcode}",
                     "borough": restaurant.borough,
-                    "cuisine": restaurant.cuisine_description
+                    "cuisine": restaurant.cuisine_description,
+                    "rating": restaurant.hygiene_rating
                 }
             })
 
