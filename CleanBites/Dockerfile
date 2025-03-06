@@ -1,4 +1,4 @@
-FROM python:3.7.9-slim
+FROM python:3.11.0-slim
 
 # Install system dependencies for GeoDjango
 RUN apt-get update && \
