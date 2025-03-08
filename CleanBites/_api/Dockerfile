@@ -1,5 +1,24 @@
 FROM python:3.7.9-slim
 
+# Install system dependencies for GeoDjango
+RUN apt-get update && \
+    apt-get install -y gnupg2 && \
+    apt-key update && \
+    apt-get update && \
+    apt-get install -y \
+    binutils \
+    gdal-bin \
+    # PROJ
+    libproj-dev \
+    # GDAL
+    libgdal-dev \
+    # GEOS
+    libgeos-dev \
+    # PostGIS
+    libpq-dev \
+    # reduce image size
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy requirements first to leverage Docker cache
