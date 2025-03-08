@@ -60,7 +60,7 @@ for feature in features:
             
             popup_html = f"""
             <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
-              <div style="font-size: 14pt; font-weight: bold; color: #202124; margin-bottom: 4px;">
+              <a href="/restaurant/{properties.get('id', 0)}/" target="_blank" style="text-decoration: none; color: #1a73e8;">
                 {name}
               </div>
               <div style="font-size: 10pt; color: #70757a; margin-bottom: 4px;">
