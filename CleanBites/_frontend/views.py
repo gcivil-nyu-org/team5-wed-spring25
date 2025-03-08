@@ -6,4 +6,4 @@ def nycmap_view(request):
 
 def restaurant_detail(request, restaurant_id):
     restaurant = get_object_or_404(Restaurant, id=restaurant_id)
-    return render(request, 'restaurant_detail.html', {'restaurant': restaurant})
+    return render(request, 'maps/restaurant_detail.html', {'restaurant': restaurant})
