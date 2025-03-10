@@ -2,23 +2,20 @@ dist: focal
 language: python
 python:
   - 3.7
-script:
-  echo "success"
 install:
-  skip
-#  - pip install -r requirements.txt
+  - pip install -r requirements.txt
 
-#before_script:
-#  - python manage.py migrate
-#  - python manage.py collectstatic --noinput
+before_script:
+  - python manage.py migrate
+  - python manage.py collectstatic --noinput
 
-#script:
-#  - black --check .
-#  - flake8 .
-#  - coverage run --source=team5-wed-spring25 manage.py test
+script:
+  - black --check .
+  - flake8 .
+  - coverage run --source=team5-wed-spring25 manage.py test
 
-#after_script:
-#  - coveralls
+after_script:
+  - coveralls
 
 #deploy:
  # provider: elasticbeanstalk
