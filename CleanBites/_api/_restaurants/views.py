@@ -5,6 +5,8 @@ from .models import Restaurant, Comment, Reply
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import Distance
 
 # Create your views here.
 class RestaurantViewSet(viewsets.ModelViewSet):
@@ -33,7 +35,30 @@ class RestaurantGeoJSONView(APIView):
     """Returns restaurant data as GeoJSON format for mapping"""
 
     def get(self, request):
-        restaurants = Restaurant.objects.all()
+        lat = request.GET.get('lat')
+        lng = request.GET.get('lng')
+        # distance should be in kilometers
+        distance = request.GET.get('distance')
+
+        if lat and lng and distance:
+            print(f"Received lat: {lat}, {type(lat)}, lng: {lng}, {type(lng)}, distance: {distance}, {type(distance)}")
+            try:
+                user_location = Point(float(lng), float(lat), srid=4326)
+                distance_val = float(distance)
+                print("user_location:", user_location, type(user_location))
+                print("distance_val:", distance_val, type(distance_val))
+            except ValueError:
+                return Response({
+                                "error": "Invalid latitude, longitude, or distance"},
+                                status = 400)
+            restaurants = Restaurant.objects.filter(
+                # geo_coords = geographic field in db
+                # __distance_lte = spatial lookup filter
+                    # checks if distance between "geo_coords" and "user_location" is lte to "distance"
+                geo_coords__distance_lte=(user_location, Distance(km=distance_val))
+            )
+        else:
+            restaurants = Restaurant.objects.all()
         geojson_data = {
             "type": "FeatureCollection",
             "features": []

@@ -32,7 +32,8 @@ DEBUG = True
 ALLOWED_HOSTS = ['ec2-54-190-192-108.us-west-2.compute.amazonaws.com',
                  "localhost",
                  "127.0.0.1",
-                 "CleanBites-env.eba-uajmqqqu.us-west-2.elasticbeanstalk.com",]
+                 "CleanBites-env.eba-uajmqqqu.us-west-2.elasticbeanstalk.com",
+                 "api"]
 
 
 # Application definition

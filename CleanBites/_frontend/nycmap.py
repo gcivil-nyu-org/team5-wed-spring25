@@ -2,6 +2,7 @@ import folium
 import requests
 import json
 from shapely.geometry import shape, Point
+import os
 
 # Load NYC boundary from GeoJSON
 NYC_GEOJSON_URL = "https://raw.githubusercontent.com/dwillis/nyc-maps/master/boroughs.geojson"
@@ -20,13 +21,20 @@ f = folium.Figure(width=1000, height=500)
 m = folium.Map(location=(40.7128, -74.0060), tiles="openstreetmap", 
                zoom_start=12, min_zoom=10).add_to(f)
 
+# POPULATE DYNAMICALLY LATER
+lat = 40.69455789521935
+lng = -73.9865872293045
+distance = 5
+
 # Fetch Data from Local API
-local_api_url = "http://localhost:8000/api/restaurants/geojson/"
+local_api_url = f"http://api:8000/api/restaurants/geojson/?lat={lat}&lng={lng}&distance={distance}"
+# local_api_url = "http://api:8000/api/restaurants/geojson/"
+
 response = requests.get(local_api_url)
 data = response.json()
-
 # Extract features list from FeatureCollection
 features = data.get("features", [])
+print("features:", len(features))
 
 # Define color mapping based on hygiene rating
 def get_color(rating):
@@ -42,9 +50,10 @@ def get_color(rating):
             return "blue"  # Unknown rating
     except (ValueError, TypeError):
         return "blue"  # Default for invalid ratings
-
+count = 0
 # Iterate through the GeoJSON features and add markers
 for feature in features:
+    count += 1
     geometry = feature.get("geometry", {})
     properties = feature.get("properties", {})
     
@@ -84,6 +93,13 @@ for feature in features:
                 popup=popup,
                 icon=folium.Icon(color=color, icon="cutlery", prefix="fa")
             ).add_to(m)
-
+print("Count:", count)
 # Save the map to an HTML file
-m.save('templates/maps/nycmap.html')
+
+# Get the directory where the current script is located
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Build the output file path relative to the script's location
+output_file = os.path.join(current_dir, "templates", "maps", "nycmap.html")
+# Ensure the target directory exists
+os.makedirs(os.path.dirname(output_file), exist_ok=True)
+m.save(output_file)
