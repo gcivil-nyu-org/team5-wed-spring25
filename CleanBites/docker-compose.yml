@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   api:
     build:
       context: .
-      dockerfile: _api/Dockerfile
+      dockerfile: ./Dockerfile
     ports:
       - "8000:8000"
     env_file:
@@ -14,21 +12,21 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
+    # volumes:
+    #   - ./staticfiles:/app/staticfiles
     volumes:
-      - ./staticfiles:/app/staticfiles
-
-  frontend:
+      - .:/app  # Mounts the entire project directory to /app in the container
+  nycmap:
     build:
       context: .
-      dockerfile: _frontend/Dockerfile
-    ports:
-      - "8001:8001"
+      dockerfile: ./Dockerfile
+    command: python _frontend/nycmap.py
     env_file:
       - .env
-    depends_on:
-      - api
     networks:
       - cleanbites-network
+    volumes:
+      - .:/app  # Syncs local changes inside the container in real-time
 
 networks:
   cleanbites-network:
