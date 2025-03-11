@@ -4,14 +4,13 @@ python:
   - 3.7
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y install \
-  - gnupg2 \
-  - binutils \
-  - gdal-bin \
-  - libproj-dev \
-  - libgdal-dev \
-  - libgeos-dev \
-  - libpq-dev
+  - sudo apt-get -y install gnupg2
+  - sudo apt-get -y install binutils
+  - sudo apt-get -y install gdal-bin
+  - sudo apt-get -y install libproj-dev
+  - sudo apt-get -y install libgdal-dev
+  - sudo apt-get -y install libgeos-dev
+  - sudo apt-get -y install libpq-dev
 
 install:
   - cd CleanBites
