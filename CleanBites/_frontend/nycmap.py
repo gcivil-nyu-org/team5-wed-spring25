@@ -1,8 +1,6 @@
 import folium
 import requests
 import json
-import random
-
 from shapely.geometry import shape, Point
 
 # Load NYC boundary from GeoJSON
