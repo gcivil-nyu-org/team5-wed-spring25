@@ -66,7 +66,7 @@ class RestaurantGeoJSONView(APIView):
                     "cuisine": restaurant.cuisine_description,
                     "rating": restaurant.hygiene_rating
                 }
-            )
+            })
 
         return Response(geojson_data)
 
