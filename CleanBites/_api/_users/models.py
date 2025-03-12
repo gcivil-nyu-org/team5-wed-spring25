@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Customer(models.Model):
     id = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=255)
@@ -22,11 +23,17 @@ class Moderator(models.Model):
 
 class DM(models.Model):
     id = models.AutoField(primary_key=True)
-    sender = models.ForeignKey(Customer, related_name="sent_dms", on_delete=models.CASCADE)
-    receiver = models.ForeignKey(Customer, related_name="received_dms", on_delete=models.CASCADE)
+    sender = models.ForeignKey(
+        Customer, related_name="sent_dms", on_delete=models.CASCADE
+    )
+    receiver = models.ForeignKey(
+        Customer, related_name="received_dms", on_delete=models.CASCADE
+    )
     message = models.BinaryField()  # BYTEA for binary message storage
     flagged = models.BooleanField(default=False)
-    flagged_by = models.ForeignKey(Moderator, null=True, blank=True, on_delete=models.SET_NULL)
+    flagged_by = models.ForeignKey(
+        Moderator, null=True, blank=True, on_delete=models.SET_NULL
+    )
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

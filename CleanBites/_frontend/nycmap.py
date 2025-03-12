@@ -6,21 +6,26 @@ import random
 from shapely.geometry import shape, Point
 
 # Load NYC boundary from GeoJSON
-NYC_GEOJSON_URL = "https://raw.githubusercontent.com/dwillis/nyc-maps/master/boroughs.geojson"
+NYC_GEOJSON_URL = (
+    "https://raw.githubusercontent.com/dwillis/nyc-maps/master/boroughs.geojson"
+)
 nyc_geojson = requests.get(NYC_GEOJSON_URL).json()
 
 # Convert NYC boroughs to Shapely polygons
 nyc_polygons = [shape(feature["geometry"]) for feature in nyc_geojson["features"]]
+
 
 def is_in_nyc(lat, lon):
     """Check if a point is inside NYC boroughs using GeoJSON data."""
     point = Point(lon, lat)  # Shapely uses (lon, lat) order
     return any(polygon.contains(point) for polygon in nyc_polygons)
 
+
 # Create NYC Map
 f = folium.Figure(width=1000, height=500)
-m = folium.Map(location=(40.7128, -74.0060), tiles="openstreetmap",
-               zoom_start=12, min_zoom=10).add_to(f)
+m = folium.Map(
+    location=(40.7128, -74.0060), tiles="openstreetmap", zoom_start=12, min_zoom=10
+).add_to(f)
 
 # Overpass API Query
 overpass_url = "http://overpass-api.de/api/interpreter"
@@ -35,15 +40,19 @@ out center;
 """
 
 # Fetch Data from Overpass API
-response = requests.get(overpass_url, params={'data': overpass_query})
+response = requests.get(overpass_url, params={"data": overpass_query})
 data = response.json()
 
 # Reduce markers & filter only NYC locations
 filtered_elements = [
-    element for element in data['elements'][::12]  # Reduce density
+    element
+    for element in data["elements"][::12]  # Reduce density
     if (
-        ('lat' in element and is_in_nyc(element['lat'], element['lon'])) or
-        ('center' in element and is_in_nyc(element['center']['lat'], element['center']['lon']))
+        ("lat" in element and is_in_nyc(element["lat"], element["lon"]))
+        or (
+            "center" in element
+            and is_in_nyc(element["center"]["lat"], element["center"]["lon"])
+        )
     )
 ]
 
@@ -55,22 +64,22 @@ colors = ["green", "orange", "red"]
 for element in filtered_elements:
     # Determine the latitude/longitude
 
-    if 'lat' in element and 'lon' in element:
-        lat, lon = element['lat'], element['lon']
-    elif 'center' in element:
-        lat, lon = element['center']['lat'], element['center']['lon']
+    if "lat" in element and "lon" in element:
+        lat, lon = element["lat"], element["lon"]
+    elif "center" in element:
+        lat, lon = element["center"]["lat"], element["center"]["lon"]
     else:
         continue
-       
+
     # Extract tags and details
-    tags = element.get('tags', {})
-    name = tags.get('name', 'Unnamed Restaurant')
-    cuisine = tags.get('cuisine', 'Cuisine not available')
+    tags = element.get("tags", {})
+    name = tags.get("name", "Unnamed Restaurant")
+    cuisine = tags.get("cuisine", "Cuisine not available")
 
     # Build address from available address tags
-    addr_housenumber = tags.get('addr:housenumber', '')
-    addr_street = tags.get('addr:street', '')
-    addr_city = tags.get('addr:city', '')
+    addr_housenumber = tags.get("addr:housenumber", "")
+    addr_street = tags.get("addr:street", "")
+    addr_city = tags.get("addr:city", "")
     address_parts = []
     street_info = f"{addr_housenumber} {addr_street}".strip()
     if street_info:
@@ -89,8 +98,6 @@ for element in filtered_elements:
         hygiene_rating = "B"
     else:  # color == "red"
         hygiene_rating = "C"
-
-
 
     popup_html = f"""
     <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
@@ -122,8 +129,8 @@ for element in filtered_elements:
     folium.Marker(
         location=[lat, lon],
         popup=popup,
-        icon=folium.Icon(color=color, icon="cutlery", prefix="fa")
+        icon=folium.Icon(color=color, icon="cutlery", prefix="fa"),
     ).add_to(m)
 
 # Save the map to an HTML file
-m.save('templates/maps/nycmap.html')
+m.save("templates/maps/nycmap.html")

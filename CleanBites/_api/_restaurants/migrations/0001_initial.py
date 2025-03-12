@@ -4,29 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Restaurant',
+            name="Restaurant",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('email', models.EmailField(max_length=255)),
-                ('phone', models.CharField(max_length=15)),
-                ('menu', models.BinaryField(blank=True, null=True)),
-                ('building', models.IntegerField()),
-                ('street', models.CharField(max_length=255)),
-                ('zipcode', models.CharField(max_length=10)),
-                ('hygiene_rating', models.IntegerField()),
-                ('inspection_date', models.DateField()),
-                ('borough', models.IntegerField()),
-                ('cuisine_description', models.CharField(max_length=255)),
-                ('violation_description', models.TextField()),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=255)),
+                ("email", models.EmailField(max_length=255)),
+                ("phone", models.CharField(max_length=15)),
+                ("menu", models.BinaryField(blank=True, null=True)),
+                ("building", models.IntegerField()),
+                ("street", models.CharField(max_length=255)),
+                ("zipcode", models.CharField(max_length=10)),
+                ("hygiene_rating", models.IntegerField()),
+                ("inspection_date", models.DateField()),
+                ("borough", models.IntegerField()),
+                ("cuisine_description", models.CharField(max_length=255)),
+                ("violation_description", models.TextField()),
             ],
         ),
     ]
