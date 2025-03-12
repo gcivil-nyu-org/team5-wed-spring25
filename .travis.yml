@@ -6,6 +6,8 @@ python:
 branches:
     only:
     - main
+    - chz9577_dev_branch
+    - develop
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install gnupg2

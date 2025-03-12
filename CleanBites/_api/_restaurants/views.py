@@ -50,21 +50,27 @@ class RestaurantGeoJSONView(APIView):
         geojson_data = {"type": "FeatureCollection", "features": []}
 
         for restaurant in restaurants:
-            geojson_data["features"].append({
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [
-                        restaurant.geo_coords.x if restaurant.geo_coords else 0,  # Longitude (X)
-                        restaurant.geo_coords.y if restaurant.geo_coords else 0   # Latitude (Y)
-                    ]
-                },
-                "properties": {
-                    "name": restaurant.name,
-                    "address": f"{restaurant.building} {restaurant.street}, {restaurant.zipcode}",
-                    "borough": restaurant.borough,
-                    "cuisine": restaurant.cuisine_description,
-                    "rating": restaurant.hygiene_rating
+            geojson_data["features"].append(
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            (
+                                restaurant.geo_coords.x if restaurant.geo_coords else 0
+                            ),  # Longitude (X)
+                            (
+                                restaurant.geo_coords.y if restaurant.geo_coords else 0
+                            ),  # Latitude (Y)
+                        ],
+                    },
+                    "properties": {
+                        "name": restaurant.name,
+                        "address": f"{restaurant.building} {restaurant.street}, {restaurant.zipcode}",
+                        "borough": restaurant.borough,
+                        "cuisine": restaurant.cuisine_description,
+                        "rating": restaurant.hygiene_rating,
+                    },
                 }
             )
 
