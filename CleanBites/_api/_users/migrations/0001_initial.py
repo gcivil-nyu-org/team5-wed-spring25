@@ -6,57 +6,104 @@ import django.db.models.expressions
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('_restaurants', '0001_initial'),
+        ("_restaurants", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Customer',
+            name="Customer",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('first_name', models.CharField(max_length=255)),
-                ('last_name', models.CharField(max_length=255)),
-                ('email', models.EmailField(max_length=254, unique=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("first_name", models.CharField(max_length=255)),
+                ("last_name", models.CharField(max_length=255)),
+                ("email", models.EmailField(max_length=254, unique=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Moderator',
+            name="Moderator",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('first_name', models.CharField(max_length=255)),
-                ('last_name', models.CharField(max_length=255)),
-                ('email', models.EmailField(max_length=254)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("first_name", models.CharField(max_length=255)),
+                ("last_name", models.CharField(max_length=255)),
+                ("email", models.EmailField(max_length=254)),
             ],
         ),
         migrations.CreateModel(
-            name='DM',
+            name="DM",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('message', models.BinaryField()),
-                ('flagged', models.BooleanField(default=False)),
-                ('sent_at', models.DateTimeField(auto_now_add=True)),
-                ('flagged_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='_users.moderator')),
-                ('receiver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='received_dms', to='_users.customer')),
-                ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sent_dms', to='_users.customer')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("message", models.BinaryField()),
+                ("flagged", models.BooleanField(default=False)),
+                ("sent_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "flagged_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="_users.moderator",
+                    ),
+                ),
+                (
+                    "receiver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="received_dms",
+                        to="_users.customer",
+                    ),
+                ),
+                (
+                    "sender",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sent_dms",
+                        to="_users.customer",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='FavoriteRestaurant',
+            name="FavoriteRestaurant",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='_users.customer')),
-                ('restaurant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='_restaurants.restaurant')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="_users.customer",
+                    ),
+                ),
+                (
+                    "restaurant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="_restaurants.restaurant",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('customer', 'restaurant')},
+                "unique_together": {("customer", "restaurant")},
             },
         ),
         migrations.AddConstraint(
-            model_name='dm',
-            constraint=models.CheckConstraint(check=models.Q(('sender', django.db.models.expressions.F('receiver')), _negated=True), name='chk_dm_sender_receiver'),
+            model_name="dm",
+            constraint=models.CheckConstraint(
+                check=models.Q(
+                    ("sender", django.db.models.expressions.F("receiver")),
+                    _negated=True,
+                ),
+                name="chk_dm_sender_receiver",
+            ),
         ),
     ]
