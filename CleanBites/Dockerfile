@@ -33,6 +33,7 @@ COPY /CleanBites /app/CleanBites
 COPY _frontend /app/_frontend/ 
 COPY _api /app/_api/ 
 COPY manage.py /app/
+COPY utils.py /app/
 
 EXPOSE 8000
 
