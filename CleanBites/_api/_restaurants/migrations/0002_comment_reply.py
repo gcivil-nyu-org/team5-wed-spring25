@@ -5,37 +5,76 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('_users', '0001_initial'),
-        ('_restaurants', '0001_initial'),
+        ("_users", "0001_initial"),
+        ("_restaurants", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Comment',
+            name="Comment",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('comment', models.BinaryField(blank=True, null=True)),
-                ('karma', models.IntegerField(default=0)),
-                ('flagged', models.BooleanField(default=False)),
-                ('posted_at', models.DateTimeField(auto_now_add=True)),
-                ('commenter', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='_users.customer')),
-                ('flagged_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='_users.moderator')),
-                ('restaurant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='_restaurants.restaurant')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("comment", models.BinaryField(blank=True, null=True)),
+                ("karma", models.IntegerField(default=0)),
+                ("flagged", models.BooleanField(default=False)),
+                ("posted_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "commenter",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="_users.customer",
+                    ),
+                ),
+                (
+                    "flagged_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="_users.moderator",
+                    ),
+                ),
+                (
+                    "restaurant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="_restaurants.restaurant",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Reply',
+            name="Reply",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('reply', models.BinaryField(blank=True, null=True)),
-                ('karma', models.IntegerField(default=0)),
-                ('flagged', models.BooleanField(default=False)),
-                ('posted_at', models.DateTimeField(auto_now_add=True)),
-                ('comment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='_restaurants.comment')),
-                ('commenter', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='_users.customer')),
-                ('flagged_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='_users.moderator')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("reply", models.BinaryField(blank=True, null=True)),
+                ("karma", models.IntegerField(default=0)),
+                ("flagged", models.BooleanField(default=False)),
+                ("posted_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "comment",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="_restaurants.comment",
+                    ),
+                ),
+                (
+                    "commenter",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="_users.customer",
+                    ),
+                ),
+                (
+                    "flagged_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="_users.moderator",
+                    ),
+                ),
             ],
         ),
     ]
