@@ -19,8 +19,7 @@ before_install:
   - sudo apt-get -y install libpq-dev
 
 install:
-  - cd CleanBites
-  - pip install -r requirements.txt
+  - pip install -r CleanBites/requirements.txt
 
 before_script:
   - python manage.py migrate
