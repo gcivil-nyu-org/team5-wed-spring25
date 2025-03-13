@@ -1,41 +1,64 @@
-FROM python:3.8.10-slim
+# Use Amazon Linux 2023 as the base image
+FROM amazonlinux:2023
 
-# Install system dependencies for GeoDjango
-RUN apt-get update && \
-    apt-get install -y gnupg2 && \
-    apt-key update && \
-    apt-get update && \
-    apt-get install -y \
-    binutils \
-    gdal-bin \
-    # PROJ
-    libproj-dev \
-    # GDAL
-    libgdal-dev \
-    # GEOS
-    libgeos-dev \
-    # PostGIS
-    libpq-dev \
-    # reduce image size
-    && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN dnf update -y && \
+    dnf install -y \
+    gcc gcc-c++ make \
+    wget tar unzip \
+    sqlite sqlite-devel \
+    postgresql-devel \
+    libpq-devel \
+    expat expat-devel \
+    util-linux \
+    && dnf clean all
 
+ENV CONDA_OVERRIDE_CUDA="true"
+ENV CONDA_NO_CUDA="1"
+ENV CONDA_MAX_MEMORY=2500
+ENV CONDA_INSTALL_THREADS=1
+
+# Install Miniconda for GIS tools
+RUN wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    chmod +x Miniconda3.sh && \
+    ./Miniconda3.sh -b -p /opt/conda && \
+    rm Miniconda3.sh
+
+# Add Conda to PATH
+ENV PATH="/opt/conda/bin:$PATH"
+
+# Create a lightweight Conda environment and install Python 3.9
+RUN conda create -y -n cleanbites-env python=3.9 && \
+    conda clean --all
+
+# Activate the Conda environment
+ENV CONDA_DEFAULT_ENV=cleanbites-env
+ENV PATH="/opt/conda/envs/cleanbites-env/bin:$PATH"
+
+# Install specific versions of GDAL, GEOS, and PROJ inside the Conda environment
+RUN conda install -y -c conda-forge \
+    gdal \
+    psycopg2 \
+    && conda clean --all
+
+# Set working directory
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
+# Copy requirements first
 COPY ./requirements.txt .
 
-# Install dependencies
+# Install Python dependencies using Conda's Python 3.9
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the full Django project, including `CleanBites/`
+# Copy the Django project
 COPY ./CleanBites /app/CleanBites
-COPY ./_frontend /app/_frontend/ 
-COPY ./_api /app/_api/ 
+COPY ./_frontend /app/_frontend
+COPY ./_api /app/_api
 COPY ./manage.py /app/
 
 EXPOSE 8000
 
-# Set PYTHONPATH to include `/app`
+# Set PYTHONPATH
 ENV PYTHONPATH="/app"
 
 # Run Gunicorn
