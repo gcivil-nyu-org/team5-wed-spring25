@@ -1,0 +1,16 @@
+{
+    "AWSEBDockerrunVersion": "3",
+    "containerDefinitions": {
+        "web": {
+            "image": "730335518224.dkr.ecr.us-west-2.amazonaws.com/cleanbites",
+            "memory": 512,
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8000,
+                    "hostPort": 8000
+                }
+            ]
+        }
+    }
+}
