@@ -5,6 +5,7 @@ from .views import (
     RestaurantListView,
     RestaurantAddressListView,
     RestaurantGeoJSONView,
+    DynamicNYCMapView,
     CommentViewSet,
     ReplyViewSet,
 )
