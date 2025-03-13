@@ -5,6 +5,7 @@ from .views import (
     RestaurantListView,
     RestaurantAddressListView,
     RestaurantGeoJSONView,
+    DynamicNYCMapView,
     CommentViewSet,
     ReplyViewSet,
 )
@@ -21,4 +22,5 @@ urlpatterns = [
         "addresses/", RestaurantAddressListView.as_view(), name="restaurant-addresses"
     ),
     path("geojson/", RestaurantGeoJSONView.as_view(), name="restaurant-geojson"),
+    path("dynamic/", DynamicNYCMapView.as_view(), name="restaurant-dynamic-map"),
 ]

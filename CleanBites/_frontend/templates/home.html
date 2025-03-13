@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NYC Map with Menu & Search</title>
+  <style>
+    /* styling */
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    nav ul li {
+      margin-right: 15px;
+    }
+    nav ul li a {
+      color: #fff;
+      text-decoration: none;
+    }
+    .search-bar input {
+      padding: 5px;
+      font-size: 1em;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <!-- <nav>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Map</a></li>
+        <li><a href="#">About</a></li>
+      </ul>
+    </nav> -->
+    <!-- search bar -->
+    <div class="search-bar">
+      <input type="text" id="search-name" placeholder="Restaurant Name">
+      <input type="text" id="search-rating" placeholder="Hygiene Rating">
+      <input type="text" id="search-cuisine" placeholder="Cuisine">
+      <input type="text" id="search-distance" placeholder="Distance (km)">
+      <button type="button" onclick="performSearch()">Search</button>
+    </div>
+  </header>
+  <main>
+    <!-- embed folium map using an iframe -->
+    <iframe id="map-frame" src="/frontend/nycmap/" width="100%" height="600" style="border:none;"></iframe>
+  </main>
+
+  <script>
+    function performSearch() {
+      const name = document.getElementById('search-name').value;
+      const rating = document.getElementById('search-rating').value;
+      const cuisine = document.getElementById('search-cuisine').value;
+      const distance = document.getElementById('search-distance').value;
+      
+      // MAKE THIS DYNAMIC LATER
+      const lat = 40.69455789521935;
+      const lng = -73.9865872293045;
+
+      // query parameters
+      const params = new URLSearchParams({
+        lat: lat,
+        lng: lng,
+        distance: distance,
+        name: name,
+        rating: rating,
+        cuisine: cuisine
+      });
+
+      // update iframe's source to trigger new map generation
+      document.getElementById('map-frame').src = "/api/restaurants/dynamic/?" + params.toString();
+    }
+  </script>
+</body>
+</html>

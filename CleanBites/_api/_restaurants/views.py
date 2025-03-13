@@ -10,6 +10,14 @@ from .models import Restaurant, Comment, Reply
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.http import HttpResponse
+from django.views import View
+
+from utils import (
+    get_restaurants,
+    restaurant_to_feature,
+    create_nyc_map,
+)
 
 
 # Create your views here.
@@ -43,38 +51,19 @@ class RestaurantAddressListView(generics.ListAPIView):
 
 
 class RestaurantGeoJSONView(APIView):
-    """Returns restaurant data as GeoJSON format for mapping"""
-
     def get(self, request):
-        restaurants = Restaurant.objects.all()
-        geojson_data = {"type": "FeatureCollection", "features": []}
-
-        for restaurant in restaurants:
-            geojson_data["features"].append(
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            (
-                                restaurant.geo_coords.x if restaurant.geo_coords else 0
-                            ),  # Longitude (X)
-                            (
-                                restaurant.geo_coords.y if restaurant.geo_coords else 0
-                            ),  # Latitude (Y)
-                        ],
-                    },
-                    "properties": {
-                        "name": restaurant.name,
-                        "address": f"{restaurant.building} {restaurant.street}, {restaurant.zipcode}",
-                        "borough": restaurant.borough,
-                        "cuisine": restaurant.cuisine_description,
-                        "rating": restaurant.hygiene_rating,
-                    },
-                }
-            )
-
+        restaurants = get_restaurants(request)
+        features = [restaurant_to_feature(r) for r in restaurants]
+        geojson_data = {"type": "FeatureCollection", "features": features}
         return Response(geojson_data)
+
+
+class DynamicNYCMapView(View):
+    def get(self, request):
+        restaurants = get_restaurants(request)
+        features = [restaurant_to_feature(r) for r in restaurants]
+        m = create_nyc_map(features)
+        return HttpResponse(m.get_root().render())
 
 
 class CommentViewSet(viewsets.ModelViewSet):

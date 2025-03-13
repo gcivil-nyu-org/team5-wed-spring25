@@ -34,6 +34,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "CleanBites-env.eba-uajmqqqu.us-west-2.elasticbeanstalk.com",
+    "api",
 ]
 
 
@@ -92,7 +93,8 @@ WSGI_APPLICATION = "CleanBites.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        # "ENGINE": "django.db.backends.postgresql", ****
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
         "NAME": env("DATABASE_NAME"),
         "USER": env("DATABASE_USER"),
         "PASSWORD": env("DATABASE_PASSWORD"),
@@ -100,7 +102,6 @@ DATABASES = {
         "PORT": env("DATABASE_PORT"),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -146,6 +147,8 @@ STATICFILES_DIRS = []
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8001",  # Add frontend URL here

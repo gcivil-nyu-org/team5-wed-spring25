@@ -8,4 +8,5 @@ urlpatterns = [
         views.restaurant_detail,
         name="restaurant_detail",
     ),
+    path("home/", views.home_view, name="home"),
 ]
