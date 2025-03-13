@@ -22,13 +22,13 @@ install:
   - pip install -r CleanBites/requirements.txt
 
 before_script:
-  - python manage.py migrate
-  - python manage.py collectstatic --noinput
+  - python CleanBites/manage.py migrate
+  - python CleanBites/manage.py collectstatic --noinput
 
 script:
   - black --check .
   - flake8 .
-  - coverage run --source=team5-wed-spring25 manage.py test
+  - coverage run --source=team5-wed-spring25 CleanBites/manage.py test
 
 after_script:
   - coveralls
