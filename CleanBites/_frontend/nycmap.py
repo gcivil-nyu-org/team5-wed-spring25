@@ -1,10 +1,11 @@
 # ensure Django loads apps before importing models
 import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'CleanBites.settings')
 import django
+import requests
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CleanBites.settings")
 django.setup()
 
-import requests
 from utils import create_nyc_map
 
 # URL for the RestaurantGeoJSONView endpoint

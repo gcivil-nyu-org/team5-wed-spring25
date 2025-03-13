@@ -54,11 +54,9 @@ class RestaurantGeoJSONView(APIView):
     def get(self, request):
         restaurants = get_restaurants(request)
         features = [restaurant_to_feature(r) for r in restaurants]
-        geojson_data = {
-            "type": "FeatureCollection",
-            "features": features
-        }
+        geojson_data = {"type": "FeatureCollection", "features": features}
         return Response(geojson_data)
+
 
 class DynamicNYCMapView(View):
     def get(self, request):
@@ -66,7 +64,8 @@ class DynamicNYCMapView(View):
         features = [restaurant_to_feature(r) for r in restaurants]
         m = create_nyc_map(features)
         return HttpResponse(m.get_root().render())
- 
+
+
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
