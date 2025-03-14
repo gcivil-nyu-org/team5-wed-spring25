@@ -6,7 +6,7 @@ ECR_REPO="730335518224.dkr.ecr.us-west-2.amazonaws.com/cleanbites"
 EB_ENV="CleanBites-amznlnx-docker-stable-env"
 
 echo "🚀 Building Docker image..."
-docker build --no-cache -t cleanbites .
+docker build -t cleanbites .
 
 echo "🔑 Authenticating AWS ECR..."
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
