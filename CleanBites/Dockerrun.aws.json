@@ -1,16 +1,43 @@
 {
-    "AWSEBDockerrunVersion": "3",
-    "containerDefinitions": {
-        "web": {
-            "image": "730335518224.dkr.ecr.us-west-2.amazonaws.com/cleanbites",
-            "memory": 512,
-            "essential": true,
-            "portMappings": [
-                {
-                    "containerPort": 8000,
-                    "hostPort": 8000
-                }
-            ]
-        }
-    }
-}
+    "AWSEBDockerrunVersion": "1",
+    "Image": {
+      "Name": "730335518224.dkr.ecr.us-west-2.amazonaws.com/cleanbites:latest",
+      "Update": "true"
+    },
+    "Ports": [
+      {
+        "ContainerPort": "8000"
+      }
+    ],
+    "Environment": [
+      {
+        "Name": "DEBUG",
+        "Value": "0"
+      },
+      {
+        "Name": "DATABASE_NAME",
+        "Value": "database-clean-bites"
+      },
+      {
+        "Name": "DATABASE_USER",
+        "Value": "cleanbites"
+      },
+      {
+        "Name": "DATABASE_PASSWORD",
+        "Value": "cleanbites123"
+      },
+      {
+        "Name": "DATABASE_HOST",
+        "Value": "database-clean-bites.c3ayoouwsmcp.us-east-2.rds.amazonaws.com"
+      },
+      {
+        "Name": "DATABASE_PORT",
+        "Value": "5432"
+      },
+      {
+        "Name": "DJANGO_ALLOWED_HOSTS",
+        "Value": "localhost,127.0.0.1,ec2-54-190-192-108.us-west-2.compute.amazonaws.com,CleanBites-env.eba-uajmqqqu.us-west-2.elasticbeanstalk.com"
+      }
+    ]
+  }
+  
