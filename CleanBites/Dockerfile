@@ -46,6 +46,7 @@ WORKDIR /app
 
 # Copy requirements first
 COPY ./requirements.txt .
+COPY ./utils.py /app/
 
 # Install Python dependencies using Conda's Python 3.9
 RUN pip install --no-cache-dir -r requirements.txt
