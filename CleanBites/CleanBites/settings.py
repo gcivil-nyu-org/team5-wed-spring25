@@ -29,13 +29,15 @@ SECRET_KEY = "django-insecure-sv-x4mn5*eh6!r5=g@pk24v5=rc!_@8@^85rhyb*a9ho7miys^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['ec2-54-190-192-108.us-west-2.compute.amazonaws.com',
-                 "localhost",
-                 "127.0.0.1",
-                 'CleanBites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com',
-                 "cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
-                 "172.31.38.6",
-                 "api"]
+ALLOWED_HOSTS = [
+    "ec2-54-190-192-108.us-west-2.compute.amazonaws.com",
+    "localhost",
+    "127.0.0.1",
+    "CleanBites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
+    "cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
+    "172.31.38.6",
+    "api",
+]
 
 
 # Application definition
