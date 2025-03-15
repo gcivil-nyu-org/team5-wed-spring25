@@ -32,11 +32,10 @@ script:
 
 after_script:
   - coveralls
+  - cd CleanBites
 
 deploy:
   provider: script
-  before_script:
-    - cd CleanBites
   script: bash travisdeploy.sh
   on:
     branch: chz9577_dev_branch
