@@ -35,7 +35,9 @@ after_script:
 
 deploy:
   provider: script
-  script: bash CleanBites/deploy.sh
+  script: 
+    - cd CleanBites
+    - bash travisdeploy.sh
   on:
     branch: chz9577_dev_branch
 
