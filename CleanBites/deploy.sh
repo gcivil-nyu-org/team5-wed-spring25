@@ -18,9 +18,9 @@ echo "📤 Pushing image to AWS ECR..."
 docker push $ECR_REPO:latest
 
 echo "🔧 Running cleanup commands on instance..."
-powershell.exe -Command "eb ssh $EB_ENV --command 'sudo docker rm -f \$(sudo docker ps -aq); sudo docker system prune -a -f'"
+eb ssh $EB_ENV --command 'sudo docker rm -f \$(sudo docker ps -aq); sudo docker system prune -a -f'
 
 echo "📦 Deploying to Elastic Beanstalk..."
-powershell.exe -Command "eb deploy $EB_ENV"
+eb deploy $EB_ENV
 
 echo "✅ Deployment completed!"
