@@ -95,4 +95,4 @@ def register_view(request):
 
         return redirect("home")  # Redirect to homepage after registration
 
-    return render(request, "register.html")
+    return redirect("/")
