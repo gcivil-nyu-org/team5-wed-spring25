@@ -21,7 +21,6 @@ Run the following command to build the Docker image:
 ```sh
 docker-compose build
 ```
-
 ---
 
 ### 2️⃣ Start the Application in a Docker Container

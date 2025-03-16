@@ -81,6 +81,7 @@ def fetch_and_store_data():
                         "violation_description": clean_string(
                             item.get("violation_description", "No Violation")
                         ),
+                        "geo_coords": geo_point,
                     },
                 )
 
