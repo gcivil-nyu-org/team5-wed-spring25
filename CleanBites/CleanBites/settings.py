@@ -50,13 +50,21 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.gis",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "_frontend",
     "_api",
     "_api._restaurants",
     "_api._users",
     "rest_framework",
     "corsheaders",
+    "bootstrap5",
 ]
+
+SITE_ID = env.int("DJANGO_SITE_ID", default=3)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -67,6 +75,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "CleanBites.urls"
@@ -97,11 +106,11 @@ DATABASES = {
     "default": {
         # "ENGINE": "django.db.backends.postgresql", ****
         "ENGINE": "django.contrib.gis.db.backends.postgis",
-        "NAME": env("DATABASE_NAME"),
-        "USER": env("DATABASE_USER"),
-        "PASSWORD": env("DATABASE_PASSWORD"),
-        "HOST": env("DATABASE_HOST"),
-        "PORT": env("DATABASE_PORT"),
+        "NAME": env("DATABASE_NAME", default="postgres"),
+        "USER": env("DATABASE_USER", default="cleanbites"),
+        "PASSWORD": env("DATABASE_PASSWORD", default="password"),
+        "HOST": env("DATABASE_HOST", default="host"),
+        "PORT": env("DATABASE_PORT", default="5432"),
     }
 }
 
@@ -142,8 +151,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
-STATICFILES_DIRS = []
+STATIC_ROOT = os.path.join(BASE_DIR, "collected_static")
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "staticfiles"),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
@@ -164,3 +175,21 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
 }
+
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Google OAuth settings (replace with your client ID & secret)
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    }
+}
+
+LOGIN_URL = "/"
+LOGIN_REDIRECT_URL = "/home/"
+LOGOUT_REDIRECT_URL = "/"

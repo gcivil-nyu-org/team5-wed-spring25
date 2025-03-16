@@ -48,6 +48,7 @@ WORKDIR /app
 COPY ./requirements.txt .
 COPY ./utils.py /app/
 
+
 # Install Python dependencies using Conda's Python 3.9
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -56,6 +57,11 @@ COPY ./CleanBites /app/CleanBites
 COPY ./_frontend /app/_frontend
 COPY ./_api /app/_api
 COPY ./manage.py /app/
+
+COPY ./staticfiles /app/staticfiles
+# Need to collect static files for frontend
+RUN mkdir -p /app/static
+RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
