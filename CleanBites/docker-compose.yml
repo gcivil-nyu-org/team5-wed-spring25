@@ -14,8 +14,6 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
-    # volumes:
-    #   - ./staticfiles:/app/staticfiles
     volumes:
       - .:/app  # Mounts the entire project directory to /app in the container
   nycmap:
