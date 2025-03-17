@@ -110,7 +110,7 @@ def create_nyc_map(features, base_url):
                 popup_html = f"""
                 <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
                     <div style="font-size: 14pt; font-weight: bold; margin-bottom: 4px;">
-                    <a href="{base_url}{properties.get("name", "Unnamed Restaurant")}/" target="_blank" 
+                    <a href="{base_url}{properties.get("name", "Unnamed Restaurant")}/" target="_blank"
                     style="text-decoration: none; color: #1a73e8;">
                         {properties.get("name", "Unnamed Restaurant")}
                     </a>
