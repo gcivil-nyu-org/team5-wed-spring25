@@ -6,6 +6,7 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
 from _api._restaurants.models import Restaurant  # adjust import as needed
 from shapely.geometry import shape, Point as ShapelyPoint
+from django.conf import settings
 
 # Load NYC boundary from GeoJSON
 NYC_GEOJSON_URL = (
@@ -93,7 +94,7 @@ def get_color(rating):
 
 
 # create Folium map
-def create_nyc_map(features, base_url):
+def create_nyc_map(features):
     f = folium.Figure(width=1000, height=500)
     m = folium.Map(
         location=(40.7128, -74.0060), tiles="openstreetmap", zoom_start=12, min_zoom=10
@@ -109,8 +110,8 @@ def create_nyc_map(features, base_url):
             if lat is not None and lon is not None and is_in_nyc(lat, lon):
                 popup_html = f"""
                 <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
-                    <div style="font-size: 14pt; font-weight: bold; margin-bottom: 4px;">
-                    <a href="{base_url}{properties.get("name", "Unnamed Restaurant")}/" target="_blank" style="text-decoration: none; color: #1a73e8;">
+                    <a href="{settings.BASE_URL}restaurant/{properties.get("name", "Unnamed Restaurant")}/" target="_blank"
+                    style="text-decoration: none; color: #1a73e8;">
                         {properties.get("name", "Unnamed Restaurant")}
                     </a>
                     </div>
