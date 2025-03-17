@@ -110,6 +110,7 @@ def create_nyc_map(features):
             if lat is not None and lon is not None and is_in_nyc(lat, lon):
                 popup_html = f"""
                 <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
+                    <div style="font-size: 14pt; font-weight: bold; margin-bottom: 4px;">
                     <a href="{settings.BASE_URL}restaurant/{properties.get("name", "Unnamed Restaurant")}/" target="_blank"
                     style="text-decoration: none; color: #1a73e8;">
                         {properties.get("name", "Unnamed Restaurant")}

@@ -2,7 +2,6 @@
 import os
 import django
 import requests
-from django.conf import settings
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CleanBites.settings")
 django.setup()
