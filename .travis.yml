@@ -13,7 +13,7 @@ services:
 
 before_install:
   - cd CleanBites
-  - docker build -t team5-wed-spring25 .
+  - docker-compose build
 
 install:
   - pip install awscli  
