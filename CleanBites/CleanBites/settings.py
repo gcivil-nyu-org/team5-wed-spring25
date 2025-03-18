@@ -193,3 +193,4 @@ SOCIALACCOUNT_PROVIDERS = {
 LOGIN_URL = "/"
 LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/"
+BASE_URL = "http://cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com/"

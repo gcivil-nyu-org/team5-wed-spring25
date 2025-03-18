@@ -6,6 +6,7 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
 from _api._restaurants.models import Restaurant  # adjust import as needed
 from shapely.geometry import shape, Point as ShapelyPoint
+from django.conf import settings
 
 # Load NYC boundary from GeoJSON
 NYC_GEOJSON_URL = (
@@ -98,7 +99,6 @@ def create_nyc_map(features):
     m = folium.Map(
         location=(40.7128, -74.0060), tiles="openstreetmap", zoom_start=12, min_zoom=10
     ).add_to(f)
-
     for feature in features:
         geometry = feature.get("geometry", {})
         properties = feature.get("properties", {})
@@ -111,7 +111,11 @@ def create_nyc_map(features):
                 popup_html = f"""
                 <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
                     <div style="font-size: 14pt; font-weight: bold; margin-bottom: 4px;">
+                    <a href="{settings.BASE_URL}restaurant/{properties.get("name", "Unnamed Restaurant")}/"
+                      target="_blank"
+                    style="text-decoration: none; color: #1a73e8;">
                         {properties.get("name", "Unnamed Restaurant")}
+                    </a>
                     </div>
                     <div style="font-size: 10pt; margin-bottom: 4px;">
                         Cuisine: {properties.get("cuisine", "N/A")}
@@ -125,8 +129,9 @@ def create_nyc_map(features):
                     </div>
                 </div>
                 """
-                iframe = folium.IFrame(html=popup_html, width=260, height=140)
-                popup = folium.Popup(iframe, max_width=300)
+                iframe_height = 170 if properties.get("address") else 150
+                iframe = folium.IFrame(html=popup_html, width=270, height=iframe_height)
+                popup = folium.Popup(iframe, max_width="auto")
                 color = get_color(properties.get("rating", -1))
                 folium.Marker(
                     location=[lat, lon],

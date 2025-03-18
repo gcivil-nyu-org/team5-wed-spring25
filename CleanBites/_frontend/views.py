@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from .models import Restaurant
+from _api._restaurants.models import Restaurant
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
@@ -28,8 +28,8 @@ def home_view(request):
 
 
 @login_required(login_url="/login/")
-def restaurant_detail(request, restaurant_id):
-    restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+def restaurant_detail(request, name):
+    restaurant = get_object_or_404(Restaurant, name__iexact=name)
     return render(request, "maps/restaurant_detail.html", {"restaurant": restaurant})
 
 
