@@ -38,7 +38,9 @@ after_script:
 
 deploy:
   provider: script
-  script: bash CleanBites/travis_instance_update.sh
+  script: 
+    - cd CleanBites
+    - bash travis_instance_update.sh
   on:
     branch: chz9577_dev_branch
 
