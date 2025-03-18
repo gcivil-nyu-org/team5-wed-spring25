@@ -31,7 +31,6 @@ before_script:
   - python CleanBites/manage.py collectstatic --noinput
 
 script:
-  - aws --version
   - eb --version
   - black --check .
   - flake8 .
