@@ -9,7 +9,6 @@ branches:
     - chz9577_dev_branch
     - develop
 before_install:
-  - curl -fsSL https://get.docker.com | sh
   - pip install awscli  
   - pip install awsebcli  
 
@@ -17,9 +16,6 @@ install:
   - pip install -r CleanBites/requirements.txt
 
 before_script:
-  - aws --version
-  - docker --version
-  - eb --version
   - python CleanBites/manage.py migrate
   - python CleanBites/manage.py collectstatic --noinput
 
