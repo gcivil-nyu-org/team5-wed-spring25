@@ -111,7 +111,8 @@ def create_nyc_map(features):
                 popup_html = f"""
                 <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
                     <div style="font-size: 14pt; font-weight: bold; margin-bottom: 4px;">
-                    <a href="{settings.BASE_URL}restaurant/{properties.get("name", "Unnamed Restaurant")}/" target="_blank"
+                    <a href="{settings.BASE_URL}restaurant/{properties.get("name", "Unnamed Restaurant")}/"
+                      target="_blank"
                     style="text-decoration: none; color: #1a73e8;">
                         {properties.get("name", "Unnamed Restaurant")}
                     </a>
@@ -128,8 +129,9 @@ def create_nyc_map(features):
                     </div>
                 </div>
                 """
-                iframe = folium.IFrame(html=popup_html, width=260, height=140)
-                popup = folium.Popup(iframe, max_width=300)
+                iframe_height = 170 if properties.get("address") else 150
+                iframe = folium.IFrame(html=popup_html, width=270, height=iframe_height)
+                popup = folium.Popup(iframe, max_width="auto")
                 color = get_color(properties.get("rating", -1))
                 folium.Marker(
                     location=[lat, lon],

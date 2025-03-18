@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import HttpResponse
 from django.views import View
-
+from django.conf import settings
 from utils import (
     get_restaurants,
     restaurant_to_feature,
@@ -62,6 +62,7 @@ class DynamicNYCMapView(View):
     def get(self, request):
         restaurants = get_restaurants(request)
         features = [restaurant_to_feature(r) for r in restaurants]
+
         m = create_nyc_map(features)
         return HttpResponse(m.get_root().render())
 
