@@ -8,9 +8,18 @@ branches:
     - main
     - chz9577_dev_branch
     - develop
+services:
+  - docker
+
 before_install:
-  - pip install awscli  
-  - pip install awsebcli  
+  - sudo apt-get update
+  - sudo apt-get -y install gnupg2
+  - sudo apt-get -y install binutils
+  - sudo apt-get -y install gdal-bin
+  - sudo apt-get -y install libproj-dev
+  - sudo apt-get -y install libgdal-dev
+  - sudo apt-get -y install libgeos-dev
+  - sudo apt-get -y install libpq-dev
 
 install:
   - pip install -r CleanBites/requirements.txt
@@ -23,20 +32,13 @@ script:
   - black --check .
   - flake8 .
   - coverage run --source=team5-wed-spring25 CleanBites/manage.py test
-  - bash CleanBites/travis_instance_update.sh
 
 after_script:
   - coveralls
 
 deploy:
-  provider: elasticbeanstalk
-  access_key_id: "$AWS_ACCESS_ID"
-  secret_access_key: "$AWS_SECRET_KEY"
-  region: "us-west-2"
-  app: "CleanBites-amznlnx-docker-stable"
-  env: "CleanBites-amznlnx-docker-stable-env"
-  bucket_name: "elasticbeanstalk-us-east-1-054037135006"
+  provider: script
+  script: bash CleanBites/travis_instance_update.sh
   on:
-    repo: gcivil-nyu-org/team5-wed-spring25
-    branch: main
-  skip_cleanup: 'true'
+    branch: chz9577_dev_branch
+
