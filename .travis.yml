@@ -35,12 +35,11 @@ script:
 
 after_script:
   - coveralls
+  - cd CleanBites
 
 deploy:
   provider: script
-  script: 
-    - cd CleanBites
-    - bash travis_instance_update.sh
+  script: bash travis_instance_update.sh
   on:
     branch: chz9577_dev_branch
 
