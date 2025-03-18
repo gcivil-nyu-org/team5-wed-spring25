@@ -10913,8 +10913,12 @@ textarea.form-control-lg {
 }
 
 .messages {
-  margin: 20px auto;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 50%;
+  z-index: 1050;
   text-align: center;
 }
 
