@@ -32,10 +32,10 @@ script:
   - black --check .
   - flake8 .
   - coverage run --source=team5-wed-spring25 CleanBites/manage.py test
+  - cd CleanBites
 
 after_script:
   - coveralls
-  - cd CleanBites
 
 deploy:
   provider: script
