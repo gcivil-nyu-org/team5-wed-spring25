@@ -22,6 +22,8 @@ before_install:
   - sudo apt-get -y install libpq-dev
 
 install:
+  - pip install awscli  
+  - pip install awsebcli  
   - pip install -r CleanBites/requirements.txt
 
 before_script:
@@ -29,6 +31,8 @@ before_script:
   - python CleanBites/manage.py collectstatic --noinput
 
 script:
+  - aws --version
+  - eb --version
   - black --check .
   - flake8 .
   - coverage run --source=team5-wed-spring25 CleanBites/manage.py test
