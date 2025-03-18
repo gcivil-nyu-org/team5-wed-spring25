@@ -11,16 +11,19 @@ branches:
 services:
   - docker
 
+before_install:
+  - cd CleanBites
+  - docker build -t CleanBites .
+
 install:
   - pip install awscli  
   - pip install awsebcli  
-  - pip install -r CleanBites/requirements.txt
+  - pip install -r requirements.txt
 
 script:
   - eb --version
   - black --check .
   - flake8 .
-  - cd CleanBites
 
 after_script:
   - coveralls
