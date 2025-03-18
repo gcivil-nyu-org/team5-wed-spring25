@@ -11,24 +11,10 @@ branches:
 services:
   - docker
 
-before_install:
-  - sudo apt-get update
-  - sudo apt-get -y install gnupg2
-  - sudo apt-get -y install binutils
-  - sudo apt-get -y install gdal-bin
-  - sudo apt-get -y install libproj-dev
-  - sudo apt-get -y install libgdal-dev
-  - sudo apt-get -y install libgeos-dev
-  - sudo apt-get -y install libpq-dev
-
 install:
   - pip install awscli  
   - pip install awsebcli  
   - pip install -r CleanBites/requirements.txt
-
-before_script:
-  - python CleanBites/manage.py migrate
-  - python CleanBites/manage.py collectstatic --noinput
 
 script:
   - eb --version
