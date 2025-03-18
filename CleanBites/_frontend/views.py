@@ -6,6 +6,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from _api._users.models import Customer
+from django.contrib import messages
 
 User = get_user_model()
 
