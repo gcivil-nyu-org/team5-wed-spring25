@@ -1,16 +1,16 @@
 # ensure Django loads apps before importing models
 import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'CleanBites.settings')
 import django
+import requests
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CleanBites.settings")
 django.setup()
 
-import requests
 from utils import create_nyc_map
 
 # URL for the RestaurantGeoJSONView endpoint
 api_host = os.environ.get("API_HOST", "api")
 api_url = f"http://{api_host}:8000/api/restaurants/geojson/"
-
 # Pull restaurant data via the API (no query parameters for the static weekly update)
 response = requests.get(api_url)
 data = response.json()

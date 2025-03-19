@@ -1,3 +1,13 @@
+## Main Branch Status
+[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/team5-wed-spring25.svg?token=67pxW7iTgPnDybRzkNKM&branch=main)](https://app.travis-ci.com/gcivil-nyu-org/team5-wed-spring25)
+
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/team5-wed-spring25/badge.svg?branch=main)](https://coveralls.io/github/gcivil-nyu-org/team5-wed-spring25?branch=main)
+
+## Develop Branch Status
+[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/team5-wed-spring25.svg?token=67pxW7iTgPnDybRzkNKM&branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/team5-wed-spring25)
+
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/team5-wed-spring25/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/team5-wed-spring25?branch=develop)
+
 # CleanBites - Setup Guide
 
 # 🛠 Running CleanBites with Docker
@@ -11,7 +21,6 @@ Run the following command to build the Docker image:
 ```sh
 docker-compose build
 ```
-
 ---
 
 ### 2️⃣ Start the Application in a Docker Container

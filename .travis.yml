@@ -1,0 +1,30 @@
+dist: focal
+language: python
+python:
+  - 3.9
+ 
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install gnupg2
+  - sudo apt-get -y install binutils
+  - sudo apt-get -y install gdal-bin
+  - sudo apt-get -y install libproj-dev
+  - sudo apt-get -y install libgdal-dev
+  - sudo apt-get -y install libgeos-dev
+  - sudo apt-get -y install libpq-dev
+
+install:
+  - pip install -r CleanBites/requirements.txt
+
+before_script:
+  - python CleanBites/manage.py migrate
+  - python CleanBites/manage.py collectstatic --noinput
+
+script:
+  - black --check .
+  - flake8 .
+  - coverage run --source=team5-wed-spring25 CleanBites/manage.py test
+
+after_script:
+  - coveralls
+

@@ -9,13 +9,15 @@ from geopy.exc import GeocoderTimedOut
 
 NYC_DATA_URL = "https://data.cityofnewyork.us/resource/43nn-pn8j.json"
 
+
 def clean_int(value, default=0):
     """Convert value to integer safely."""
     try:
         return int(value) if value else default
     except ValueError:
         return default
-    
+
+
 def clean_hygiene_rating(value):
     """Convert score to integer, default to -1 if missing."""
     try:
@@ -23,34 +25,42 @@ def clean_hygiene_rating(value):
     except ValueError:
         return -1
 
+
 def clean_string(value, default="Unknown"):
     """Ensure the value is a valid string."""
     return str(value).strip() if value else default
 
+
 def clean_date(value):
     """Convert date string to Python date object safely."""
     try:
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f").date() if value else None
+        return (
+            datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f").date() if value else None
+        )
     except ValueError:
         return None
-    
+
+
 def clean_email(value):
     """Ensure email is valid, default to 'Not Provided' if missing."""
     return value if value else "Not Provided"
+
 
 # ======================================================================================================
 def fetch_and_store_data():
     """Fetch restaurant data from NYC Open Data and store it in PostgreSQL."""
     response = requests.get(NYC_DATA_URL)
-    
+
     if response.status_code == 200:
         data = response.json()
-        
+
         for item in data:
             try:
                 geo_point = get_coords(item.get("building"), item.get("street"))
                 restaurant, created = Restaurant.objects.update_or_create(
-                    id=clean_int(item.get('camis')),  # NYC API uses 'camis' as unique ID
+                    id=clean_int(
+                        item.get("camis")
+                    ),  # NYC API uses 'camis' as unique ID
                     defaults={
                         "name": clean_string(item.get("dba")),
                         "email": clean_email(item.get("email")),  # Placeholder email
@@ -58,13 +68,21 @@ def fetch_and_store_data():
                         "building": clean_int(item.get("building")),
                         "street": clean_string(item.get("street")),
                         "zipcode": clean_string(item.get("zipcode", "00000")),
-                        "hygiene_rating": clean_hygiene_rating(item.get("score")),  # Hygiene rating is based on score
+                        "hygiene_rating": clean_hygiene_rating(
+                            item.get("score")
+                        ),  # Hygiene rating is based on score
                         "inspection_date": clean_date(item.get("inspection_date")),
-                        "borough": clean_int(item.get("boro")),  # Convert borough to integer
-                        "cuisine_description": clean_string(item.get("cuisine_description")),
-                        "violation_description": clean_string(item.get("violation_description", "No Violation")),
+                        "borough": clean_int(
+                            item.get("boro")
+                        ),  # Convert borough to integer
+                        "cuisine_description": clean_string(
+                            item.get("cuisine_description")
+                        ),
+                        "violation_description": clean_string(
+                            item.get("violation_description", "No Violation")
+                        ),
                         "geo_coords": geo_point,
-                    }
+                    },
                 )
 
                 if created:
@@ -79,7 +97,6 @@ def fetch_and_store_data():
 
     else:
         print(f"❌ Failed to fetch data. Status Code: {response.status_code}")
-
 
 
 def get_coords(building, street):
@@ -104,5 +121,3 @@ def get_coords(building, street):
     except GeocoderTimedOut:
         print(f"⚠️ Geocoding timeout for: {q_address}")
         return None
-
-

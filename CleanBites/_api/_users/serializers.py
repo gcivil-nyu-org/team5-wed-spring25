@@ -1,16 +1,18 @@
 from rest_framework import serializers
 from .models import Customer, Moderator, DM, FavoriteRestaurant
 
+
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
-        fields = '__all__'  # Includes all fields in the Customer model
+        fields = "__all__"  # Includes all fields in the Customer model
 
 
 class ModeratorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Moderator
-        fields = '__all__'  # Includes all fields in the Moderator model
+        fields = "__all__"  # Includes all fields in the Moderator model
+
 
 class DMSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source="sender.first_name", read_only=True)
@@ -18,7 +20,18 @@ class DMSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DM
-        fields = ["id", "sender", "sender_name", "receiver", "receiver_name", "message", "flagged", "flagged_by", "sent_at"]
+        fields = [
+            "id",
+            "sender",
+            "sender_name",
+            "receiver",
+            "receiver_name",
+            "message",
+            "flagged",
+            "flagged_by",
+            "sent_at",
+        ]
+
 
 class FavoriteRestaurantSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.first_name", read_only=True)
