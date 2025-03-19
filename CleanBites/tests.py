@@ -6,6 +6,6 @@ class baseTest(TestCase):
 
     def tearDown(self):
         pass
-    
+
     def test_basic(self):
         self.assertEqual(1, 1)
