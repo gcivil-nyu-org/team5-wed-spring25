@@ -23,6 +23,7 @@ before_script:
 script:
   - black --check .
   - flake8 .
+  - cd CleanBites
   - coverage run manage.py test
 
 after_script:
