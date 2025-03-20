@@ -23,7 +23,7 @@ before_script:
 script:
   - black --check .
   - flake8 .
-  - coverage run --source=team5-wed-spring25 CleanBites/manage.py test
+  - coverage run CleanBites/manage.py test
 
 after_script:
   - coveralls
