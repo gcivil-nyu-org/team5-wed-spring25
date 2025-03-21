@@ -13,6 +13,9 @@ from rest_framework.views import APIView
 from django.http import HttpResponse
 from django.views import View
 from django.conf import settings
+from django.http import JsonResponse
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
 from utils import (
     get_restaurants,
     restaurant_to_feature,
@@ -52,10 +55,64 @@ class RestaurantAddressListView(generics.ListAPIView):
 
 class RestaurantGeoJSONView(APIView):
     def get(self, request):
-        restaurants = get_restaurants(request)
-        features = [restaurant_to_feature(r) for r in restaurants]
+        # Get query parameters
+        name = request.GET.get("name", "").strip()
+        rating = request.GET.get("rating", "").strip()
+        cuisine = request.GET.get("cuisine", "").strip()
+        distance_km = request.GET.get("distance", "").strip()
+        lat = request.GET.get("lat", "").strip()
+        lng = request.GET.get("lng", "").strip()
+
+        # Start with all restaurants
+        queryset = Restaurant.objects.all()
+
+        # Filter by name
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        # Filter by hygiene rating
+        if rating:
+            try:
+                rating = int(rating)
+                queryset = queryset.filter(hygiene_rating__lte=rating)
+            except ValueError:
+                pass  # Ignore invalid ratings
+
+        # Filter by cuisine type
+        if cuisine:
+            queryset = queryset.filter(cuisine_description__icontains=cuisine)
+
+        # Filter by distance if lat/lng provided
+        if lat and lng and distance_km:
+            try:
+                lat, lng, distance_km = float(lat), float(lng), float(distance_km)
+                user_location = Point(lng, lat, srid=4326)  # Ensure correct SRID
+                queryset = queryset.filter(geo_coords__distance_lte=(user_location, D(km=distance_km)))
+            except ValueError:
+                pass  # Ignore invalid coordinates
+
+        # Convert queryset to GeoJSON format
+        features = [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [restaurant.geo_coords.x, restaurant.geo_coords.y]
+                },
+                "properties": {
+                    "name": restaurant.name,
+                    "hygiene_rating": restaurant.hygiene_rating,
+                    "cuisine": restaurant.cuisine_description,
+                    "street": restaurant.street,
+                    "zipcode": restaurant.zipcode
+                }
+            }
+            for restaurant in queryset
+        ]
+
         geojson_data = {"type": "FeatureCollection", "features": features}
-        return Response(geojson_data)
+
+        return JsonResponse(geojson_data)
 
 
 class DynamicNYCMapView(View):

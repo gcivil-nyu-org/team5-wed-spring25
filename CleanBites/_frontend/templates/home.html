@@ -95,24 +95,20 @@
       <input type="text" id="search-cuisine" placeholder="Cuisine">
       <input type="text" id="search-distance" placeholder="Distance (km)">
       <button type="button" class="search-btn" onclick="performSearch()">Search</button>
-      <button type="button" class="reset-btn" onclick="resetFilters()">Reset</button>
+      <button type="button" class="reset-btn" onclick="resetMapInIframe()">Reset</button>
     </div>
 
     <div class="navbar-right">
-      {% if user.is_authenticated %}
-        <form class="logout-form" method="POST" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-danger">Logout</button>
-        </form>
-      {% endif %}
+      <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
     </div>
   </header>
 
   <main>
-    <iframe id="map-frame" src="/nycmap/"></iframe>
+    <iframe id="map-frame" src="/mapdynamic/"></iframe>
   </main>
 
-  <script>
+  <script src="{% static 'nycmap_dynamic.js' %}"></script>
+  <script>    
     function performSearch() {
       const name = document.getElementById('search-name').value;
       const rating = document.getElementById('search-rating').value;
@@ -131,17 +127,38 @@
         cuisine: cuisine
       });
 
-      document.getElementById('map-frame').src = "/api/restaurants/dynamic/?" + params.toString();
+      const apiUrl = `/api/restaurants/geojson/?${params.toString()}`;
+      console.log("📡 Sending API request to:", apiUrl);
+
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            console.log("✅ Parsed JSON data:", data);
+
+            // Get the iframe's contentWindow and pass data
+            const mapFrame = document.getElementById("map-frame").contentWindow;
+            if (mapFrame && mapFrame.updateMarkers) {
+                mapFrame.updateMarkers(data);
+            } else {
+                console.error("❌ updateMarkers is not accessible in iframe!");
+            }
+        })
+        .catch(error => console.error('❌ Error fetching restaurant data:', error));
     }
 
-    function resetFilters() {
+    function resetMapInIframe() {
       document.getElementById('search-name').value = "";
       document.getElementById('search-rating').value = "";
       document.getElementById('search-cuisine').value = "";
       document.getElementById('search-distance').value = "";
-
-      // Reset map to the default NYC view
-      document.getElementById('map-frame').src = "/nycmap/";
+      
+      const mapFrame = document.getElementById("map-frame").contentWindow;
+      if (mapFrame && typeof mapFrame.resetFilters === "function") {
+          console.log("🔄 Calling resetFilters inside iframe...");
+          mapFrame.resetFilters();
+      } else {
+          console.error("❌ resetFilters is not accessible in iframe!");
+      }
     }
   </script>
 

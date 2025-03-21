@@ -34,6 +34,11 @@ def restaurant_detail(request, name):
     return render(request, "maps/restaurant_detail.html", {"restaurant": restaurant})
 
 
+@login_required(login_url="/login/")
+def dynamic_map_view(request):
+    return render(request, 'maps/nycmap_dynamic.html')
+
+
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
 # =====================================================================================
