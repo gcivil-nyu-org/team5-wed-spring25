@@ -100,9 +100,7 @@ def register_view(request):
 
 
 def restaurant_register(request):
-    restaurants = Restaurant.objects.all().order_by(
-        "name"
-    )  # Fetch all restaurants sorted by name
+    restaurants = Restaurant.objects.filter(email="Not Provided").order_by("name")
     return render(request, "restaurant_register.html", {"restaurants": restaurants})
 
 
