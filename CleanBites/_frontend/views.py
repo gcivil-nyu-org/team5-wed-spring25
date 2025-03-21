@@ -6,6 +6,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from _api._users.models import Customer
+from django.db import transaction
 
 User = get_user_model()
 
@@ -96,3 +97,70 @@ def register_view(request):
         return redirect("home")  # Redirect to homepage after registration
 
     return redirect("/")
+
+
+def restaurant_register(request):
+    restaurants = Restaurant.objects.all().order_by(
+        "name"
+    )  # Fetch all restaurants sorted by name
+    return render(request, "restaurant_register.html", {"restaurants": restaurants})
+
+
+HARDCODE_VERIFY = "1234"
+
+
+def restaurant_verify(request):
+    if request.method == "POST":
+        restaurant_id = request.POST.get("restaurant")  # Get selected restaurant ID
+        username = request.POST.get("username").strip()
+        email = request.POST.get("email").strip()
+        password = request.POST.get("password").strip()
+        confirm_password = request.POST.get("confirm_password").strip()
+        verification_code = request.POST.get("verify").strip()
+
+        # Check if passwords match
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match.")
+            return redirect("restaurant_register")
+
+        # Check if the verification code is correct
+        if verification_code != HARDCODE_VERIFY:
+            messages.error(request, "Invalid verification code.")
+            return redirect("restaurant_register")
+
+        # Ensure username & email are unique
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username is already taken.")
+            return redirect("restaurant_register")
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "Email is already registered.")
+            return redirect("restaurant_register")
+
+        # Perform atomic transaction (user creation + restaurant email update)
+        try:
+            with transaction.atomic():
+                # Create a new user in Django's auth_user table
+                user = User.objects.create_user(
+                    username=username, email=email, password=password
+                )
+                user.is_staff = False  # Optionally give them staff privileges
+                user.save()
+
+                # Update the selected restaurant's email
+                restaurant = Restaurant.objects.get(id=restaurant_id)
+                restaurant.email = email  # Assign new owner's email to restaurant
+                restaurant.save()
+
+            messages.success(request, "Registration successful! You can now log in.")
+            return redirect("/")  # ✅ Redirect to landing page
+
+        except Restaurant.DoesNotExist:
+            messages.error(request, "Selected restaurant does not exist.")
+            return redirect("restaurant_register")
+
+        except Exception as e:
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect("restaurant_register")
+
+    return redirect("restaurant_register")  # Redirect if accessed via GET
