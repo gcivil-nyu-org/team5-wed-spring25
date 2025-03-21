@@ -7,9 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>Apple-Style Landing</title>
     <link href="{% static 'landing/css/styles.css' %}" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Google Identity Services script -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <!-- Apple-style Navbar -->
@@ -54,9 +57,21 @@
                     </form>
                     <div class="text-center mt-3">
                         <p>or</p>
-                        <a href="{% provider_login_url 'google' %}" class="btn btn-danger w-100">
-                            Sign in with Google
-                        </a>
+                        <div id="g_id_onload"
+                             data-context="signin"
+                             data-ux_mode="popup"
+                             data-client_id="405283966911-hr2n3vbrackk4ed28bbltm9li5nlv1o4.apps.googleusercontent.com"
+                             data-callback="handleCredentialResponse"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-size="large"
+                             data-theme="outline"
+                             data-text="continue_with"
+                             data-shape="rectangular"
+                             data-logo_alignment="center">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -104,6 +119,64 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Helper to retrieve Django CSRF token from cookie
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              // Does this cookie string begin with name=?
+              if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+  
+        // 5) Called by Google when the user successfully signs in
+        function handleCredentialResponse(response) {
+          console.log("Google Sign-In Response:", response);
+          const idToken = response.credential; // The JWT from Google
+          if (!idToken) {
+            console.error("No ID token received"); // Debug log for missing token
+            alert("Failed to retrieve ID token.");
+            return;
+          }
+          // Send this token to your Django backend to verify & log the user in
+          fetch("/google-signin/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCookie("csrftoken")  // needed if CSRF is enforced
+            },
+            body: JSON.stringify({ credential: idToken })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log("Backend Response:", data);
+            if (data.success) {
+              // e.g., redirect or close modal
+              window.location.href = data.redirect_url || "/home/";
+            } else {
+              alert("Google sign-in failed: " + (data.error || "Unknown error"));
+            }
+          })
+          .catch(err => {
+            console.error("Fetch error:", err);
+            alert("Something went wrong during Google sign-in.");
+          });
+        }
+      </script>
+
     <script src="{% static 'landing/js/scripts.js' %}"></script>
 </body>
 </html>
