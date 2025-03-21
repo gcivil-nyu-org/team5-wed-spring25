@@ -13,7 +13,6 @@ urlpatterns = [
         views.restaurant_verify,
         name="restaurant_verify",
     ),
-    path("nycmap/", views.nycmap_view, name="nycmap"),
     path("mapdynamic/", views.dynamic_map_view, name="dynamic-map"),
     path(
         "restaurant/<str:name>/",

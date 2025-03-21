@@ -19,11 +19,6 @@ def landing_view(request):
 
 
 @login_required(login_url="/login/")
-def nycmap_view(request):
-    return render(request, "maps/nycmap.html")
-
-
-@login_required(login_url="/login/")
 def home_view(request):
     return render(request, "home.html")
 

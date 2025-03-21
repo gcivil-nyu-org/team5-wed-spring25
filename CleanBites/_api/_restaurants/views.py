@@ -117,11 +117,7 @@ class RestaurantGeoJSONView(APIView):
 
 class DynamicNYCMapView(View):
     def get(self, request):
-        restaurants = get_restaurants(request)
-        features = [restaurant_to_feature(r) for r in restaurants]
-
-        m = create_nyc_map(features)
-        return HttpResponse(m.get_root().render())
+        return HttpResponse("<h1>🚧 Under Maintenance 🚧</h1>")
 
 
 class CommentViewSet(viewsets.ModelViewSet):
