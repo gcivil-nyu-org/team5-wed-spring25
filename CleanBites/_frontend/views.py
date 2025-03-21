@@ -31,7 +31,7 @@ def restaurant_detail(request, name):
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    return render(request, 'maps/nycmap_dynamic.html')
+    return render(request, "maps/nycmap_dynamic.html")
 
 
 # =====================================================================================

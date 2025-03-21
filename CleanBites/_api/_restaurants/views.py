@@ -87,7 +87,9 @@ class RestaurantGeoJSONView(APIView):
             try:
                 lat, lng, distance_km = float(lat), float(lng), float(distance_km)
                 user_location = Point(lng, lat, srid=4326)  # Ensure correct SRID
-                queryset = queryset.filter(geo_coords__distance_lte=(user_location, D(km=distance_km)))
+                queryset = queryset.filter(
+                    geo_coords__distance_lte=(user_location, D(km=distance_km))
+                )
             except ValueError:
                 pass  # Ignore invalid coordinates
 
@@ -97,15 +99,15 @@ class RestaurantGeoJSONView(APIView):
                 "type": "Feature",
                 "geometry": {
                     "type": "Point",
-                    "coordinates": [restaurant.geo_coords.x, restaurant.geo_coords.y]
+                    "coordinates": [restaurant.geo_coords.x, restaurant.geo_coords.y],
                 },
                 "properties": {
                     "name": restaurant.name,
                     "hygiene_rating": restaurant.hygiene_rating,
                     "cuisine": restaurant.cuisine_description,
                     "street": restaurant.street,
-                    "zipcode": restaurant.zipcode
-                }
+                    "zipcode": restaurant.zipcode,
+                },
             }
             for restaurant in queryset
         ]
