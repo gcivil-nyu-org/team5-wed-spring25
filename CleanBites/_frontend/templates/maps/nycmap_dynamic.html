@@ -16,10 +16,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
 
     {% load static %}
+    <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
     <link rel="stylesheet" href="{% static 'home/map.css' %}">
 </head>
 <body>
-    <div id="map"></div>
+    <div id="map" style="position: relative; top: 0; left: 0; height: 100%; width: 100%; padding-top: 300px;"></div>
 
     <div id="side-modal" class="side-modal hidden">
       <div class="modal-header">
@@ -67,7 +68,14 @@
           const rating = feature.properties.hygiene_rating || "N/A";
 
           const modal = document.getElementById("side-modal");
-          document.getElementById("modal-title").textContent = name;
+          document.getElementById("modal-title").innerHTML = `
+            ${name}
+            <div style="font-size: 0.5em; margin-top: 4px;">
+              <a href="/restaurant/${encodeURIComponent(name)}/" target="_blank" style="color: #1a73e8; text-decoration: none;">
+                View Profile →
+              </a>
+            </div>
+          `;
           document.getElementById("modal-content").innerHTML = `
             <p><strong>Cuisine:</strong> ${cuisine}</p>
             <p><strong>Address:</strong> ${address}</p>
@@ -77,7 +85,7 @@
           modal.classList.add("show");
         }
 
-        
+
         // Function to determine marker color based on hygiene rating
         function getColorByRating(rating) {
             if (rating >= 28) return "#ff0000"; // Red for poor rating (8+)
