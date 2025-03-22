@@ -1,0 +1,107 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+#map {
+    position: relative;
+    padding-top: 300px;
+    width: 100%;
+    height: calc(100vh - 50px);
+    left: 0;
+    top: 0;
+}
+
+/* Custom FontAwesome Marker */
+.custom-dining-marker {
+    text-align: center;
+    line-height: 25px; /* Centers the icon */
+}
+
+.marker-icon {
+    width: 30px;
+    height: 30px;
+    background-color: #ff5733; /* Default color */
+    border-radius: 50%;
+    color: white;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid black;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.leaflet-marker-icon.fade-in {
+  opacity: 0;
+  animation: fadeInMarker 0.7s ease-out forwards;
+}
+
+@keyframes fadeInMarker {
+  to {
+    opacity: 1;
+  }
+}
+
+.side-modal {
+  position: absolute;
+  top: 50px; /* below navbar */
+  right: 0;
+  width: 300px;
+  height: calc(100% - 50px);
+  background: white;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+  padding: 20px;
+  z-index: 1001;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  border-top-left-radius: 12px;
+}
+
+.hidden {
+  transform: translateX(100%);
+}
+
+.side-modal.show {
+  transform: translateX(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+}
+
+.modal-header button {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.modal-header button:hover {
+  color: #343a40;
+}
+
+/* Modal body content */
+#modal-content {
+  padding: 1.25rem;
+  font-size: 0.95rem;
+  color: #343a40;
+}
+
+#modal-content .field {
+  margin-bottom: 0.75rem;
+}
+
+#modal-content .field strong {
+  display: inline-block;
+  width: 100px;
+  color: #6c757d;
+  font-weight: 500;
+}

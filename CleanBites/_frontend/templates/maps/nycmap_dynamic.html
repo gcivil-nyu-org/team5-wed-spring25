@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NYC Restaurant Map</title>
@@ -14,57 +15,19 @@
     <!-- FontAwesome for custom icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
 
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        #map {
-            position: relative;
-            padding-top: 300px;
-            width: 100%;
-            height: calc(100vh - 50px);
-            left: 0;
-            top: 0;
-        }
-
-        /* Custom FontAwesome Marker */
-        .custom-dining-marker {
-            text-align: center;
-            line-height: 25px; /* Centers the icon */
-        }
-
-        .marker-icon {
-            width: 30px;
-            height: 30px;
-            background-color: #ff5733; /* Default color */
-            border-radius: 50%;
-            color: white;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid black;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .leaflet-marker-icon.fade-in {
-          opacity: 0;
-          animation: fadeInMarker 0.7s ease-out forwards;
-        }
-        
-        @keyframes fadeInMarker {
-          to {
-            opacity: 1;
-          }
-        }
-    </style>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'home/map.css' %}">
 </head>
 <body>
     <div id="map"></div>
+
+    <div id="side-modal" class="side-modal hidden">
+      <div class="modal-header">
+        <h2 id="modal-title">Restaurant Name</h2>
+        <button onclick="closeModal()">×</button>
+      </div>
+      <div id="modal-content"></div>
+    </div>
 
     <script>
         // Initialize the Leaflet Map
@@ -92,6 +55,29 @@
         }
     
 
+        function closeModal() {
+          document.getElementById("side-modal").classList.remove("show");
+        }
+
+
+        function showModal(feature) {
+          const name = feature.properties.name || "Unnamed Restaurant";
+          const cuisine = feature.properties.cuisine || "N/A";
+          const address = feature.properties.street || "N/A";
+          const rating = feature.properties.hygiene_rating || "N/A";
+
+          const modal = document.getElementById("side-modal");
+          document.getElementById("modal-title").textContent = name;
+          document.getElementById("modal-content").innerHTML = `
+            <p><strong>Cuisine:</strong> ${cuisine}</p>
+            <p><strong>Address:</strong> ${address}</p>
+            <p><strong>Hygiene Rating:</strong> ${getLetterGrade(feature.properties.hygiene_rating || 0, true)}</p>
+          `;
+
+          modal.classList.add("show");
+        }
+
+        
         // Function to determine marker color based on hygiene rating
         function getColorByRating(rating) {
             if (rating >= 28) return "#ff0000"; // Red for poor rating (8+)
@@ -139,27 +125,9 @@
             // Add new markers based on GeoJSON data
             L.geoJSON(data, {
                 onEachFeature: function (feature, layer) {
-                    layer.bindPopup(`
-                      <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
-                        <div style="font-size: 14pt; font-weight: bold; margin-bottom: 4px;">
-                          <a href="/restaurant/${feature.properties.name || 'Unnamed Restaurant'}" 
-                             target="_blank" 
-                             style="text-decoration: none; color: #1a73e8;">
-                            ${feature.properties.name || 'Unnamed Restaurant'}
-                          </a>
-                        </div>
-                        <div style="font-size: 10pt; margin-bottom: 4px;">
-                          Cuisine: ${feature.properties.cuisine || 'N/A'}
-                        </div>
-                        <div style="font-size: 10pt; margin-bottom: 8px;">
-                          Address: ${feature.properties.street || 'N/A'}
-                        </div>
-                        <hr style="margin: 4px 0;" />
-                        <div style="font-size: 10pt;">
-                            <strong>Hygiene Rating:</strong> ${getLetterGrade(feature.properties.hygiene_rating || 0, true)}
-                        </div>
-                      </div>
-                    `);
+                  layer.on('click', () => {
+                    showModal(feature);
+                  });  
                 },
                 pointToLayer: function (feature, latlng) {
                   const rating = feature.properties.hygiene_rating || 0;
