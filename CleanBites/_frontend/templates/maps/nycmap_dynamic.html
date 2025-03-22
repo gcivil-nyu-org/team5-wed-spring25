@@ -87,6 +87,31 @@
             else return "#00cc00"; // Green for excellent (0-2)
         }
     
+
+        // Function to translate rating to letter grade
+        function getLetterGrade(rating, style = false) {
+          let grade = '';
+          let color = '';
+
+          if (rating <= 13) {
+            grade = 'A';
+            color = '#00cc00'; // Green
+          } else if (rating <= 27) {
+            grade = 'B';
+            color = '#ffa500'; // Orange/Yellow
+          } else {
+            grade = 'C';
+            color = '#ff0000'; // Red
+          }
+      
+          if (style) {
+            return `<span style="color: ${color}; font-weight: bold;">${grade}</span>`;
+          }
+      
+          return grade;
+        }
+
+
         // Function to update markers dynamically without reloading the map
         window.updateMarkers = function (data) {
             console.log("🗺 Updating markers on the map...");
@@ -103,9 +128,25 @@
             L.geoJSON(data, {
                 onEachFeature: function (feature, layer) {
                     layer.bindPopup(`
-                        <b>${feature.properties.name}</b><br>
-                        ${feature.properties.street}, Zipcode: ${feature.properties.zipcode}<br>
-                        Hygiene Rating: ${feature.properties.hygiene_rating}
+                      <div style="font-family: Arial, sans-serif; width: 250px; padding: 5px;">
+                        <div style="font-size: 14pt; font-weight: bold; margin-bottom: 4px;">
+                          <a href="/restaurant/${feature.properties.name || 'Unnamed Restaurant'}" 
+                             target="_blank" 
+                             style="text-decoration: none; color: #1a73e8;">
+                            ${feature.properties.name || 'Unnamed Restaurant'}
+                          </a>
+                        </div>
+                        <div style="font-size: 10pt; margin-bottom: 4px;">
+                          Cuisine: ${feature.properties.cuisine || 'N/A'}
+                        </div>
+                        <div style="font-size: 10pt; margin-bottom: 8px;">
+                          Address: ${feature.properties.street || 'N/A'}
+                        </div>
+                        <hr style="margin: 4px 0;" />
+                        <div style="font-size: 10pt;">
+                            <strong>Hygiene Rating:</strong> ${getLetterGrade(feature.properties.hygiene_rating || 0, true)}
+                        </div>
+                      </div>
                     `);
                 },
                 pointToLayer: function (feature, latlng) {
@@ -118,6 +159,7 @@
             console.log("✅ Markers updated successfully!");
         };
     
+
         // Function to fetch data and update markers
         function updateMapData() {
             console.log("🔄 Fetching initial restaurant data...");
@@ -130,6 +172,7 @@
                 .catch(error => console.error('❌ Error loading GeoJSON:', error));
         }
     
+
         // Reset to init state
         window.resetFilters = function () {
             console.log("🔄 Resetting map to default state...");
@@ -140,9 +183,14 @@
                 .then(data => {
                     console.log("✅ Reset GeoJSON data received:", data);
                     window.updateMarkers(data);
+
+                    if (window.parent && typeof window.parent.onMapResetComplete === "function") {
+                      window.parent.onMapResetComplete();
+                    }
                 })
                 .catch(error => console.error("❌ Error resetting map data:", error));
         };
+
 
         // Load initial data on page load
         updateMapData();
