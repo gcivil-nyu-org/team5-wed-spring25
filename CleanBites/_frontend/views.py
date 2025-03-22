@@ -19,11 +19,6 @@ def landing_view(request):
 
 
 @login_required(login_url="/login/")
-def nycmap_view(request):
-    return render(request, "maps/nycmap.html")
-
-
-@login_required(login_url="/login/")
 def home_view(request):
     return render(request, "home.html")
 
@@ -32,6 +27,11 @@ def home_view(request):
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
     return render(request, "maps/restaurant_detail.html", {"restaurant": restaurant})
+
+
+@login_required(login_url="/login/")
+def dynamic_map_view(request):
+    return render(request, "maps/nycmap_dynamic.html")
 
 
 # =====================================================================================
