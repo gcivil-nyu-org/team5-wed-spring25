@@ -112,6 +112,73 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    .profile-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid #ccc;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: 50px;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 6px;
+      min-width: 120px;
+      display: none;
+      flex-direction: column;
+      z-index: 1000;
+    }
+
+    .dropdown-menu a,
+    .dropdown-menu button {
+      padding: 10px;
+      text-align: left;
+      border: none;
+      background: none;
+      width: 100%;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .dropdown-menu a:hover,
+    .dropdown-menu button:hover {
+      background-color: #f5f5f5;
+    }
+
+    .dropdown-menu .dropdown-item {
+      padding: 10px 16px;
+      text-align: left;
+      border: none;
+      background: none;
+      width: 100%;
+      cursor: pointer;
+      font-size: 14px;
+      color: #333;
+      text-decoration: none;
+      display: block;
+    }
+
+    .dropdown-menu .dropdown-item:hover {
+      background-color: #f5f5f5;
+    }
   </style>
 </head>
 <body>
@@ -131,8 +198,20 @@
     </div>
 
     <div class="navbar-right">
-      <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
-    </div>
+      <div class="profile-dropdown">
+        <div class="avatar" onclick="toggleDropdown()">
+          <!-- Placeholder avatar, WILL replace with user's profile image -->
+          <img src="{% static 'images/avatar-placeholder.png' %}" alt="Profile" />
+        </div>
+        <div class="dropdown-menu" id="profileDropdown">
+          <a href="/home/" class="dropdown-item">Settings</a>
+          <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item">Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>    
   </header>
 
   <main>
@@ -149,6 +228,19 @@
       document.getElementById('map-loading-spinner').style.display = 'none';
     };
     
+
+    function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // Optional: Hide dropdown when clicking outside
+    window.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('profileDropdown');
+      if (!e.target.closest('.profile-dropdown')) {
+        dropdown.style.display = 'none';
+      }
+    });
 
     function performSearch() {
       const name = document.getElementById('search-name').value;
