@@ -149,7 +149,7 @@
       document.getElementById('map-loading-spinner').style.display = 'none';
     };
     
-    
+
     function performSearch() {
       const name = document.getElementById('search-name').value;
       const rating = document.getElementById('search-rating').value;
@@ -176,8 +176,6 @@
       fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-            console.log("✅ Parsed JSON data:", data);
-
             // Get the iframe's contentWindow and pass data
             const mapFrame = document.getElementById("map-frame").contentWindow;
             if (mapFrame && mapFrame.updateMarkers) {
@@ -188,7 +186,6 @@
         })
         .catch(error => console.error('❌ Error fetching restaurant data:', error))
         .finally(() => {
-          // ✅ Hide spinner
           document.getElementById('map-loading-spinner').style.display = 'none';
         });
     }

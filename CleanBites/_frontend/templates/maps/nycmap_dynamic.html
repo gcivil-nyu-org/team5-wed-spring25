@@ -75,7 +75,7 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
     
-        // Create a single global layer for markers
+        // Create a single GLOBAL layer for markers
         window.markersLayer = L.layerGroup().addTo(map);
     
         // Function to create a custom FontAwesome dining icon
@@ -124,7 +124,7 @@
         }
 
 
-        // Function to update markers dynamically without reloading the map
+        // Function to update markers dynamically without reloading the map GLOBAL
         window.updateMarkers = function (data) {
             console.log("🗺 Updating markers on the map...");
     
@@ -189,7 +189,6 @@
             fetch('/api/restaurants/geojson/')
                 .then(response => response.json())
                 .then(data => {
-                    console.log("📥 Received initial GeoJSON data");
                     updateMarkers(data);
                 })
                 .catch(error => console.error('❌ Error loading GeoJSON:', error));
@@ -198,8 +197,6 @@
 
         // Reset to init state
         window.resetFilters = function () {
-            console.log("🔄 Resetting map to default state...");
-
             // Fetch all restaurant data without filters
             fetch('/api/restaurants/geojson/')
                 .then(response => response.json())
