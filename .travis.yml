@@ -3,11 +3,6 @@ language: python
 python:
   - 3.9
  
-branches:
-    only:
-    - main
-    - chz9577_dev_branch
-    - develop
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install gnupg2
@@ -32,17 +27,4 @@ script:
 
 after_script:
   - coveralls
-
-deploy:
-  provider: elasticbeanstalk
-  access_key_id: "$AWS_ACCESS_ID"
-  secret_access_key: "$AWS_SECRET_KEY"
-  region: "us-west-2"
-  app: "CleanBites"
-  env: "CleanBites-env"
-  bucket_name: "elasticbeanstalk-us-east-1-054037135006"
-  on:
-    repo: gcivil-nyu-org/team5-wed-spring25
-    branch: main
-  skip_cleanup: 'true'
 
