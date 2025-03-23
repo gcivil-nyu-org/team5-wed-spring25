@@ -17,12 +17,14 @@
     </div>
 
     <div class="search-bar">
-      <input type="text" id="search-name" placeholder="Restaurant Name">
-      <input type="text" id="search-rating" placeholder="Hygiene Rating">
-      <input type="text" id="search-cuisine" placeholder="Cuisine">
-      <input type="text" id="search-distance" placeholder="Distance (km)">
-      <button type="button" class="search-btn" onclick="performSearch()">Search</button>
-      <button type="button" class="reset-btn" onclick="resetMapInIframe()">Reset</button>
+      <form id="search-form">
+        <input type="text" id="search-name" placeholder="Restaurant Name">
+        <input type="text" id="search-rating" placeholder="Hygiene Rating">
+        <input type="text" id="search-cuisine" placeholder="Cuisine">
+        <input type="text" id="search-distance" placeholder="Distance (km)">
+        <button type="submit" class="search-btn">Search</button>
+        <button type="button" class="reset-btn" onclick="resetMapInIframe()">Reset</button>
+      </form>
     </div>
 
     <div class="navbar-right">
@@ -64,6 +66,7 @@
       dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
     }
 
+    
     // Optional: Hide dropdown when clicking outside
     window.addEventListener('click', function(e) {
       const dropdown = document.getElementById('profileDropdown');
@@ -71,6 +74,7 @@
         dropdown.style.display = 'none';
       }
     });
+
 
     function performSearch() {
       const name = document.getElementById('search-name').value;
@@ -129,6 +133,12 @@
           console.error("❌ resetFilters is not accessible in iframe!");
       }
     }
+
+
+    document.getElementById('search-form').addEventListener('submit', function (e) {
+      e.preventDefault(); 
+      performSearch();    
+    });
   </script>
 
 </body>
