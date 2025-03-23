@@ -135,7 +135,15 @@
                 onEachFeature: function (feature, layer) {
                   layer.on('click', () => {
                     showModal(feature);
-                  });  
+                  });
+                  
+                  const name = feature.properties.name || 'UNKNOWN';
+                  layer.bindTooltip(name, {
+                    permanent: false,   
+                    direction: 'top',   
+                    className: 'marker-tooltip',
+                    offset: L.point(0, -25)
+                  });
                 },
                 pointToLayer: function (feature, latlng) {
                   const rating = feature.properties.hygiene_rating || 0;
