@@ -105,15 +105,30 @@
         return;
       }
     
-      await getCurrentGeocode(address);
-      // Optionally center the map immediately if you want:
-      if (window.map) {
-        map.setView([window.globalLAT, window.globalLNG], 12);
-      }
-
-      setTimeout(() => {
+      try {
+        await getCurrentGeocode(address);
+      
+        // ✅ Success
         document.getElementById('geocode-status').textContent = '✅';
-      }, 3);
+      
+        if (window.map) {
+          map.setView([window.globalLAT, window.globalLNG], 12);
+        }
+      
+        // Clear status after 3 seconds
+        setTimeout(() => {
+          document.getElementById('geocode-status').textContent = '';
+        }, 3000);
+      
+      } catch (error) {
+        // ❌ Failure
+        console.error("Geocoding failed:", error);
+        document.getElementById('geocode-status').textContent = '❌';
+      
+        setTimeout(() => {
+          document.getElementById('geocode-status').textContent = '';
+        }, 3000);
+      }
     }
     
 
