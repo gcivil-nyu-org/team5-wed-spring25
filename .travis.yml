@@ -24,7 +24,7 @@ script:
   - black --check .
   - flake8 .
   - cd CleanBites
-  - coverage run manage.py test
+  - coverage run manage.py test --noinput
 
 after_script:
   - coveralls
