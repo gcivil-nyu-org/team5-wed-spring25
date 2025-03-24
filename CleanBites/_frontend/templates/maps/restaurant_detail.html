@@ -7,45 +7,88 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
             padding: 0;
+            background-color: #f9f9f9;
         }
         .container {
-            max-width: 600px;
-            margin: auto;
+            max-width: 700px;
+            margin: 30px auto;
             padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
-        h1 {
-            color: #1a73e8;
-        }
-        .rating {
-            font-weight: bold;
-            color: green;
+        .restaurant-header {
+            position: relative;
+            text-align: center;
         }
         .restaurant-img {
             width: 100%;
             max-height: 300px;
             object-fit: cover;
-            border-radius: 10px;
-            margin-bottom: 15px;
+            border-radius: 12px;
+        }
+        h1 {
+            color: #1a73e8;
+            margin: 15px 0 10px;
+            text-align: center;
+        }
+        .info {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .info i {
+            color: #1a73e8;
+            margin-right: 10px;
+        }
+        .rating {
+            font-weight: bold;
+            font-size: 16px;
+            color: green;
+        }
+        .description {
+            margin-top: 15px;
+            font-size: 15px;
+            color: #555;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    {% if restaurant.profile_image %}
-        <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img">
-    {% endif %}
+    <div class="restaurant-header">
+        {% if restaurant.profile_image %}
+            <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img">
+        {% endif %}
+    </div>
+
     <h1>{{ restaurant.name }}</h1>
-    <p><strong>Address:</strong> {{ restaurant.address }}</p>
-    <p><strong>Cuisine:</strong> {{ restaurant.cuisine }}</p>
-    <p class="rating"><strong>Hygiene Rating:</strong> {{ restaurant.hygiene_rating }}</p>
-    <p>{{ restaurant.description }}</p>
+
+    <div class="info">
+        <i class="fas fa-map-marker-alt"></i>
+        <strong>Address:</strong> {{ restaurant.building }}, {{ restaurant.street }}, {{ restaurant.zipcode }}
+    </div>
+    <div class="info">
+        <i class="fas fa-utensils"></i>
+        <strong>Cuisine:</strong> {{ restaurant.cuisine_description }}
+    </div>
+    <div class="info">
+        <i class="fa fa-phone"></i>
+        <strong>Phone:</strong> {{ restaurant.phone }}
+    </div>
+    <div class="info rating">
+        <i class="fas fa-star"></i>
+        <strong>Hygiene Rating:</strong> {{ restaurant.hygiene_rating }}
+    </div>
+
+    <p class="description">{{ restaurant.description }}</p>
 </div>
 
 </body>
