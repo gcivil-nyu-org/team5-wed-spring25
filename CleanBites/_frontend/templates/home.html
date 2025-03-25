@@ -13,7 +13,7 @@
 
   <header class="apple-navbar">  
     <div class="navbar-left">
-      <h2>CleanBites</h2>
+      <h2><a href="{% url 'home' %}" style="text-decoration: none; color: inherit;">CleanBites</a></h2>
     </div>
 
     <div class="search-bar">      
@@ -37,7 +37,7 @@
         <div class="dropdown-menu" id="profileDropdown">
           <!-- WILL route HERE to user/restaurant profile page -->
           <a href="/home/" class="dropdown-item">Profile</a>
-          <a href="/home/" class="dropdown-item">Messages</a>
+          <a href="/inbox/" class="dropdown-item">Messages</a>
           <a href="/home/" class="dropdown-item">Settings</a>
           <form method="POST" action="{% url 'logout' %}">
             {% csrf_token %}

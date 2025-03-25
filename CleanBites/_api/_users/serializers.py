@@ -17,6 +17,7 @@ class ModeratorSerializer(serializers.ModelSerializer):
 class DMSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source="sender.first_name", read_only=True)
     receiver_name = serializers.CharField(source="receiver.first_name", read_only=True)
+    message_text = serializers.SerializerMethodField()
 
     class Meta:
         model = DM
@@ -26,11 +27,17 @@ class DMSerializer(serializers.ModelSerializer):
             "sender_name",
             "receiver",
             "receiver_name",
-            "message",
+            "message_text",
             "flagged",
             "flagged_by",
             "sent_at",
         ]
+    
+    def get_message_text(self, obj):
+        try:
+            return obj.message.decode("utf-8")
+        except Exception:
+            return "[Unreadable message]"
 
 
 class FavoriteRestaurantSerializer(serializers.ModelSerializer):
