@@ -32,7 +32,7 @@ class DMSerializer(serializers.ModelSerializer):
             "flagged_by",
             "sent_at",
         ]
-    
+
     def get_message_text(self, obj):
         try:
             return obj.message.decode("utf-8")

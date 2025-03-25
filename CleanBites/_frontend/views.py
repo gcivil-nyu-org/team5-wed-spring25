@@ -40,12 +40,16 @@ def messages_view(request, chat_user_id=None):
     try:
         user = Customer.objects.get(email=request.user.email)
     except Customer.DoesNotExist:
-        return render(request, "inbox.html", {
-            "conversations": [],
-            "active_chat": None,
-            "messages": [],
-            "error": "Your profile could not be found."
-        })
+        return render(
+            request,
+            "inbox.html",
+            {
+                "conversations": [],
+                "active_chat": None,
+                "messages": [],
+                "error": "Your profile could not be found.",
+            },
+        )
 
     all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
 
@@ -57,7 +61,7 @@ def messages_view(request, chat_user_id=None):
                 "id": other.id,
                 "name": other.first_name,
                 "email": other.email,
-                "avatar_url": "/static/images/avatar-placeholder.png"
+                "avatar_url": "/static/images/avatar-placeholder.png",
             }
 
     conversations = list(participants.values())
@@ -71,8 +75,8 @@ def messages_view(request, chat_user_id=None):
     messages = []
     if active_chat:
         raw_messages = DM.objects.filter(
-            (Q(sender=user) & Q(receiver=active_chat)) |
-            (Q(sender=active_chat) & Q(receiver=user))
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
         ).order_by("sent_at")
 
         for msg in raw_messages:
@@ -83,11 +87,15 @@ def messages_view(request, chat_user_id=None):
                 msg.decoded_message = "[Could not decode message]"
             messages.append(msg)
 
-    return render(request, "inbox.html", {
-        "conversations": conversations,
-        "active_chat": active_chat,
-        "messages": messages
-    })
+    return render(
+        request,
+        "inbox.html",
+        {
+            "conversations": conversations,
+            "active_chat": active_chat,
+            "messages": messages,
+        },
+    )
 
 
 @login_required(login_url="/login/")
@@ -107,9 +115,7 @@ def send_message(request, chat_user_id):
 
         # Save the DM
         DM.objects.create(
-            sender=sender,
-            receiver=recipient,
-            message=message_text.encode("utf-8")
+            sender=sender, receiver=recipient, message=message_text.encode("utf-8")
         )
 
         return redirect("chat", chat_user_id=recipient.id)
@@ -130,9 +136,7 @@ def send_message_generic(request):
 
             # Create DM
             DM.objects.create(
-                sender=sender,
-                receiver=recipient,
-                message=message_text.encode("utf-8")
+                sender=sender, receiver=recipient, message=message_text.encode("utf-8")
             )
             return redirect("chat", chat_user_id=recipient.id)
 
@@ -149,11 +153,13 @@ def delete_conversation(request, chat_user_id):
 
         # Delete all DMs between the two users
         DM.objects.filter(
-            (Q(sender=user) & Q(receiver=other_user)) |
-            (Q(sender=other_user) & Q(receiver=user))
+            (Q(sender=user) & Q(receiver=other_user))
+            | (Q(sender=other_user) & Q(receiver=user))
         ).delete()
 
-        messages.success(request, f"Conversation with {other_user.first_name} has been deleted.")
+        messages.success(
+            request, f"Conversation with {other_user.first_name} has been deleted."
+        )
     except Customer.DoesNotExist:
         messages.error(request, "User not found or you are not authorized.")
 

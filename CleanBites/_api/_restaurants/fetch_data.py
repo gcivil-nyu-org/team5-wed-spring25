@@ -64,7 +64,12 @@ def fetch_and_store_data():
                     geo_point = Point(float(longitude), float(latitude))
                 else:
                     # Fall back to geocoding if lat/lon are missing
-                    geo_point = get_coords(item.get("building"), item.get("street"), item.get("boro"), item.get("zipcode"))
+                    geo_point = get_coords(
+                        item.get("building"),
+                        item.get("street"),
+                        item.get("boro"),
+                        item.get("zipcode"),
+                    )
 
                 restaurant, created = Restaurant.objects.update_or_create(
                     id=clean_int(
@@ -118,7 +123,11 @@ def get_coords(building, street, boro, zipcode):
     if not street:
         return None  # No address available
 
-    q_address = f"{building} {street}, {boro}, NY {zipcode}" if building else f"{street}, {boro}, NY {zipcode}"
+    q_address = (
+        f"{building} {street}, {boro}, NY {zipcode}"
+        if building
+        else f"{street}, {boro}, NY {zipcode}"
+    )
 
     try:
         # NYC bounding box: west, south, east, north (lon/lat)
