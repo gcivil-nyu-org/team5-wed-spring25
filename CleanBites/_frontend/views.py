@@ -33,6 +33,10 @@ def restaurant_detail(request, name):
 def dynamic_map_view(request):
     return render(request, "maps/nycmap_dynamic.html")
 
+@login_required(login_url="/login/")
+def user_profile(request):
+    user = get_object_or_404(Customer, id__iexact=id)
+    return render(request, "user_profile.html")
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
@@ -86,7 +90,7 @@ def register_view(request):
         user = User.objects.create_user(
             username=username, email=email, password=password1
         )
-        customer = Customer.objects.create(email=email)
+        customer = Customer.objects.create(email=email, username=username)
 
         # ✅ Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
