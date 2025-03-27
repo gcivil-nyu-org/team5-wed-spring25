@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Customer(models.Model):
     id = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=255)
