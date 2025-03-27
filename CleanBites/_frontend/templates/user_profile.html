@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ user.id }}</title>
+    <title>{{ user.username }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
@@ -63,13 +63,27 @@
 <body>
 
 <div class="container">
-    <div class="user-header">
-        {% if user.profile_image %}
-            <img src="{{ user.profile_image.url }}" alt="{{ user.username }}" class="user-img">
-        {% endif %}
-    </div>
+    <div id = "wrapper"></div>
+        <header id ="header">
+            <h1>{{user.username}}</h1>
+            <p>Short user description</p>
+        </header>
+    <div id="main">
 
-    <h1>{{ user.username }}</h1>
+        <!-- Content -->
+            <section id="content" class="main">
+
+                <!-- Text -->
+                    <section>
+                        <p>Nunc lacinia ante nunc ac lobortis. Interdum adipiscing gravida odio porttitor sem non mi integer non faucibus ornare mi ut ante amet placerat aliquet. Volutpat eu sed ante lacinia sapien lorem accumsan varius montes viverra nibh in adipiscing blandit tempus accumsan.</p>
+                        <hr />
+                        <h2>Recent User Review 1</h2>
+                        <p>User Review 1 Body</p>
+                        <h2>Recent User Review 2</h2>
+                        <p>User Review 2 Body</p>
+                        <h2>Recent User Review 3</h2>
+                        <p>User Review 3 Body</p>
+                        <hr />
 
 </div>
 

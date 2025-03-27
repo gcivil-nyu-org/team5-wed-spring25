@@ -20,7 +20,7 @@ urlpatterns = [
         name="restaurant_detail",
     ),
     path(
-    "user/<str:username>/",
+    "user/<str:username>/", 
     views.user_profile,
     name="user_profile",
     ),
