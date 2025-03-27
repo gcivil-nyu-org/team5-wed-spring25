@@ -21,6 +21,7 @@ from utils import (
     restaurant_to_feature,
     create_nyc_map,
 )
+from django.db.models import Q
 
 
 # Create your views here.
@@ -73,8 +74,20 @@ class RestaurantGeoJSONView(APIView):
         # Filter by hygiene rating
         if rating:
             try:
-                rating = int(rating)
-                queryset = queryset.filter(hygiene_rating__lte=rating)
+                ratings = rating.split(",")
+                # Q allows you to build OR conditions
+                rating_filter = Q()
+                if 'A' in ratings:
+                    rating_filter |= Q(hygiene_rating__lte=13)
+                if 'B' in ratings:
+                    rating_filter |= Q(
+                        hygiene_rating__gte=14,
+                        hygiene_rating__lte=27)
+                if 'C' in ratings:
+                    rating_filter |= Q(
+                        hygiene_rating__gte=28)
+                queryset = queryset.filter(rating_filter)
+                
             except ValueError:
                 pass  # Ignore invalid ratings
 
