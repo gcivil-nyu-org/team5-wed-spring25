@@ -33,10 +33,12 @@ def restaurant_detail(request, name):
 def dynamic_map_view(request):
     return render(request, "maps/nycmap_dynamic.html")
 
+
 @login_required(login_url="/login/")
-def user_profile(request, username): 
+def user_profile(request, username):
     user = get_object_or_404(Customer, username__iexact=username)
     return render(request, "user_profile.html", {"user": user})
+
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
