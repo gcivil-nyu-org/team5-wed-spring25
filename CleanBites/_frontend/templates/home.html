@@ -8,18 +8,26 @@
   <title>Home</title>
   <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
   <link rel="stylesheet" href="{% static 'home/home.css' %}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
 </head>
 <body>
 
   <header class="apple-navbar">  
     <div class="navbar-left">
-      <h2>CleanBites</h2>
+      <h2><a href="{% url 'home' %}" style="text-decoration: none; color: inherit;">CleanBites</a></h2>
     </div>
 
     <div class="search-bar">      
       <form id="search-form">
         <input type="text" id="search-name" placeholder="Restaurant Name">
-        <input type="text" id="search-rating" placeholder="Hygiene Rating">
+        <div id="rating-checkboxes-container">
+          <span class="ratings-label">Hygiene Ratings:</span>
+          <div class="ratings-options">
+            <label><input type="checkbox" name="ratings" value="A" checked> A</label>
+            <label><input type="checkbox" name="ratings" value="B" checked> B</label>
+            <label><input type="checkbox" name="ratings" value="C" checked> C</label>
+          </div>
+        </div>
         <input type="text" id="search-cuisine" placeholder="Cuisine">
         <input type="text" id="search-distance" placeholder="Distance (km)">
         <button type="submit" class="search-btn">Search</button>
@@ -37,7 +45,7 @@
         <div class="dropdown-menu" id="profileDropdown">
           <!-- WILL route HERE to user/restaurant profile page -->
           <a href="{% url 'user_profile' user.username %}"{{user.username}} class="dropdown-item">Profile</a>
-          <a href="/home/" class="dropdown-item">Messages</a>
+          <a href="/inbox/" class="dropdown-item">Messages</a>
           <a href="/home/" class="dropdown-item">Settings</a>
           <form method="POST" action="{% url 'logout' %}">
             {% csrf_token %}
@@ -67,6 +75,7 @@
     </div>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
   <script>    
     window.globalLAT = 40.69455789521935;
     window.globalLNG = -73.9865872293045;
@@ -151,10 +160,12 @@
       }
     });
 
-
     function performSearch() {
       const name = document.getElementById('search-name').value;
-      const rating = document.getElementById('search-rating').value;
+      const checkedRatings = Array.from(document.querySelectorAll('input[name="ratings"]:checked'))
+                              .map(el => el.value);
+      // create a comma-separated string, e.g. "A,B,C"
+      const rating = checkedRatings.join(',');
       const cuisine = document.getElementById('search-cuisine').value;
       const distance = document.getElementById('search-distance').value;
 
@@ -195,7 +206,10 @@
 
     function resetMapInIframe() {
       document.getElementById('search-name').value = "";
-      document.getElementById('search-rating').value = "";
+      document.getElementById('rating-checkboxes-container').value = "";
+      document.querySelectorAll('input[name="ratings"]').forEach(function(checkbox) {
+        checkbox.checked = true;
+      });
       document.getElementById('search-cuisine').value = "";
       document.getElementById('search-distance').value = "";
 
