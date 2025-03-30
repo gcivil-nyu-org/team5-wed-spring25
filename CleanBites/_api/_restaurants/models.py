@@ -1,8 +1,8 @@
 from django.db import models
 from django.contrib.gis.db import models as GISmodels
 from django.contrib.gis.geos import Point
-
-
+from django.contrib.auth import get_user_model
+User = get_user_model()
 # Create your models here.
 class Restaurant(models.Model):
     id = models.AutoField(primary_key=True)  # SERIAL in PostgreSQL
@@ -21,6 +21,7 @@ class Restaurant(models.Model):
     cuisine_description = models.CharField(max_length=255)  # Cuisine type
     violation_description = models.TextField()  # Violation description
     geo_coords = GISmodels.PointField(default=Point(0.0, 0.0))  # latitude coord
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="restaurant",null=True, blank=True) 
 
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"
