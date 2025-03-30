@@ -27,7 +27,12 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
-    return render(request, "maps/restaurant_detail.html", {"restaurant": restaurant})
+    is_owner = False
+    owned_restaurant = Restaurant.objects.get(user=request.user)
+    if owned_restaurant == restaurant:
+        is_owner = True
+    return render(request, "maps/restaurant_detail.html", {"restaurant": restaurant, "is_owner": is_owner,
+    })
 
 
 @login_required(login_url="/login/")

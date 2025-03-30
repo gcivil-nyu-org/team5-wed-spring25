@@ -117,7 +117,9 @@
   </div>
   <div class="info"><i class="fa-solid fa-file"></i><strong>Violation Description:</strong> {{ restaurant.violation_description }}</div>
   <div class="info"><i class="fa-solid fa-calendar-days"></i><strong>Inspection Date:</strong> {{ restaurant.inspection_date }}</div>
-  <button id="edit-profile-btn">Edit Profile</button>
+  {% if is_owner %}
+    <button id="edit-profile-btn">Edit Profile</button>
+  {% endif %}
 
   <!-- Edit Form -->
   <div id="edit-profile-form">
