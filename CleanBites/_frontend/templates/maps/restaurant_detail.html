@@ -37,7 +37,7 @@
     }
     .info {
       display: flex;
-      align-items: center;
+      align-items: center; /* Ensures vertical alignment */
       margin: 10px 0;
       font-size: 16px;
       color: #333;
@@ -45,6 +45,8 @@
     .info i {
       color: #1a73e8;
       margin-right: 10px;
+      min-width: 20px; /* Ensures consistent width for icons */
+      text-align: center; /* Centers the icon within its space */
     }
     .rating {
       font-weight: bold;
@@ -113,8 +115,8 @@
     <i class="fas fa-star"></i>
     <strong>Hygiene Rating:</strong> <span id="hygiene-grade" data-rating="{{ restaurant.hygiene_rating }}"></span>
   </div>
-  <p class="description">{{ restaurant.description }}</p>
-
+  <div class="info"><i class="fa-solid fa-file"></i><strong>Violation Description:</strong> {{ restaurant.violation_description }}</div>
+  <div class="info"><i class="fa-solid fa-calendar-days"></i><strong>Inspection Date:</strong> {{ restaurant.inspection_date }}</div>
   <button id="edit-profile-btn">Edit Profile</button>
 
   <!-- Edit Form -->
@@ -139,8 +141,8 @@
       <label>Cuisine:</label>
       <input type="text" name="cuisine_description" value="{{ restaurant.cuisine_description }}">
 
-      <label>Description:</label>
-      <textarea name="description">{{ restaurant.description }}</textarea>
+      <!-- <label>Description:</label>
+      <textarea name="violation_description">{{ restaurant.violation_description }}</textarea> -->
 
       <!-- Restaurant owner should not have permission to edit hygieen rating   -->
       <!-- <label>Hygiene Rating:</label> -->
