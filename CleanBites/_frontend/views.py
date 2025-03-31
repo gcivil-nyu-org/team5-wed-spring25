@@ -27,7 +27,18 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
-    return render(request, "maps/restaurant_detail.html", {"restaurant": restaurant})
+    is_owner = False
+    owned_restaurant = Restaurant.objects.get(user=request.user)
+    if owned_restaurant == restaurant:
+        is_owner = True
+    return render(
+        request,
+        "maps/restaurant_detail.html",
+        {
+            "restaurant": restaurant,
+            "is_owner": is_owner,
+        },
+    )
 
 
 @login_required(login_url="/login/")
@@ -170,6 +181,50 @@ def delete_conversation(request, chat_user_id):
         messages.error(request, "User not found or you are not authorized.")
 
     return redirect("messages inbox")
+
+
+@login_required(login_url="/login/")
+def update_restaurant_profile_view(request):
+    try:
+        restaurant = Restaurant.objects.get(user=request.user)
+    except Restaurant.DoesNotExist:
+        messages.error(request, "No restaurant is linked to your account.")
+        return redirect("home")
+
+    if request.method == "POST":
+        if "name" in request.POST:
+            restaurant.name = request.POST.get("name")
+        if "phone" in request.POST:
+            restaurant.phone = request.POST.get("phone")
+        if "street" in request.POST:
+            restaurant.street = request.POST.get("street")
+        if "building" in request.POST and request.POST.get("building").isdigit():
+            restaurant.building = int(request.POST.get("building"))
+        if "zipcode" in request.POST:
+            restaurant.zipcode = request.POST.get("zipcode")
+        if "cuisine_description" in request.POST:
+            restaurant.cuisine_description = request.POST.get("cuisine_description")
+        else:
+            restaurant.name = request.POST.get("name", restaurant.name)
+            restaurant.building = request.POST.get("building", restaurant.building)
+            restaurant.street = request.POST.get("street", restaurant.street)
+            restaurant.zipcode = request.POST.get("zipcode", restaurant.zipcode)
+            restaurant.phone = request.POST.get("phone", restaurant.phone)
+            restaurant.cuisine_description = request.POST.get(
+                "cuisine_description", restaurant.cuisine_description
+            )
+            restaurant.violation_description = request.POST.get(
+                "description", restaurant.violation_description
+            )
+
+        if "profile_image" in request.FILES:
+            restaurant.profile_image = request.FILES["profile_image"]
+
+        restaurant.save()
+        messages.success(request, "Restaurant profile updated successfully!")
+        return redirect("restaurant_detail", name=restaurant.name)
+
+    return redirect("home")
 
 
 # =====================================================================================

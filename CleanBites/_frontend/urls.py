@@ -20,6 +20,11 @@ urlpatterns = [
         name="restaurant_detail",
     ),
     path("user/<str:username>/", views.user_profile, name="user_profile"),
+    path(
+        "update-profile/",
+        views.update_restaurant_profile_view,
+        name="update_restaurant_profile",
+    ),
     path("inbox/", views.messages_view, name="messages inbox"),
     path("inbox/<int:chat_user_id>/", views.messages_view, name="chat"),
     path("inbox/send/", views.send_message_generic, name="send_message_generic"),
