@@ -40,6 +40,7 @@ def user_profile(request, username):
     user = get_object_or_404(Customer, username__iexact=username)
     return render(request, "user_profile.html", {"user": user})
 
+
 @login_required(login_url="/login/")
 def messages_view(request, chat_user_id=None):
     try:
@@ -169,7 +170,6 @@ def delete_conversation(request, chat_user_id):
         messages.error(request, "User not found or you are not authorized.")
 
     return redirect("messages inbox")
-
 
 
 # =====================================================================================
