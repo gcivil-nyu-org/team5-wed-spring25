@@ -19,6 +19,7 @@ urlpatterns = [
         views.restaurant_detail,
         name="restaurant_detail",
     ),
+    path("user/<str:username>/", views.user_profile, name="user_profile"),
     path(
         "update-profile/",
         views.update_restaurant_profile_view,

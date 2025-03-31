@@ -47,6 +47,12 @@ def dynamic_map_view(request):
 
 
 @login_required(login_url="/login/")
+def user_profile(request, username):
+    user = get_object_or_404(Customer, username__iexact=username)
+    return render(request, "user_profile.html", {"user": user})
+
+
+@login_required(login_url="/login/")
 def messages_view(request, chat_user_id=None):
     try:
         user = Customer.objects.get(email=request.user.email)
@@ -273,7 +279,7 @@ def register_view(request):
         user = User.objects.create_user(
             username=username, email=email, password=password1
         )
-        customer = Customer.objects.create(email=email)
+        customer = Customer.objects.create(email=email, username=username)
 
         # ✅ Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
