@@ -30,7 +30,7 @@ urlpatterns = [
     path("inbox/send/", views.send_message_generic, name="send_message_generic"),
     path("inbox/send/<int:chat_user_id>/", views.send_message, name="send_message"),
     path(
-        "inbox/delete/<int:chat_user_id>/",
+        "inbox/delete/<int:other_user_id>/",
         views.delete_conversation,
         name="delete_conversation",
     ),
