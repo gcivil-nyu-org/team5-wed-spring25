@@ -8,6 +8,7 @@ from django.contrib.auth.backends import ModelBackend
 from _api._users.models import Customer, DM
 from django.db.models import Q
 from django.db import transaction
+from django.http import HttpResponse
 
 User = get_user_model()
 
@@ -119,7 +120,18 @@ def messages_view(request, chat_user_id=None):
 @login_required(login_url="/login/")
 def send_message(request, chat_user_id):
     if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                return HttpResponse("Sender not found", status=404)
+            
+            
         recipient = get_object_or_404(Customer, id=chat_user_id)
         message_text = request.POST.get("message")
 
@@ -142,7 +154,18 @@ def send_message(request, chat_user_id):
 @login_required(login_url="/login/")
 def send_message_generic(request):
     if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                return HttpResponse("Sender not found", status=404)
+        
+        
         recipient_email = request.POST.get("recipient")
         message_text = request.POST.get("message")
 
