@@ -9,6 +9,7 @@ from _api._users.models import Customer, DM
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
+from _frontend.utils import has_unread_messages
 
 User = get_user_model()
 
@@ -22,7 +23,10 @@ def landing_view(request):
 
 @login_required(login_url="/login/")
 def home_view(request):
-    return render(request, "home.html")
+    context = {
+        'has_unread_messages': has_unread_messages(request.user)
+    }
+    return render(request, "home.html", context)
 
 
 @login_required(login_url="/login/")
@@ -39,19 +43,27 @@ def restaurant_detail(request, name):
         {
             "restaurant": restaurant,
             "is_owner": is_owner,
+            "has_unread_messages": has_unread_messages(request.user),
         },
     )
 
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    return render(request, "maps/nycmap_dynamic.html")
+    context = {
+        'has_unread_messages': has_unread_messages(request.user)
+    }
+    return render(request, "maps/nycmap_dynamic.html", context)
 
 
 @login_required(login_url="/login/")
 def user_profile(request, username):
     user = get_object_or_404(Customer, username__iexact=username)
-    return render(request, "user_profile.html", {"user": user})
+    context = {
+        'user': user,
+        'has_unread_messages': has_unread_messages(request.user)
+    }
+    return render(request, "user_profile.html", context)
 
 
 @login_required(login_url="/login/")
@@ -67,6 +79,7 @@ def messages_view(request, chat_user_id=None):
                 "active_chat": None,
                 "messages": [],
                 "error": "Your profile could not be found.",
+                "has_unread_messages": has_unread_messages(request.user),
             },
         )
 
@@ -98,6 +111,9 @@ def messages_view(request, chat_user_id=None):
             | (Q(sender=active_chat) & Q(receiver=user))
         ).order_by("sent_at")
 
+        # Mark messages as read when viewed
+        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(read=True)
+
         for msg in raw_messages:
             try:
                 byte_data = bytes(msg.message)
@@ -113,6 +129,7 @@ def messages_view(request, chat_user_id=None):
             "conversations": conversations,
             "active_chat": active_chat,
             "messages": messages,
+            "has_unread_messages": has_unread_messages(request.user),
         },
     )
 
@@ -142,9 +159,12 @@ def send_message(request, chat_user_id):
             messages.error(request, "Message cannot be empty.")
             return redirect("chat", chat_user_id=recipient.id)
 
-        # Save the DM
+        # Save the DM with read=False for new messages
         DM.objects.create(
-            sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+            sender=sender, 
+            receiver=recipient, 
+            message=message_text.encode("utf-8"),
+            read=False
         )
 
         return redirect("chat", chat_user_id=recipient.id)
@@ -173,9 +193,12 @@ def send_message_generic(request):
                 messages.error(request, "You can't message yourself.")
                 return redirect("messages inbox")
 
-            # Create DM
+            # Create DM with read=False for new messages
             DM.objects.create(
-                sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+                sender=sender, 
+                receiver=recipient, 
+                message=message_text.encode("utf-8"),
+                read=False
             )
             return redirect("chat", chat_user_id=recipient.id)
 
@@ -264,14 +287,55 @@ def profile_router(request, username):
             {
                 "restaurant": user_obj,
                 "is_owner": is_owner,
+                "has_unread_messages": has_unread_messages(request.user),
             },
         )
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
-            return render(request, "user_profile.html", {"customer": user_obj})
+            return render(
+                request,
+                "user_profile.html",
+                {"customer": user_obj, "has_unread_messages": has_unread_messages(request.user)},
+            )
         except Customer.DoesNotExist:
             return redirect("home")  # or a 404 page
+
+
+@login_required(login_url="/login/")
+def debug_unread_messages(request):
+    """Debug view to check unread messages status."""
+    from django.http import JsonResponse
+    
+    try:
+        user = Customer.objects.get(email=request.user.email)
+        unread_count = DM.objects.filter(receiver=user, read=False).count()
+        unread_messages = list(DM.objects.filter(receiver=user, read=False).values('id', 'sender__email', 'sent_at'))
+        
+        # Format sent_at for better readability
+        for msg in unread_messages:
+            if 'sent_at' in msg:
+                msg['sent_at'] = msg['sent_at'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        return JsonResponse({
+            'has_unread_messages': has_unread_messages(request.user),
+            'unread_count': unread_count,
+            'unread_messages': unread_messages,
+            'user_email': request.user.email,
+            'is_authenticated': request.user.is_authenticated,
+        })
+    except Customer.DoesNotExist:
+        return JsonResponse({
+            'error': 'Customer not found',
+            'user_email': request.user.email,
+            'is_authenticated': request.user.is_authenticated,
+        })
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+            'user_email': request.user.email,
+            'is_authenticated': request.user.is_authenticated,
+        })
 
 
 # =====================================================================================
@@ -328,10 +392,10 @@ def register_view(request):
         )
         customer = Customer.objects.create(email=email, username=username)
 
-        # ✅ Explicitly set authentication backend to avoid 'backend' error
+        # Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
 
-        # ✅ Log in the user
+        # Log in the user
         login(request, user)
 
         return redirect("home")  # Redirect to homepage after registration
@@ -392,7 +456,7 @@ def restaurant_verify(request):
                 restaurant.save()
 
             messages.success(request, "Registration successful! You can now log in.")
-            return redirect("/")  # ✅ Redirect to landing page
+            return redirect("/")  # Redirect to landing page
 
         except Restaurant.DoesNotExist:
             messages.error(request, "Selected restaurant does not exist.")
