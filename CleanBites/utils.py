@@ -9,7 +9,9 @@ from shapely.geometry import shape, Point as ShapelyPoint
 from django.conf import settings
 
 # Load NYC boundary from GeoJSON
-NYC_GEOJSON_URL = "https://raw.githubusercontent.com/dwillis/nyc-maps/master/boroughs.geojson"
+NYC_GEOJSON_URL = (
+    "https://raw.githubusercontent.com/dwillis/nyc-maps/master/boroughs.geojson"
+)
 nyc_geojson = requests.get(NYC_GEOJSON_URL).json()
 nyc_polygons = [shape(feature["geometry"]) for feature in nyc_geojson["features"]]
 
