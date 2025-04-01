@@ -34,5 +34,5 @@ urlpatterns = [
         views.delete_conversation,
         name="delete_conversation",
     ),
-    path('profile/<str:username>/', views.profile_router, name='user_profile'),
+    path("profile/<str:username>/", views.profile_router, name="user_profile"),
 ]

@@ -238,19 +238,20 @@ def profile_router(request, username):
             is_owner = True
 
         return render(
-        request,
-        "maps/restaurant_detail.html",
-        {
-            "restaurant": user_obj,
-            "is_owner": is_owner,
-        },
-    )
+            request,
+            "maps/restaurant_detail.html",
+            {
+                "restaurant": user_obj,
+                "is_owner": is_owner,
+            },
+        )
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
-            return render(request, 'user_profile.html', {'customer': user_obj})
+            return render(request, "user_profile.html", {"customer": user_obj})
         except Customer.DoesNotExist:
-            return redirect('home')  # or a 404 page
+            return redirect("home")  # or a 404 page
+
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
