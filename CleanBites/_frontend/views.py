@@ -130,8 +130,7 @@ def send_message(request, chat_user_id):
             except Restaurant.DoesNotExist:
                 # Optional: handle case where sender is neither
                 return HttpResponse("Sender not found", status=404)
-            
-            
+
         recipient = get_object_or_404(Customer, id=chat_user_id)
         message_text = request.POST.get("message")
 
@@ -164,8 +163,7 @@ def send_message_generic(request):
             except Restaurant.DoesNotExist:
                 # Optional: handle case where sender is neither
                 return HttpResponse("Sender not found", status=404)
-        
-        
+
         recipient_email = request.POST.get("recipient")
         message_text = request.POST.get("message")
 
