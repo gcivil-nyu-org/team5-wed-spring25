@@ -58,6 +58,7 @@
             color: #555;
             line-height: 1.5;
         }
+        .edit-btn{margin-top: 10px;}
     </style>
 </head>
 <body>
@@ -66,7 +67,17 @@
     <div id = "wrapper"></div>
         <header id ="header">
             <h1>{{user.username}}</h1>
-            <p>Short user description</p>
+            <label>Favorite Cuisine:</label>
+            <input type="text" id="cuisine" value= "{{ user.fav_cuisine }}" disabled>
+            <br>
+            <label>About me:</label>
+            <input type="text" style="width: 300px; height: 200px;" id="aboutme" value="{{ user.aboutme }}" disabled>
+            <br>
+            {% if owner %}
+            <button class="edit-btn" onclick="toggleEdit()">Edit</button>
+            <br>
+            <button class="edit-btn" onclick="saveChanges()" style="display: none;">Save</button>    
+            {% endif %}
         </header>
     <div id="main">
 
@@ -87,5 +98,27 @@
 
 </div>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (owner) {
+                document.getElementById("edit-buttons").style.display = "block";
+            }
+        });
+        
+
+        function toggleEdit() {
+            let inputs = document.querySelectorAll('input');
+            let editBtn = document.querySelector('#edit-buttons button:first-child');
+            let saveBtn = document.querySelector('#edit-buttons button:last-child');
+            
+            inputs.forEach(input => input.disabled = !input.disabled);
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline';
+        }
+
+        function saveChanges() {
+            //need some code here to save to backend
+        }
+</script>
 </body>
 </html>

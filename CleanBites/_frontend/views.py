@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from _api._restaurants.models import Restaurant
+from _api._restaurants.models import Restaurant, Comment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
@@ -50,9 +50,15 @@ def dynamic_map_view(request):
 
 @login_required(login_url="/login/")
 def user_profile(request, username):
-    user = get_object_or_404(Customer, username__iexact=username)
-    return render(request, "user_profile.html", {"user": user})
-
+    user_obj = get_object_or_404(Customer, username__iexact=username)
+    is_owner = False
+    if request.user.is_authenticated and request.user.username == user_obj.username:
+        is_owner = True
+    try:
+        review = Comment.objects.filter(username=username).order_by('posted_at')[:3]
+    except Comment.DoesNotExist:
+        return render(request, "user_profile.html", {"user": user_obj, "owner" : is_owner})
+    return render(request, "user_profile.html", {"user": user_obj, "owner" : is_owner, "review" : review})
 
 @login_required(login_url="/login/")
 def messages_view(request, chat_user_id=None):
