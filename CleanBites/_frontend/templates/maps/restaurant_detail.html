@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  {% load static %}
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{{ restaurant.name }}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'home/home.css' %}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -98,8 +101,7 @@
   </style>
 </head>
 <body>
-
-<div class="container">
+<div class="container" style="margin-top: 200px;">
   <div class="restaurant-header">
     {% if restaurant.profile_image %}
       <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img" />
@@ -198,6 +200,11 @@
       editBtn.style.display = 'inline-block';
     });
   });
+
+  function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    }
 </script>
 
 </body>

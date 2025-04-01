@@ -8,6 +8,7 @@ from django.contrib.auth.backends import ModelBackend
 from _api._users.models import Customer, DM
 from django.db.models import Q
 from django.db import transaction
+from django.http import HttpResponse
 
 User = get_user_model()
 
@@ -27,10 +28,11 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
+
     is_owner = False
-    owned_restaurant = Restaurant.objects.get(user=request.user)
-    if owned_restaurant == restaurant:
+    if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
+
     return render(
         request,
         "maps/restaurant_detail.html",
@@ -118,7 +120,17 @@ def messages_view(request, chat_user_id=None):
 @login_required(login_url="/login/")
 def send_message(request, chat_user_id):
     if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                return HttpResponse("Sender not found", status=404)
+
         recipient = get_object_or_404(Customer, id=chat_user_id)
         message_text = request.POST.get("message")
 
@@ -141,7 +153,17 @@ def send_message(request, chat_user_id):
 @login_required(login_url="/login/")
 def send_message_generic(request):
     if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                return HttpResponse("Sender not found", status=404)
+
         recipient_email = request.POST.get("recipient")
         message_text = request.POST.get("message")
 
@@ -225,6 +247,31 @@ def update_restaurant_profile_view(request):
         return redirect("restaurant_detail", name=restaurant.name)
 
     return redirect("home")
+
+
+@login_required(login_url="/login/")
+def profile_router(request, username):
+    try:
+        user_obj = Restaurant.objects.get(username=username)
+
+        is_owner = False
+        if request.user.is_authenticated and request.user.username == user_obj.username:
+            is_owner = True
+
+        return render(
+            request,
+            "maps/restaurant_detail.html",
+            {
+                "restaurant": user_obj,
+                "is_owner": is_owner,
+            },
+        )
+    except Restaurant.DoesNotExist:
+        try:
+            user_obj = Customer.objects.get(username=username)
+            return render(request, "user_profile.html", {"customer": user_obj})
+        except Customer.DoesNotExist:
+            return redirect("home")  # or a 404 page
 
 
 # =====================================================================================
@@ -341,6 +388,7 @@ def restaurant_verify(request):
                 # Update the selected restaurant's email
                 restaurant = Restaurant.objects.get(id=restaurant_id)
                 restaurant.email = email  # Assign new owner's email to restaurant
+                restaurant.username = username
                 restaurant.save()
 
             messages.success(request, "Registration successful! You can now log in.")

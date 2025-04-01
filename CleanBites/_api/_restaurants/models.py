@@ -9,6 +9,7 @@ User = get_user_model()
 # Create your models here.
 class Restaurant(models.Model):
     id = models.AutoField(primary_key=True)  # SERIAL in PostgreSQL
+    username = models.CharField(max_length=255, null=True, blank=True)
     name = models.CharField(max_length=255)  # Restaurant name
     email = models.EmailField(max_length=255)  # Email field
     phone = models.CharField(max_length=15)  # Phone number

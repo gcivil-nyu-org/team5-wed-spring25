@@ -44,7 +44,7 @@
         </div>
         <div class="dropdown-menu" id="profileDropdown">
           <!-- WILL route HERE to user/restaurant profile page -->
-          <a href="{% url 'user_profile' user.username %}"{{user.username}} class="dropdown-item">Profile</a>
+          <a href="/profile/{{ user.username }}/" class="dropdown-item">Profile</a>
           <a href="/inbox/" class="dropdown-item">Messages</a>
           <a href="/home/" class="dropdown-item">Settings</a>
           <form method="POST" action="{% url 'logout' %}">
