@@ -27,10 +27,11 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
+
     is_owner = False
-    owned_restaurant = Restaurant.objects.get(user=request.user)
-    if owned_restaurant == restaurant:
+    if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
+
     return render(
         request,
         "maps/restaurant_detail.html",
@@ -226,11 +227,24 @@ def update_restaurant_profile_view(request):
 
     return redirect("home")
 
+
 @login_required(login_url="/login/")
 def profile_router(request, username):
     try:
         user_obj = Restaurant.objects.get(username=username)
-        return render(request, 'maps/restaurant_detail.html', {'restaurant': user_obj})
+
+        is_owner = False
+        if request.user.is_authenticated and request.user.username == user_obj.username:
+            is_owner = True
+
+        return render(
+        request,
+        "maps/restaurant_detail.html",
+        {
+            "restaurant": user_obj,
+            "is_owner": is_owner,
+        },
+    )
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
