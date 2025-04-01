@@ -94,7 +94,17 @@ def messages_view(request, chat_user_id=None):
                 "name": other.first_name,
                 "email": other.email,
                 "avatar_url": "/static/images/avatar-placeholder.png",
+                "has_unread": False  # Initialize unread flag
             }
+
+    # Check for unread messages in each conversation
+    for participant_id in participants:
+        has_unread = DM.objects.filter(
+            sender_id=participant_id, 
+            receiver=user, 
+            read=False
+        ).exists()
+        participants[participant_id]["has_unread"] = has_unread
 
     conversations = list(participants.values())
 

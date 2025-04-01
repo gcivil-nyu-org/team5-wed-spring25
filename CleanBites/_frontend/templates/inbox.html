@@ -27,6 +27,17 @@
       display: block;
       z-index: 100;
     }
+
+    /* Unread conversation style */
+    .unread-conversation {
+      font-weight: bold;
+    }
+    
+    .unread-icon {
+      color: #ff0000;
+      margin-left: 5px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -80,11 +91,14 @@
             <div class="conversation-list">
                 {% for convo in conversations %}
                   <div class="d-flex justify-content-between align-items-center">
-                    <a href="{% url 'chat' convo.id %}" class="list-group-item list-group-item-action border-0 {% if active_chat and convo.id == active_chat.id %}active{% endif %}" style="margin-top: 10px;">
+                    <a href="{% url 'chat' convo.id %}" class="list-group-item list-group-item-action border-0 {% if active_chat and convo.id == active_chat.id %}active{% endif %} {% if convo.has_unread %}unread-conversation{% endif %}" style="margin-top: 10px;">
                       <div class="d-flex align-items-start" style="padding-left: 5px;">
                         <img src="{{ convo.avatar_url }}" class="rounded-circle mr-1" width="40" height="40" alt="{{ convo.name }}">
                         <div class="flex-grow-1 ml-3" style="padding-left: 5px;">
                           {{ convo.email }}
+                          {% if convo.has_unread %}
+                            <span class="unread-icon">✉️</span>
+                          {% endif %}
                         </div>
                       </div>
                     </a>
