@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#mirror any changes here on travisdeploy.sh
 # Define variables
 AWS_REGION="us-west-2"
 ECR_REPO="730335518224.dkr.ecr.$AWS_REGION.amazonaws.com/cleanbites"

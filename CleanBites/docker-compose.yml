@@ -27,6 +27,7 @@ services:
       - cleanbites-network
     volumes:
       - .:/app  # Syncs local changes inside the container in real-time
+
 networks:
   cleanbites-network:
     driver: bridge

@@ -7,23 +7,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Apple-Style Landing</title>
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>CleanBites Landing</title>
     <link href="{% static 'landing/css/styles.css' %}" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Google Identity Services script -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <!-- Apple-style Navbar -->
+    <!-- Navbar -->
     <nav class="apple-navbar">
         <div class="navbar-left">
-            <a class="logo" href="{% url 'home' %}">MyBrand</a>
+            <a class="logo" href="{% url 'home' %}">CleanBites</a>
         </div>
         <div class="navbar-right">
             <ul class="nav-links">
                 <li><a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
-                <li><a href="#" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a></li>
+                <li><a href="#" data-bs-toggle="modal" data-bs-target="#registerSelectionModal">Register</a></li>
             </ul>
         </div>
     </nav>
+
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
     
     <!-- Hero Section -->
     <div class="hero">
@@ -54,9 +67,21 @@
                     </form>
                     <div class="text-center mt-3">
                         <p>or</p>
-                        <a href="{% provider_login_url 'google' %}" class="btn btn-danger w-100">
-                            Sign in with Google
-                        </a>
+                        <div id="g_id_onload"
+                             data-context="signin"
+                             data-ux_mode="popup"
+                             data-client_id="405283966911-hr2n3vbrackk4ed28bbltm9li5nlv1o4.apps.googleusercontent.com"
+                             data-callback="handleCredentialResponse"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-size="large"
+                             data-theme="outline"
+                             data-text="continue_with"
+                             data-shape="rectangular"
+                             data-logo_alignment="center">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -103,7 +128,112 @@
         </div>
     </div>
 
+    <!-- Register Selection Modal -->
+    <div class="modal fade" id="registerSelectionModal" tabindex="-1" aria-labelledby="registerSelectionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="registerSelectionModalLabel">Select Registration Type</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerSelectionForm" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="userType" class="form-label">Register As</label>
+                            <select class="form-select" id="userType" name="user_type" required>
+                                <option value="user">User</option>
+                                <option value="restaurant_owner">Restaurant Owner</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Continue</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("registerSelectionForm").addEventListener("submit", function(event) {
+            event.preventDefault();  // Prevent the default form submission
+        
+            let userType = document.getElementById("userType").value;
+            
+            if (userType === "user") {
+                // Close the Register Selection Modal
+                var registerSelectionModal = bootstrap.Modal.getInstance(document.getElementById('registerSelectionModal'));
+                registerSelectionModal.hide();
+        
+                // Open the Register Modal
+                var registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+                registerModal.show();
+        
+            } else if (userType === "restaurant_owner") {
+                // Redirect to the Restaurant Owner Registration Page
+                window.location.href = "{% url 'restaurant_register' %}";
+            }
+        });
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Helper to retrieve Django CSRF token from cookie
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              // Does this cookie string begin with name=?
+              if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+  
+        // 5) Called by Google when the user successfully signs in
+        function handleCredentialResponse(response) {
+          console.log("Google Sign-In Response:", response);
+          const idToken = response.credential; // The JWT from Google
+          if (!idToken) {
+            console.error("No ID token received"); // Debug log for missing token
+            alert("Failed to retrieve ID token.");
+            return;
+          }
+          // Send this token to your Django backend to verify & log the user in
+          fetch("/google-signin/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCookie("csrftoken")  // needed if CSRF is enforced
+            },
+            body: JSON.stringify({ credential: idToken })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log("Backend Response:", data);
+            if (data.success) {
+              // e.g., redirect or close modal
+              window.location.href = data.redirect_url || "/home/";
+            } else {
+              alert("Google sign-in failed: " + (data.error || "Unknown error"));
+            }
+          })
+          .catch(err => {
+            console.error("Fetch error:", err);
+            alert("Something went wrong during Google sign-in.");
+          });
+        }
+      </script>
+
     <script src="{% static 'landing/js/scripts.js' %}"></script>
 </body>
 </html>

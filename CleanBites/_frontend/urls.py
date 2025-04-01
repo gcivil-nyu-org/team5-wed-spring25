@@ -7,6 +7,12 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("register/", views.register_view, name="register"),
+    path("restaurant_register/", views.restaurant_register, name="restaurant_register"),
+    path(
+        "restaurant_verify/",
+        views.restaurant_verify,
+        name="restaurant_verify",
+    ),
     path("nycmap/", views.nycmap_view, name="nycmap"),
     path(
         "restaurant/<str:name>/",

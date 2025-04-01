@@ -2,6 +2,10 @@ branch-defaults:
   default:
     environment: CleanBites-amznlnx-docker-stable-env
     group_suffix: null
+environment-defaults:
+  CleanBites-amznlnx-docker-stable-env:
+    branch: null
+    repository: null
 global:
   application_name: CleanBites-amznlnx-docker-stable
   branch: null

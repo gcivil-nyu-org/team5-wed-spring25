@@ -4,7 +4,7 @@ import folium
 from rest_framework.response import Response
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
-from _api._restaurants.models import Restaurant  # adjust import as needed
+from _api._restaurants.models import Restaurant
 from shapely.geometry import shape, Point as ShapelyPoint
 from django.conf import settings
 
@@ -18,13 +18,12 @@ nyc_polygons = [shape(feature["geometry"]) for feature in nyc_geojson["features"
 
 def is_in_nyc(lat, lon):
     """Check if a point is inside NYC boroughs using GeoJSON data."""
-    point = ShapelyPoint(lon, lat)  # Shapely uses (lon, lat) order
+    point = ShapelyPoint(lon, lat)
     return any(polygon.contains(point) for polygon in nyc_polygons)
 
 
-# get restaurants
-# can filter based on query parameter
 def get_restaurants(request):
+    """Filter restaurants based on query parameters."""
     restaurants = Restaurant.objects.all()
     lat = request.GET.get("lat")
     lng = request.GET.get("lng")
@@ -32,6 +31,7 @@ def get_restaurants(request):
     name_filter = request.GET.get("name")
     rating_filter = request.GET.get("rating")
     cuisine_filter = request.GET.get("cuisine")
+
     if lat and lng and distance:
         try:
             user_location = Point(float(lng), float(lat), srid=4326)
@@ -43,6 +43,7 @@ def get_restaurants(request):
             return Response(
                 {"error": "Invalid latitude, longitude, or distance"}, status=400
             )
+
     if name_filter:
         restaurants = restaurants.filter(name__icontains=name_filter)
     if rating_filter:
@@ -53,11 +54,12 @@ def get_restaurants(request):
             return Response({"error": "Invalid hygiene rating"}, status=400)
     if cuisine_filter:
         restaurants = restaurants.filter(cuisine_description__icontains=cuisine_filter)
+
     return restaurants
 
 
-# convert Restaurant instance to a GeoJSON feature
 def restaurant_to_feature(restaurant):
+    """Convert Restaurant instance to a GeoJSON feature."""
     return {
         "type": "Feature",
         "geometry": {
@@ -77,8 +79,8 @@ def restaurant_to_feature(restaurant):
     }
 
 
-# return marker color based on the hygiene rating
 def get_color(rating):
+    """Return marker color based on hygiene rating."""
     try:
         rating = int(rating)
         if 0 <= rating <= 13:
@@ -93,12 +95,16 @@ def get_color(rating):
         return "blue"
 
 
-# create Folium map
 def create_nyc_map(features):
+    """Create Folium map with restaurant markers."""
     f = folium.Figure(width=1000, height=500)
     m = folium.Map(
-        location=(40.7128, -74.0060), tiles="openstreetmap", zoom_start=12, min_zoom=10
+        location=(40.7128, -74.0060),
+        tiles="openstreetmap",
+        zoom_start=12,
+        min_zoom=10,
     ).add_to(f)
+
     for feature in features:
         geometry = feature.get("geometry", {})
         properties = feature.get("properties", {})
@@ -129,12 +135,14 @@ def create_nyc_map(features):
                     </div>
                 </div>
                 """
-                iframe = folium.IFrame(html=popup_html, width=260, height=140)
-                popup = folium.Popup(iframe, max_width=300)
+                iframe_height = 170 if properties.get("address") else 150
+                iframe = folium.IFrame(html=popup_html, width=270, height=iframe_height)
+                popup = folium.Popup(iframe, max_width="auto")
                 color = get_color(properties.get("rating", -1))
                 folium.Marker(
                     location=[lat, lon],
                     popup=popup,
                     icon=folium.Icon(color=color, icon="cutlery", prefix="fa"),
                 ).add_to(m)
+
     return m
