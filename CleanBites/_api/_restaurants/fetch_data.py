@@ -85,7 +85,7 @@ def fetch_and_store_data():
                         "hygiene_rating": clean_hygiene_rating(
                             item.get("score")
                         ),  # Hygiene rating is based on score
-                        "inspection_date": clean_date(item.get("inspection_date")),
+                        "inspection_date": clean_date(item.get("record_date")),
                         "borough": clean_int(
                             item.get("boro")
                         ),  # Convert borough to integer
