@@ -14,8 +14,9 @@ from _frontend.utils import has_unread_messages
 User = get_user_model()
 
 # Constants for message categories
-AUTH_MESSAGE = 'auth_message'  # For login/registration related messages
-INBOX_MESSAGE = 'inbox_message'  # For inbox related messages
+AUTH_MESSAGE = "auth_message"  # For login/registration related messages
+INBOX_MESSAGE = "inbox_message"  # For inbox related messages
+
 
 # =====================================================================================
 # WEBSITE VIEWS - visual endpoints
@@ -26,9 +27,7 @@ def landing_view(request):
 
 @login_required(login_url="/login/")
 def home_view(request):
-    context = {
-        'has_unread_messages': has_unread_messages(request.user)
-    }
+    context = {"has_unread_messages": has_unread_messages(request.user)}
     return render(request, "home.html", context)
 
 
@@ -53,19 +52,14 @@ def restaurant_detail(request, name):
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    context = {
-        'has_unread_messages': has_unread_messages(request.user)
-    }
+    context = {"has_unread_messages": has_unread_messages(request.user)}
     return render(request, "maps/nycmap_dynamic.html", context)
 
 
 @login_required(login_url="/login/")
 def user_profile(request, username):
     user = get_object_or_404(Customer, username__iexact=username)
-    context = {
-        'user': user,
-        'has_unread_messages': has_unread_messages(request.user)
-    }
+    context = {"user": user, "has_unread_messages": has_unread_messages(request.user)}
     return render(request, "user_profile.html", context)
 
 
@@ -97,15 +91,13 @@ def messages_view(request, chat_user_id=None):
                 "name": other.first_name,
                 "email": other.email,
                 "avatar_url": "/static/images/avatar-placeholder.png",
-                "has_unread": False  # Initialize unread flag
+                "has_unread": False,  # Initialize unread flag
             }
 
     # Check for unread messages in each conversation
     for participant_id in participants:
         has_unread = DM.objects.filter(
-            sender_id=participant_id, 
-            receiver=user, 
-            read=False
+            sender_id=participant_id, receiver=user, read=False
         ).exists()
         participants[participant_id]["has_unread"] = has_unread
 
@@ -125,7 +117,9 @@ def messages_view(request, chat_user_id=None):
         ).order_by("sent_at")
 
         # Mark messages as read when viewed
-        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(read=True)
+        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
+            read=True
+        )
 
         for msg in raw_messages:
             try:
@@ -159,28 +153,36 @@ def send_message(request, chat_user_id):
                 sender = Restaurant.objects.get(email=request.user.email)
             except Restaurant.DoesNotExist:
                 # Optional: handle case where sender is neither
-                messages.error(request, "Your account was not found. Please contact support.", extra_tags=INBOX_MESSAGE)
+                messages.error(
+                    request,
+                    "Your account was not found. Please contact support.",
+                    extra_tags=INBOX_MESSAGE,
+                )
                 return HttpResponse("Sender not found", status=404)
 
         recipient = get_object_or_404(Customer, id=chat_user_id)
         message_text = request.POST.get("message")
 
         if recipient == sender:
-            messages.error(request, "You can't message yourself.", extra_tags=INBOX_MESSAGE)
+            messages.error(
+                request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
+            )
             return redirect("chat", chat_user_id=recipient.id)
 
         if not message_text.strip():
-            messages.error(request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE)
+            messages.error(
+                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
+            )
             return redirect("chat", chat_user_id=recipient.id)
 
         # Save the DM with read=False for new messages
         DM.objects.create(
-            sender=sender, 
-            receiver=recipient, 
+            sender=sender,
+            receiver=recipient,
             message=message_text.encode("utf-8"),
-            read=False
+            read=False,
         )
-        
+
         return redirect("chat", chat_user_id=recipient.id)
 
 
@@ -196,47 +198,67 @@ def send_message_generic(request):
                 sender = Restaurant.objects.get(email=request.user.email)
             except Restaurant.DoesNotExist:
                 # Optional: handle case where sender is neither
-                messages.error(request, "Your account was not found. Please contact support.", extra_tags=INBOX_MESSAGE)
+                messages.error(
+                    request,
+                    "Your account was not found. Please contact support.",
+                    extra_tags=INBOX_MESSAGE,
+                )
                 return redirect("messages inbox")
 
         recipient_email = request.POST.get("recipient")
         message_text = request.POST.get("message")
 
         if not recipient_email:
-            messages.error(request, "Please enter a recipient email address.", extra_tags=INBOX_MESSAGE)
+            messages.error(
+                request,
+                "Please enter a recipient email address.",
+                extra_tags=INBOX_MESSAGE,
+            )
             return redirect("messages inbox")
 
         if not message_text.strip():
-            messages.error(request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE)
+            messages.error(
+                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
+            )
             return redirect("messages inbox")
 
         try:
             # First try to find the recipient as a Customer
             recipient = Customer.objects.get(email=recipient_email)
-            
+
             if recipient == sender:
-                messages.error(request, "You can't message yourself.", extra_tags=INBOX_MESSAGE)
+                messages.error(
+                    request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
+                )
                 return redirect("messages inbox")
 
             # Create DM with read=False for new messages
             DM.objects.create(
-                sender=sender, 
-                receiver=recipient, 
+                sender=sender,
+                receiver=recipient,
                 message=message_text.encode("utf-8"),
-                read=False
+                read=False,
             )
-            
+
             return redirect("chat", chat_user_id=recipient.id)
 
         except Customer.DoesNotExist:
             # Check if recipient exists as a Restaurant
             try:
                 restaurant_recipient = Restaurant.objects.get(email=recipient_email)
-                messages.error(request, f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts.", extra_tags=INBOX_MESSAGE)
+                messages.error(
+                    request,
+                    f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts.",
+                    extra_tags=INBOX_MESSAGE,
+                )
             except Restaurant.DoesNotExist:
                 # Recipient doesn't exist at all
-                messages.error(request, f"Recipient '{recipient_email}' does not exist. Please check the email address and try again.", extra_tags=INBOX_MESSAGE)
-            
+                messages.error(
+                    request,
+                    f"Recipient '{recipient_email}' does not exist. Please check the email address and try again.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+
             return redirect("messages inbox")
 
 
@@ -252,7 +274,11 @@ def delete_conversation(request, other_user_id):
             | (Q(sender=other_user) & Q(receiver=user))
         ).delete()
 
-        messages.success(request, f"Conversation with {other_user.first_name} has been deleted.", extra_tags=INBOX_MESSAGE)
+        messages.success(
+            request,
+            f"Conversation with {other_user.first_name} has been deleted.",
+            extra_tags=INBOX_MESSAGE,
+        )
         return redirect("messages inbox")
     except Customer.DoesNotExist:
         messages.error(request, "Your account was not found.", extra_tags=INBOX_MESSAGE)
@@ -327,7 +353,10 @@ def profile_router(request, username):
             return render(
                 request,
                 "user_profile.html",
-                {"customer": user_obj, "has_unread_messages": has_unread_messages(request.user)},
+                {
+                    "customer": user_obj,
+                    "has_unread_messages": has_unread_messages(request.user),
+                },
             )
         except Customer.DoesNotExist:
             return redirect("home")  # or a 404 page
@@ -337,36 +366,46 @@ def profile_router(request, username):
 def debug_unread_messages(request):
     """Debug view to check unread messages status."""
     from django.http import JsonResponse
-    
+
     try:
         user = Customer.objects.get(email=request.user.email)
         unread_count = DM.objects.filter(receiver=user, read=False).count()
-        unread_messages = list(DM.objects.filter(receiver=user, read=False).values('id', 'sender__email', 'sent_at'))
-        
+        unread_messages = list(
+            DM.objects.filter(receiver=user, read=False).values(
+                "id", "sender__email", "sent_at"
+            )
+        )
+
         # Format sent_at for better readability
         for msg in unread_messages:
-            if 'sent_at' in msg:
-                msg['sent_at'] = msg['sent_at'].strftime('%Y-%m-%d %H:%M:%S')
-        
-        return JsonResponse({
-            'has_unread_messages': has_unread_messages(request.user),
-            'unread_count': unread_count,
-            'unread_messages': unread_messages,
-            'user_email': request.user.email,
-            'is_authenticated': request.user.is_authenticated,
-        })
+            if "sent_at" in msg:
+                msg["sent_at"] = msg["sent_at"].strftime("%Y-%m-%d %H:%M:%S")
+
+        return JsonResponse(
+            {
+                "has_unread_messages": has_unread_messages(request.user),
+                "unread_count": unread_count,
+                "unread_messages": unread_messages,
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
     except Customer.DoesNotExist:
-        return JsonResponse({
-            'error': 'Customer not found',
-            'user_email': request.user.email,
-            'is_authenticated': request.user.is_authenticated,
-        })
+        return JsonResponse(
+            {
+                "error": "Customer not found",
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
     except Exception as e:
-        return JsonResponse({
-            'error': str(e),
-            'user_email': request.user.email,
-            'is_authenticated': request.user.is_authenticated,
-        })
+        return JsonResponse(
+            {
+                "error": str(e),
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
 
 
 # =====================================================================================
@@ -383,7 +422,9 @@ def login_view(request):
             login(request, user)
             return redirect("home")  # Redirect to homepage after login
         else:
-            messages.error(request, "Invalid username or password", extra_tags=AUTH_MESSAGE)
+            messages.error(
+                request, "Invalid username or password", extra_tags=AUTH_MESSAGE
+            )
             return redirect("/")  # Stay on landing page
 
     return redirect("/")
@@ -458,16 +499,22 @@ def restaurant_verify(request):
 
         # Check if the verification code is correct
         if verification_code != HARDCODE_VERIFY:
-            messages.error(request, "Invalid verification code.", extra_tags=AUTH_MESSAGE)
+            messages.error(
+                request, "Invalid verification code.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         # Ensure username & email are unique
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Username is already taken.", extra_tags=AUTH_MESSAGE)
+            messages.error(
+                request, "Username is already taken.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         if User.objects.filter(email=email).exists():
-            messages.error(request, "Email is already registered.", extra_tags=AUTH_MESSAGE)
+            messages.error(
+                request, "Email is already registered.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         # Perform atomic transaction (user creation + restaurant email update)
@@ -486,15 +533,23 @@ def restaurant_verify(request):
                 restaurant.username = username
                 restaurant.save()
 
-            messages.success(request, "Registration successful! You can now log in.", extra_tags=AUTH_MESSAGE)
+            messages.success(
+                request,
+                "Registration successful! You can now log in.",
+                extra_tags=AUTH_MESSAGE,
+            )
             return redirect("/")  # Redirect to landing page
 
         except Restaurant.DoesNotExist:
-            messages.error(request, "Selected restaurant does not exist.", extra_tags=AUTH_MESSAGE)
+            messages.error(
+                request, "Selected restaurant does not exist.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         except Exception as e:
-            messages.error(request, f"An error occurred: {str(e)}", extra_tags=AUTH_MESSAGE)
+            messages.error(
+                request, f"An error occurred: {str(e)}", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
     return redirect("restaurant_register")  # Redirect if accessed via GET
