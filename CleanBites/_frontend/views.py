@@ -226,6 +226,17 @@ def update_restaurant_profile_view(request):
 
     return redirect("home")
 
+@login_required(login_url="/login/")
+def profile_router(request, username):
+    try:
+        user_obj = Restaurant.objects.get(username=username)
+        return render(request, 'maps/restaurant_detail.html', {'restaurant': user_obj})
+    except Restaurant.DoesNotExist:
+        try:
+            user_obj = Customer.objects.get(username=username)
+            return render(request, 'user_profile.html', {'customer': user_obj})
+        except Customer.DoesNotExist:
+            return redirect('home')  # or a 404 page
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
@@ -341,6 +352,7 @@ def restaurant_verify(request):
                 # Update the selected restaurant's email
                 restaurant = Restaurant.objects.get(id=restaurant_id)
                 restaurant.email = email  # Assign new owner's email to restaurant
+                restaurant.username = username
                 restaurant.save()
 
             messages.success(request, "Registration successful! You can now log in.")

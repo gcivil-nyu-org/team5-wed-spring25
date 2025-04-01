@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  {% load static %}
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{{ restaurant.name }}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'home/home.css' %}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -98,8 +101,33 @@
   </style>
 </head>
 <body>
+  <header class="apple-navbar">  
+    <div class="navbar-left">
+      <h2><a href="{% url 'home' %}" style="text-decoration: none; color: inherit;">CleanBites</a></h2>
+    </div>
 
-<div class="container">
+    <div class="navbar-right">
+      <span class="username" style="color: rgb(231, 142, 0);">{{ user.username }}</span>
+      <div class="profile-dropdown">
+        <div class="avatar" onclick="toggleDropdown()">
+          <!-- Placeholder avatar, WILL replace with user's profile image -->
+          <img src="{% static 'images/avatar-placeholder.png' %}" alt="Profile" />
+        </div>
+        <div class="dropdown-menu" id="profileDropdown">
+          <!-- WILL route HERE to user/restaurant profile page -->
+          <a href="/profile/{{ user.username }}/" class="dropdown-item">Profile</a>
+          <a href="/inbox/" class="dropdown-item">Messages</a>
+          <a href="/home/" class="dropdown-item">Settings</a>
+          <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item">Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>    
+  </header>
+
+<div class="container" style="margin-top: 200px;">
   <div class="restaurant-header">
     {% if restaurant.profile_image %}
       <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img" />
@@ -198,6 +226,11 @@
       editBtn.style.display = 'inline-block';
     });
   });
+
+  function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    }
 </script>
 
 </body>
