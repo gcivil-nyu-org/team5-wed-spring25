@@ -11,6 +11,7 @@ from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
 
+# Get user model
 User = get_user_model()
 
 # Constants for message categories
