@@ -1,95 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ restaurant.name }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-        }
-        .container {
-            max-width: 700px;
-            margin: 30px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        .restaurant-header {
-            position: relative;
-            text-align: center;
-        }
-        .restaurant-img {
-            width: 100%;
-            max-height: 300px;
-            object-fit: cover;
-            border-radius: 12px;
-        }
-        h1 {
-            color: #1a73e8;
-            margin: 15px 0 10px;
-            text-align: center;
-        }
-        .info {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-            font-size: 16px;
-            color: #333;
-        }
-        .info i {
-            color: #1a73e8;
-            margin-right: 10px;
-        }
-        .rating {
-            font-weight: bold;
-            font-size: 16px;
-            color: green;
-        }
-        .description {
-            margin-top: 15px;
-            font-size: 15px;
-            color: #555;
-            line-height: 1.5;
-        }
-    </style>
+  {% load static %}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ restaurant.name }}</title>
+  <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'home/home.css' %}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+    .container {
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .restaurant-header {
+      text-align: center;
+    }
+    .restaurant-img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+    h1 {
+      color: #1a73e8;
+      margin: 15px 0 10px;
+      text-align: center;
+    }
+    .info {
+      display: flex;
+      align-items: center; /* Ensures vertical alignment */
+      margin: 10px 0;
+      font-size: 16px;
+      color: #333;
+    }
+    .info i {
+      color: #1a73e8;
+      margin-right: 10px;
+      min-width: 20px; /* Ensures consistent width for icons */
+      text-align: center; /* Centers the icon within its space */
+    }
+    .rating {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .description {
+      margin-top: 15px;
+      font-size: 15px;
+      color: #555;
+      line-height: 1.5;
+    }
+    #edit-profile-btn {
+      margin: 15px 0;
+      padding: 10px 20px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #edit-profile-form {
+      margin-top: 20px;
+      display: none;
+    }
+    #edit-profile-form input,
+    #edit-profile-form textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 6px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    #edit-profile-form button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #edit-profile-form button[type="submit"] {
+      background-color: #28a745;
+      color: white;
+    }
+    #edit-profile-form button[type="button"] {
+      background-color: #dc3545;
+      color: white;
+      margin-left: 10px;
+    }
+  </style>
 </head>
 <body>
+<div class="container" style="margin-top: 200px;">
+  <div class="restaurant-header">
+    {% if restaurant.profile_image %}
+      <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img" />
+    {% endif %}
+  </div>
 
-<div class="container">
-    <div class="restaurant-header">
-        {% if restaurant.profile_image %}
-            <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img">
-        {% endif %}
-    </div>
+  <h1>{{ restaurant.name }}</h1>
 
-    <h1>{{ restaurant.name }}</h1>
+  <div class="info"><i class="fas fa-map-marker-alt"></i><strong>Address:</strong> {{ restaurant.building }}, {{ restaurant.street }}, {{ restaurant.zipcode }}</div>
+  <div class="info"><i class="fas fa-utensils"></i><strong>Cuisine:</strong> {{ restaurant.cuisine_description }}</div>
+  <div class="info"><i class="fa fa-phone"></i><strong>Phone:</strong> {{ restaurant.phone }}</div>
+  <div class="info rating">
+    <i class="fas fa-star"></i>
+    <strong>Hygiene Rating:</strong> <span id="hygiene-grade" data-rating="{{ restaurant.hygiene_rating }}"></span>
+  </div>
+  <div class="info"><i class="fa-solid fa-file"></i><strong>Violation Description:</strong> {{ restaurant.violation_description }}</div>
+  <div class="info"><i class="fa-solid fa-calendar-days"></i><strong>Inspection Date:</strong> {{ restaurant.inspection_date }}</div>
+  {% if is_owner %}
+    <button id="edit-profile-btn">Edit Profile</button>
+  {% endif %}
 
-    <div class="info">
-        <i class="fas fa-map-marker-alt"></i>
-        <strong>Address:</strong> {{ restaurant.building }}, {{ restaurant.street }}, {{ restaurant.zipcode }}
-    </div>
-    <div class="info">
-        <i class="fas fa-utensils"></i>
-        <strong>Cuisine:</strong> {{ restaurant.cuisine_description }}
-    </div>
-    <div class="info">
-        <i class="fa fa-phone"></i>
-        <strong>Phone:</strong> {{ restaurant.phone }}
-    </div>
-    <div class="info rating">
-        <i class="fas fa-star"></i>
-        <strong>Hygiene Rating:</strong> {{ restaurant.hygiene_rating }}
-    </div>
+  <!-- Edit Form -->
+  <div id="edit-profile-form">
+    <form id="profileForm" enctype="multipart/form-data" method="POST" action="/update-profile/">
+      {% csrf_token %}
+      <label>Restaurant Name:</label>
+      <input type="text" name="name" value="{{ restaurant.name }}">
 
-    <p class="description">{{ restaurant.description }}</p>
+      <label>Building:</label>
+      <input type="text" name="building" value="{{ restaurant.building }}">
+
+      <label>Street:</label>
+      <input type="text" name="street" value="{{ restaurant.street }}">
+
+      <label>Zipcode:</label>
+      <input type="text" name="zipcode" value="{{ restaurant.zipcode }}">
+
+      <label>Phone:</label>
+      <input type="text" name="phone" value="{{ restaurant.phone }}">
+
+      <label>Cuisine:</label>
+      <input type="text" name="cuisine_description" value="{{ restaurant.cuisine_description }}">
+
+      <!-- <label>Description:</label>
+      <textarea name="violation_description">{{ restaurant.violation_description }}</textarea> -->
+
+      <!-- Restaurant owner should not have permission to edit hygieen rating   -->
+      <!-- <label>Hygiene Rating:</label> -->
+      <!-- <input type="number" name="hygiene_rating" value="{{ restaurant.hygiene_rating }}" min="0" max="100"> -->
+
+      <label>Profile Image:</label>
+      <input type="file" name="profile_image">
+
+      <button type="submit">Save Changes</button>
+      <button type="button" id="cancel-edit">Cancel</button>
+    </form>
+  </div>
 </div>
+
+<script>
+  function getLetterGrade(rating, style = false) {
+    let grade = '';
+    let color = '';
+    if (rating <= 13) {
+      grade = 'A';
+      color = '#00cc00'; // Green
+    } else if (rating <= 27) {
+      grade = 'B';
+      color = '#ffa500'; // Orange
+    } else {
+      grade = 'C';
+      color = '#ff0000'; // Red
+    }
+    if (style) {
+      return `<span style="color: ${color}; font-weight: bold;">${grade}</span>`; // Corrected to return a proper HTML string
+    }
+    return grade;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const gradeEl = document.getElementById('hygiene-grade');
+    const rating = parseInt(gradeEl.dataset.rating, 10);
+    gradeEl.innerHTML = getLetterGrade(rating, true);
+
+    const editBtn = document.getElementById('edit-profile-btn');
+    const formDiv = document.getElementById('edit-profile-form');
+    const cancelBtn = document.getElementById('cancel-edit');
+
+    editBtn.addEventListener('click', () => {
+      formDiv.style.display = 'block';
+      editBtn.style.display = 'none';
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      formDiv.style.display = 'none';
+      editBtn.style.display = 'inline-block';
+    });
+  });
+
+  function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    }
+</script>
 
 </body>
 </html>

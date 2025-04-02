@@ -165,7 +165,12 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8001",  # Add frontend URL here
+    "https://accounts.google.com",
+    "http://localhost:8000",
+    "http://localhost",
 ]
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
