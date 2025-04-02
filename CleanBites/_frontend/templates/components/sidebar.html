@@ -1,0 +1,51 @@
+<div class="sidebar collapsed">
+  <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+  <div class="sidebar-content">
+    <!-- Feature list will go here -->
+  </div>
+</div>
+
+<style>
+.sidebar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 300px;
+  background: white;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+  z-index: 1001;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-300px);
+}
+
+.sidebar:not(.collapsed) {
+  transform: translateX(50px);
+}
+
+.sidebar-toggle {
+  position: absolute;
+  right: -45px;
+  top: 130px;
+  background: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+  border-radius: 5px;
+}
+
+.sidebar-content {
+  padding: 20px;
+}
+</style>
+
+<script>
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.toggle('collapsed');
+}
+</script>
