@@ -29,11 +29,13 @@
     </nav>
 
     {% if messages %}
-      <div class="messages">
+      <div class="messages" style="position: fixed; top: 70px; left: 0; right: 0; z-index: 9999; padding: 10px 20px;">
         {% for message in messages %}
-          <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% endif %}">
-            {{ message }}
-          </div>
+          {% if 'auth_message' in message.tags %}
+            <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" style="border-radius: 5px; padding: 10px 15px; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+              {{ message }}
+            </div>
+          {% endif %}
         {% endfor %}
       </div>
     {% endif %}

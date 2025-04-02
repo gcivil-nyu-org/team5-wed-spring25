@@ -36,6 +36,7 @@ class DM(models.Model):
         Moderator, null=True, blank=True, on_delete=models.SET_NULL
     )
     sent_at = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)  # Track if message has been read
 
     class Meta:
         constraints = [
