@@ -48,7 +48,7 @@
   </style>
 </head>
 <body>
-  {% include 'components/header.html' %}
+  {% include 'components/header_nofilter.html' %}
   
   <main>
     {% include 'components/sidebar.html' %}
@@ -197,27 +197,6 @@
         .finally(() => {
           document.getElementById('map-loading-spinner').style.display = 'none';
         });
-    }
-
-
-    function resetMapInIframe() {
-      document.getElementById('search-name').value = "";
-      document.getElementById('rating-checkboxes-container').value = "";
-      document.querySelectorAll('input[name="ratings"]').forEach(function(checkbox) {
-        checkbox.checked = true;
-      });
-      document.getElementById('search-cuisine').value = "";
-      document.getElementById('search-distance').value = "";
-
-      document.getElementById('map-loading-spinner').style.display = 'flex';
-      
-      const mapFrame = document.getElementById("map-frame").contentWindow;
-      if (mapFrame && typeof mapFrame.resetFilters === "function") {
-          console.log("🔄 Calling resetFilters inside iframe...");
-          mapFrame.resetFilters();
-      } else {
-          console.error("❌ resetFilters is not accessible in iframe!");
-      }
     }
 
 
