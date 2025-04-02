@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>Inbox</title>
+  <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'home/home.css' %}">
+  <link rel="stylesheet" href="{% static 'messages/messages.css' %}">
+  <style>
+    /* Notification badge styles - updated for better visibility */
+    .notification-badge {
+      position: relative;
+    }
+    
+    .notification-badge::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -8px;
+      width: 10px;
+      height: 10px;
+      background-color: #ff0000;
+      border-radius: 50%;
+      display: block;
+      z-index: 100;
+    }
+
+    /* Unread conversation style */
+    .unread-conversation {
+      font-weight: bold;
+    }
+    
+    .unread-icon {
+      color: #ff0000;
+      margin-left: 5px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="apple-navbar">  
+    <div class="navbar-left">
+      <h2><a href="{% url 'home' %}" style="text-decoration: none; color: inherit;">CleanBites</a></h2>
+    </div>
+
+    <div class="navbar-right">
+      <span class="username" style="color: rgb(231, 142, 0);">{{ user.username }}</span>
+      <div class="profile-dropdown">
+        <div class="avatar" onclick="toggleDropdown()">
+          <!-- Placeholder avatar, WILL replace with user's profile image -->
+          <img src="{% static 'images/avatar-placeholder.png' %}" alt="Profile" />
+        </div>
+        <div class="dropdown-menu" id="profileDropdown">
+          <!-- WILL route HERE to user/restaurant profile page -->
+          <a href="/profile/{{ user.username }}/" class="dropdown-item">Profile</a>
+          <a href="/inbox/" class="dropdown-item {% if has_unread_messages %}notification-badge{% endif %}">Messages {% if has_unread_messages %}<span style="color: red; font-weight: bold;">(New)</span>{% endif %}</a>
+          <a href="/home/" class="dropdown-item">Settings</a>
+          <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item">Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>    
+  </header>
+
+  <main class="content" style="padding-top: 50px;">
+    <div class="container p-0">
+  
+      <h1 class="h3 mb-3">Inbox</h1>
+  
+      <div class="card">
+        <div class="row g-0">
+  
+          <!-- Left Panel: Conversations -->
+          <div class="col-12 col-lg-5 col-xl-3 border-end" style="border-right: 1px solid #dee2e6;">
+  
+            <!-- Header + New Message Button -->
+            <div class="d-flex justify-content-between align-items-center px-4 py-2 border-bottom">
+              <strong>Conversations</strong>
+              <button class="btn btn-sm btn-outline-primary" onclick="toggleNewMessageForm()">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+  
+            <!-- Conversation List -->
+            <div class="conversation-list">
+                {% for convo in conversations %}
+                  <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'chat' convo.id %}" class="list-group-item list-group-item-action border-0 {% if active_chat and convo.id == active_chat.id %}active{% endif %} {% if convo.has_unread %}unread-conversation{% endif %}" style="margin-top: 10px;">
+                      <div class="d-flex align-items-start" style="padding-left: 5px;">
+                        <img src="{{ convo.avatar_url }}" class="rounded-circle mr-1" width="40" height="40" alt="{{ convo.name }}">
+                        <div class="flex-grow-1 ml-3" style="padding-left: 5px;">
+                          {{ convo.email }}
+                          {% if convo.has_unread %}
+                            <span class="unread-icon">✉️</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </a>
+              
+                    <!-- Trash emoji as a delete button -->
+                    <form method="POST" action="{% url 'delete_conversation' convo.id %}" style="margin-left: 10px;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-link btn-sm" title="Delete" style="text-decoration: none; color: red;">
+                        🗑️
+                      </button>
+                    </form>
+                  </div>
+                {% empty %}
+                  <p class="text-muted text-center mt-3">No conversations yet.</p>
+                {% endfor %}
+            </div>
+            
+          </div>
+  
+          <!-- Right Panel: Messages -->
+          <div class="col-12 col-lg-8 col-xl-9 d-flex flex-column">
+  
+            <!-- New Message Form -->
+            <div id="newMessageForm" class="border-bottom px-4 py-3" style="display: none;">
+              <form method="POST" action="{% url 'send_message_generic' %}">
+                {% csrf_token %}
+                <div class="form-group mb-2">
+                  <label for="recipientEmail"><strong>To:</strong></label>
+                  <input type="email" class="form-control" id="recipientEmail" name="recipient" placeholder="Recipient email" required>
+                </div>
+                <div class="form-group mb-2">
+                  <textarea class="form-control" name="message" rows="3" placeholder="Type your message..." required></textarea>
+                </div>
+                <div class="text-right">
+                  <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+              </form>
+            </div>
+  
+            <!-- Active Chat Header -->
+            {% if active_chat %}
+            <div class="py-2 px-4 border-bottom d-none d-lg-block">
+              <div class="d-flex align-items-center py-1">
+                <div class="position-relative">
+                  <img src="/static/images/avatar-placeholder.png" class="rounded-circle mr-1" width="40" height="40">
+                </div>
+                <div class="flex-grow-1 pl-3" style="padding-left: 5px;">
+                  <strong>{{ active_chat.email }}</strong>
+                  <div class="text-muted small" style="color: orange;"><em>Online</em></div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+  
+            <!-- Messages Thread -->
+            <div class="flex-grow-1 overflow-auto chat-messages p-4" style="height: 500px;">
+              {% for message in messages %}
+              <div class="chat-message {% if message.sender == user %}right{% endif %} mb-4">
+                <div class="d-flex">
+                  <img src="/static/images/avatar-placeholder.png" class="rounded-circle mr-1" width="40" height="40">
+                  <div class="flex-shrink-1 bg-light rounded py-2 px-3 ml-3">
+                    <div class="font-weight-bold mb-1">{{ message.sender.first_name }}</div>
+                    {{ message.decoded_message }}
+                  </div>
+                </div>
+                <div class="text-muted small mt-1">{{ message.sent_at }}</div>
+              </div>
+              {% empty %}
+              <p class="text-muted text-center">No messages yet.</p>
+              {% endfor %}
+            </div>
+  
+            <!-- Reply Box (Only if active chat selected) -->
+            {% if active_chat %}
+            <div class="flex-grow-0 py-3 px-4 border-top">
+              <form method="POST" action="{% url 'send_message' active_chat.id %}">
+                {% csrf_token %}
+                <div class="input-group">
+                  <input type="text" name="message" class="form-control" placeholder="Type your message..." required>
+                  <button class="btn btn-primary" type="submit">Send</button>
+                </div>
+              </form>
+            </div>
+            {% endif %}
+  
+          </div>
+        </div>
+      </div>
+  
+    </div>
+  </main>
+  
+  <!-- JS toggle for new message -->
+  <script>
+    function toggleNewMessageForm() {
+      const form = document.getElementById("newMessageForm");
+      form.style.display = (form.style.display === "none") ? "block" : "none";
+    }
+  </script>
+  
+  
+  
+
+  <script>    
+    function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    
+    // Optional: Hide dropdown when clicking outside
+    window.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('profileDropdown');
+      if (!e.target.closest('.profile-dropdown')) {
+        dropdown.style.display = 'none';
+      }
+    });   
+  </script>
+</body>
+</html>

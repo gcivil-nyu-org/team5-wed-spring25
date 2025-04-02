@@ -5,80 +5,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <title>NYC Map with Menu & Search</title>
+  <title>Home</title>
   <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'home/home.css' %}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden; /* Prevent scrolling */
+    /* Notification badge styles - updated for better visibility */
+    .notification-badge {
+      position: relative;
     }
-
-    .apple-navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 20px;
-      background-color: white;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      position: fixed;
-      width: 100%;
-      top: 0;
-      left: 0;
-      z-index: 1000;
-    }
-
-    .navbar-left h2 {
-      margin: 0;
-      font-size: 24px;
-    }
-
-    .search-bar {
-      display: flex;
-      gap: 10px;
-    }
-
-    .search-bar input {
-      padding: 5px;
-      font-size: 14px;
-    }
-
-    .search-bar button {
-      padding: 6px 12px;
-      border: none;
-      cursor: pointer;
-    }
-
-    .search-bar .search-btn {
-      background-color: #007bff;
-      color: white;
-    }
-
-    .search-bar .reset-btn {
-      background-color: #6c757d;
-      color: white;
-    }
-
-    .navbar-right .btn {
-      background-color: red;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      cursor: pointer;
-    }
-
-    main {
+    
+    .notification-badge::after {
+      content: '';
       position: absolute;
-      top: 50px; /* Adjust based on navbar height */
-      bottom: 0;
-      width: 100%;
+      top: 0;
+      right: -8px;
+      width: 10px;
+      height: 10px;
+      background-color: #ff0000;
+      border-radius: 50%;
+      display: block;
+      z-index: 100;
     }
-
-    #map-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
+    
+    /* Avatar with notification ring for unread messages */
+    .avatar-container {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .avatar-container.unread::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border-radius: 50%;
+      border: 2px solid #ff3b30; /* Apple-style red notification color */
+      z-index: 1;
     }
   </style>
 </head>
@@ -86,41 +51,165 @@
 
   <header class="apple-navbar">  
     <div class="navbar-left">
-      <h2>CleanBites</h2>
+      <h2><a href="{% url 'home' %}" style="text-decoration: none; color: inherit;">CleanBites</a></h2>
     </div>
 
-    <div class="search-bar">
-      <input type="text" id="search-name" placeholder="Restaurant Name">
-      <input type="text" id="search-rating" placeholder="Hygiene Rating">
-      <input type="text" id="search-cuisine" placeholder="Cuisine">
-      <input type="text" id="search-distance" placeholder="Distance (km)">
-      <button type="button" class="search-btn" onclick="performSearch()">Search</button>
-      <button type="button" class="reset-btn" onclick="resetFilters()">Reset</button>
+    <div class="search-bar">      
+      <form id="search-form">
+        <input type="text" id="search-name" placeholder="Restaurant Name">
+        <div id="rating-checkboxes-container">
+          <span class="ratings-label">Hygiene Ratings:</span>
+          <div class="ratings-options">
+            <label><input type="checkbox" name="ratings" value="A" checked> A</label>
+            <label><input type="checkbox" name="ratings" value="B" checked> B</label>
+            <label><input type="checkbox" name="ratings" value="C" checked> C</label>
+          </div>
+        </div>
+        <input type="text" id="search-cuisine" placeholder="Cuisine">
+        <input type="text" id="search-distance" placeholder="Distance (km)">
+        <button type="submit" class="search-btn">Search</button>
+        <button type="button" class="reset-btn" onclick="resetMapInIframe()">Reset</button>
+      </form>
     </div>
 
     <div class="navbar-right">
-      {% if user.is_authenticated %}
-        <form class="logout-form" method="POST" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-danger">Logout</button>
-        </form>
-      {% endif %}
-    </div>
+      <span class="username" style="color: rgb(231, 142, 0);">{{ user.username }}</span>
+      <div class="profile-dropdown">
+        <div class="avatar-container {% if has_unread_messages %}unread{% endif %}" onclick="toggleDropdown()">
+          <div class="avatar">
+            <!-- Placeholder avatar, WILL replace with user's profile image -->
+            <img src="{% static 'images/avatar-placeholder.png' %}" alt="Profile" />
+          </div>
+        </div>
+        <div class="dropdown-menu" id="profileDropdown">
+          <!-- WILL route HERE to user/restaurant profile page -->
+          <a href="/profile/{{ user.username }}/" class="dropdown-item">Profile</a>
+          <a href="/inbox/" class="dropdown-item {% if has_unread_messages %}notification-badge{% endif %}">Messages {% if has_unread_messages %}<span style="color: red; font-weight: bold;">(New)</span>{% endif %}</a>
+          <a href="/home/" class="dropdown-item">Settings</a>
+          <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item">Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>    
   </header>
 
-  <main>
-    <iframe id="map-frame" src="/nycmap/"></iframe>
+  <main>    
+    <div class="geocode-wrapper">
+      <button class="geocode-toggle" onclick="toggleGeocodeBar()">➤</button>
+    
+      <div class="geocode-bar hidden" id="geocode-bar">
+        <input type="text" id="geocode-address" placeholder="Enter address to set map center" />
+        <button type="button" onclick="submitGeocode()">Update Location</button>
+        <span id="geocode-status" class="geocode-status"></span>
+      </div>
+    </div>
+    
+    <div id="map-container">
+      <iframe id="map-frame" src="/mapdynamic/"></iframe>
+      <div id="map-loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+      </div>
+    </div>
   </main>
 
-  <script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
+  <script>    
+    window.globalLAT = 40.69455789521935;
+    window.globalLNG = -73.9865872293045;
+    
+    function toggleGeocodeBar() {
+      const bar = document.getElementById('geocode-bar');
+      bar.classList.toggle('hidden');
+    }
+
+
+    async function getCurrentGeocode(address) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+      
+        if (data.length > 0) {
+          const { lat, lon } = data[0];
+          window.globalLAT = parseFloat(lat);
+          window.globalLNG = parseFloat(lon);
+          console.log("✅ Updated global location:", window.globalLAT, window.globalLNG);
+        } else {
+          console.warn("⚠️ No results found for address.");
+        }
+      } catch (error) {
+        console.error("❌ Error fetching geocode:", error);
+      }
+    }
+
+
+    async function submitGeocode() {
+      const address = document.getElementById('geocode-address').value;
+      if (address.trim() === "") {
+        alert("Please enter a valid address.");
+        return;
+      }
+    
+      try {
+        await getCurrentGeocode(address);
+      
+        // ✅ Success
+        document.getElementById('geocode-status').textContent = '✅';
+      
+        if (window.map) {
+          map.setView([window.globalLAT, window.globalLNG], 12);
+        }
+      
+        // Clear status after 3 seconds
+        setTimeout(() => {
+          document.getElementById('geocode-status').textContent = '';
+        }, 3000);
+      
+      } catch (error) {
+        // ❌ Failure
+        console.error("Geocoding failed:", error);
+        document.getElementById('geocode-status').textContent = '❌';
+      
+        setTimeout(() => {
+          document.getElementById('geocode-status').textContent = '';
+        }, 3000);
+      }
+    }
+    
+
+    window.onMapResetComplete = function () {
+      document.getElementById('map-loading-spinner').style.display = 'none';
+    };
+    
+
+    function toggleDropdown() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    
+    // Optional: Hide dropdown when clicking outside
+    window.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('profileDropdown');
+      if (!e.target.closest('.profile-dropdown')) {
+        dropdown.style.display = 'none';
+      }
+    });
+
     function performSearch() {
       const name = document.getElementById('search-name').value;
-      const rating = document.getElementById('search-rating').value;
+      const checkedRatings = Array.from(document.querySelectorAll('input[name="ratings"]:checked'))
+                              .map(el => el.value);
+      // create a comma-separated string, e.g. "A,B,C"
+      const rating = checkedRatings.join(',');
       const cuisine = document.getElementById('search-cuisine').value;
       const distance = document.getElementById('search-distance').value;
 
-      const lat = 40.69455789521935;
-      const lng = -73.9865872293045;
+      const lat = typeof window.globalLAT !== 'undefined' ? window.globalLAT : 40.69455789521935;
+      const lng = typeof window.globalLNG !== 'undefined' ? window.globalLNG : -73.9865872293045;
 
       const params = new URLSearchParams({
         lat: lat,
@@ -131,18 +220,54 @@
         cuisine: cuisine
       });
 
-      document.getElementById('map-frame').src = "/api/restaurants/dynamic/?" + params.toString();
+      const apiUrl = `/api/restaurants/geojson/?${params.toString()}`;
+      console.log("📡 Sending API request to:", apiUrl);
+
+      document.getElementById('map-loading-spinner').style.display = 'flex';
+
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            // Get the iframe's contentWindow and pass data
+            const mapFrame = document.getElementById("map-frame").contentWindow;
+            if (mapFrame && mapFrame.updateMarkers) {
+                mapFrame.updateMarkers(data);
+            } else {
+                console.error("❌ updateMarkers is not accessible in iframe!");
+            }
+        })
+        .catch(error => console.error('❌ Error fetching restaurant data:', error))
+        .finally(() => {
+          document.getElementById('map-loading-spinner').style.display = 'none';
+        });
     }
 
-    function resetFilters() {
+
+    function resetMapInIframe() {
       document.getElementById('search-name').value = "";
-      document.getElementById('search-rating').value = "";
+      document.getElementById('rating-checkboxes-container').value = "";
+      document.querySelectorAll('input[name="ratings"]').forEach(function(checkbox) {
+        checkbox.checked = true;
+      });
       document.getElementById('search-cuisine').value = "";
       document.getElementById('search-distance').value = "";
 
-      // Reset map to the default NYC view
-      document.getElementById('map-frame').src = "/nycmap/";
+      document.getElementById('map-loading-spinner').style.display = 'flex';
+      
+      const mapFrame = document.getElementById("map-frame").contentWindow;
+      if (mapFrame && typeof mapFrame.resetFilters === "function") {
+          console.log("🔄 Calling resetFilters inside iframe...");
+          mapFrame.resetFilters();
+      } else {
+          console.error("❌ resetFilters is not accessible in iframe!");
+      }
     }
+
+
+    document.getElementById('search-form').addEventListener('submit', function (e) {
+      e.preventDefault(); 
+      performSearch();    
+    });
   </script>
 
 </body>
