@@ -51,6 +51,43 @@ class ViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(User.objects.filter(username="newuser").exists())
 
+    def test_profile_router(self):
+        # Create restaurant user and associated restaurant
+        restaurant_user = User.objects.create_user(
+            username="restaurant1",
+            password="testpass123",
+            email="restaurant@test.com",
+        )
+    
+        # Create the restaurant record with matching username
+        restaurant = Restaurant.objects.create(
+            username="restaurant1",
+            name="Test Restaurant",
+            email="restaurant@test.com",
+            phone="123-456-7890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            borough=1,
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78)
+        )
+    
+        # Login as restaurant
+        self.client.login(username="restaurant1", password="testpass123")
+
+        # Test profile router redirect
+        response = self.client.get(reverse("user_profile", args=[restaurant.username]))
+
+        # Verify the redirected page loads correctly
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["restaurant"], restaurant)
+
+    
+
 
 class MessageSystemTests(TestCase):
     def setUp(self):
