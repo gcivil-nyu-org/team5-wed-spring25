@@ -7,6 +7,9 @@ from _api._restaurants.fetch_data import NYC_DATA_URL
 from _api._restaurants.models import Restaurant, Comment, Reply
 from _api._users.models import Customer
 from django.contrib.gis.geos import Point
+from rest_framework.test import APIClient, APITestCase
+from rest_framework import status
+from django.urls import reverse
 
 
 class TestAPIEndpoint(TestCase):
@@ -134,3 +137,40 @@ class RestaurantModelTests(TestCase):
             Reply.objects.create(comment=None, replier=customer)
         with self.assertRaises(Exception):
             Reply.objects.create(comment=comment, replier=None)
+
+
+class RestaurantViewSetTests(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            email="test@example.com",
+            phone="1234567890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            hygiene_rating=90,
+            inspection_date="2025-01-01",
+            borough=1,
+            cuisine_description="Test",
+            violation_description="None",
+            geo_coords=Point(-73.966, 40.78)
+        )
+
+    def test_restaurant_list(self):
+        url = reverse('restaurant-list')
+        response = self.client.get(url)
+        self.assertGreaterEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_restaurant_filter_by_borough(self):
+        url = reverse('restaurant-list') + '?borough=1'
+        response = self.client.get(url)
+        self.assertGreaterEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_restaurant_search(self):
+        url = reverse('restaurant-list') + '?search=Test'
+        response = self.client.get(url)
+        self.assertGreaterEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
