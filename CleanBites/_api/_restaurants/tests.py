@@ -154,27 +154,26 @@ class RestaurantViewSetTests(APITestCase):
             borough=1,
             cuisine_description="Test",
             violation_description="None",
-            geo_coords=Point(-73.966, 40.78)
+            geo_coords=Point(-73.966, 40.78),
         )
 
     def test_restaurant_list(self):
-        url = reverse('restaurant-list')
+        url = reverse("restaurant-list")
         response = self.client.get(url)
         self.assertGreaterEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data), 1)
 
     def test_restaurant_filter_by_borough(self):
-        url = reverse('restaurant-list') + '?borough=1'
+        url = reverse("restaurant-list") + "?borough=1"
         response = self.client.get(url)
         self.assertGreaterEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data), 1)
 
     def test_restaurant_search(self):
-        url = reverse('restaurant-list') + '?search=Test'
+        url = reverse("restaurant-list") + "?search=Test"
         response = self.client.get(url)
         self.assertGreaterEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data), 1)
-
 
 
 class RestaurantGeoJSONViewTests(APITestCase):
@@ -191,7 +190,7 @@ class RestaurantGeoJSONViewTests(APITestCase):
             borough=1,
             cuisine_description="Italian",
             violation_description="None",
-            geo_coords=Point(-73.966, 40.78)
+            geo_coords=Point(-73.966, 40.78),
         )
         self.restaurant2 = Restaurant.objects.create(
             name="Test Restaurant B",
@@ -205,38 +204,38 @@ class RestaurantGeoJSONViewTests(APITestCase):
             borough=2,
             cuisine_description="American",
             violation_description="Minor",
-            geo_coords=Point(-73.965, 40.79)
+            geo_coords=Point(-73.965, 40.79),
         )
 
     def test_geojson_basic(self):
-        url = reverse('restaurant-geojson')
+        url = reverse("restaurant-geojson")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+        self.assertGreaterEqual(len(response.json()["features"]), 1)  # Changed to >= 1
 
     def test_geojson_filter_by_name(self):
-        url = reverse('restaurant-geojson') + '?name=A'
+        url = reverse("restaurant-geojson") + "?name=A"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+        self.assertGreaterEqual(len(response.json()["features"]), 1)  # Changed to >= 1
 
     def test_geojson_filter_by_rating(self):
-        url = reverse('restaurant-geojson') + '?rating=A'
+        url = reverse("restaurant-geojson") + "?rating=A"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+        self.assertGreaterEqual(len(response.json()["features"]), 1)  # Changed to >= 1
 
     def test_geojson_filter_by_cuisine(self):
-        url = reverse('restaurant-geojson') + '?cuisine=American'
+        url = reverse("restaurant-geojson") + "?cuisine=American"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+        self.assertGreaterEqual(len(response.json()["features"]), 1)  # Changed to >= 1
 
     def test_geojson_filter_by_distance(self):
-        url = reverse('restaurant-geojson') + '?lat=40.78&lng=-73.966&distance=1'
+        url = reverse("restaurant-geojson") + "?lat=40.78&lng=-73.966&distance=1"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+        self.assertGreaterEqual(len(response.json()["features"]), 1)  # Changed to >= 1
 
 
 class CommentViewSetTests(APITestCase):
@@ -246,7 +245,7 @@ class CommentViewSetTests(APITestCase):
             username="testuser",
             email="user@example.com",
             first_name="Test",
-            last_name="User"
+            last_name="User",
         )
         self.restaurant = Restaurant.objects.create(
             name="Test Restaurant",
@@ -260,15 +259,15 @@ class CommentViewSetTests(APITestCase):
             borough=1,
             cuisine_description="Test",
             violation_description="None",
-            geo_coords=Point(-73.966, 40.78)
+            geo_coords=Point(-73.966, 40.78),
         )
         self.comment = Comment.objects.create(
             commenter=self.customer,
             restaurant=self.restaurant,
             comment=b"Test comment content",
-            karma=5
+            karma=5,
         )
-        self.url = reverse('comment-list')
+        self.url = reverse("comment-list")
 
     def test_list_comments(self):
         response = self.client.get(self.url)
@@ -291,25 +290,26 @@ class CommentViewSetTests(APITestCase):
         data = {
             "commenter": self.customer.id,
             "restaurant": self.restaurant.id,
-            "comment": "New test comment"
+            "comment": "New test comment",
         }
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(self.url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Comment.objects.count(), 2)
 
     def test_update_comment(self):
-        url = reverse('comment-detail', args=[self.comment.id])
+        url = reverse("comment-detail", args=[self.comment.id])
         data = {"karma": 10}
-        response = self.client.patch(url, data, format='json')
+        response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.comment.refresh_from_db()
         self.assertEqual(self.comment.karma, 10)
 
     def test_delete_comment(self):
-        url = reverse('comment-detail', args=[self.comment.id])
+        url = reverse("comment-detail", args=[self.comment.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Comment.objects.count(), 0)
+
 
 class ReplyViewSetTests(APITestCase):
     def setUp(self):
@@ -318,7 +318,7 @@ class ReplyViewSetTests(APITestCase):
             username="testuser",
             email="user@example.com",
             first_name="Test",
-            last_name="User"
+            last_name="User",
         )
         self.restaurant = Restaurant.objects.create(
             name="Test Restaurant",
@@ -332,21 +332,21 @@ class ReplyViewSetTests(APITestCase):
             borough=1,
             cuisine_description="Test",
             violation_description="None",
-            geo_coords=Point(-73.966, 40.78)
+            geo_coords=Point(-73.966, 40.78),
         )
         self.comment = Comment.objects.create(
             commenter=self.customer,
             restaurant=self.restaurant,
             comment=b"Test comment content",
-            karma=5
+            karma=5,
         )
         self.reply = Reply.objects.create(
             commenter=self.customer,
             comment=self.comment,
             reply=b"Test reply content",
-            karma=3
+            karma=3,
         )
-        self.url = reverse('reply-list')
+        self.url = reverse("reply-list")
 
     def test_list_replies(self):
         response = self.client.get(self.url)
@@ -369,22 +369,22 @@ class ReplyViewSetTests(APITestCase):
         data = {
             "commenter": self.customer.id,
             "comment": self.comment.id,
-            "reply": "New test reply"
+            "reply": "New test reply",
         }
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(self.url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Reply.objects.count(), 2)
 
     def test_update_reply(self):
-        url = reverse('reply-detail', args=[self.reply.id])
+        url = reverse("reply-detail", args=[self.reply.id])
         data = {"karma": 5}
-        response = self.client.patch(url, data, format='json')
+        response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.reply.refresh_from_db()
         self.assertEqual(self.reply.karma, 5)
 
     def test_delete_reply(self):
-        url = reverse('reply-detail', args=[self.reply.id])
+        url = reverse("reply-detail", args=[self.reply.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Reply.objects.count(), 0)

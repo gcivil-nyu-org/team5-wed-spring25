@@ -58,7 +58,7 @@ class ViewTests(TestCase):
             password="testpass123",
             email="restaurant@test.com",
         )
-    
+
         # Create the restaurant record with matching username
         restaurant = Restaurant.objects.create(
             username="restaurant1",
@@ -73,9 +73,9 @@ class ViewTests(TestCase):
             hygiene_rating=1,
             violation_description="No violations",
             inspection_date="2023-01-01",
-            geo_coords=Point(-73.966, 40.78)
+            geo_coords=Point(-73.966, 40.78),
         )
-    
+
         # Login as restaurant
         self.client.login(username="restaurant1", password="testpass123")
 
@@ -85,8 +85,6 @@ class ViewTests(TestCase):
         # Verify the redirected page loads correctly
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["restaurant"], restaurant)
-
-    
 
 
 class MessageSystemTests(TestCase):
