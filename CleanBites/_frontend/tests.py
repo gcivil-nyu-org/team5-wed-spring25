@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.contrib.messages import get_messages
 
 from _api._users.models import Customer, DM
 from _api._restaurants.models import Restaurant
@@ -164,6 +165,40 @@ class MessageSystemTests(TestCase):
         # Message should now be marked as read
         self.assertFalse(
             DM.objects.filter(receiver=self.customer1, read=False).exists()
+        )
+
+    def test_delete_conversation(self):
+        """Test that conversation deletion works correctly"""
+        # Create test messages between users
+        DM.objects.create(
+            sender=self.customer1,
+            receiver=self.customer2,
+            message=b"Message 1",
+        )
+        DM.objects.create(
+            sender=self.customer2,
+            receiver=self.customer1,
+            message=b"Message 2",
+        )
+
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("delete_conversation", kwargs={"other_user_id": self.customer2.id})
+        )
+
+        # Verify redirect
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("messages inbox"))
+
+        # Verify messages were deleted
+        self.assertEqual(DM.objects.count(), 0)
+
+        # Verify success message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn(
+            f"Conversation with {self.customer2.first_name}", 
+            str(messages[0])
         )
 
 
