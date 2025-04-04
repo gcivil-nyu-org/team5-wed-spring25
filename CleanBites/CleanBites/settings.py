@@ -28,6 +28,11 @@ SECRET_KEY = "django-insecure-sv-x4mn5*eh6!r5=g@pk24v5=rc!_@8@^85rhyb*a9ho7miys^
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+SESSION_COOKIE_SAMESITE = 'Lax'  # Helps prevent CSRF attacks
+CSRF_COOKIE_SECURE = True  # Only send CSRF cookie over HTTPS
+CSRF_COOKIE_HTTPONLY = True  # Recommended for CSRF cookies
 
 ALLOWED_HOSTS = [
     "ec2-54-190-192-108.us-west-2.compute.amazonaws.com",
