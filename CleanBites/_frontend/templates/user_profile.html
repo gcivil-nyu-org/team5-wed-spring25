@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.username }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .user-header {
+            position: relative;
+            text-align: center;
+        }
+        .user-img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        h1 {
+            color: #1a73e8;
+            margin: 15px 0 10px;
+            text-align: center;
+        }
+        .info {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .info i {
+            color: #1a73e8;
+            margin-right: 10px;
+        }
+        .rating {
+            font-weight: bold;
+            font-size: 16px;
+            color: green;
+        }
+        .description {
+            margin-top: 15px;
+            font-size: 15px;
+            color: #555;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id = "wrapper"></div>
+        <header id ="header">
+            <h1>{{user.username}}</h1>
+            <p>Short user description</p>
+        </header>
+    <div id="main">
+
+        <!-- Content -->
+            <section id="content" class="main">
+
+                <!-- Text -->
+                    <section>
+                        <p>Nunc lacinia ante nunc ac lobortis. Interdum adipiscing gravida odio porttitor sem non mi integer non faucibus ornare mi ut ante amet placerat aliquet. Volutpat eu sed ante lacinia sapien lorem accumsan varius montes viverra nibh in adipiscing blandit tempus accumsan.</p>
+                        <hr />
+                        <h2>Recent User Review 1</h2>
+                        <p>User Review 1 Body</p>
+                        <h2>Recent User Review 2</h2>
+                        <p>User Review 2 Body</p>
+                        <h2>Recent User Review 3</h2>
+                        <p>User Review 3 Body</p>
+                        <hr />
+
+</div>
+
+</body>
+</html>

@@ -20,6 +20,26 @@
     <link rel="stylesheet" href="{% static 'home/map.css' %}">
 </head>
 <body>
+  <div class="filters" style="margin-bottom: 20px;">
+    <form method="GET" action="">
+        <label for="lat">Latitude:</label>
+        <input type="text" name="lat" placeholder="e.g., 40.7128">
+
+        <label for="lng">Longitude:</label>
+        <input type="text" name="lng" placeholder="e.g., -74.0060">
+
+        <label for="distance">Distance (km):</label>
+        <input type="number" name="distance" step="0.1" placeholder="e.g., 2.5">
+
+        <label for="rating">Hygiene Rating:</label>
+        <input type="number" name="rating" placeholder="e.g., 12">
+
+        <label for="cuisine">Cuisine:</label>
+        <input type="text" name="cuisine" placeholder="e.g., Chinese">
+
+        <button type="submit">Filter</button>
+    </form>
+</div>
     <div id="map" style="position: relative; top: 0; left: 0; height: 100%; width: 100%; padding-top: 300px;"></div>
 
     <div id="side-modal" class="side-modal hidden">
@@ -71,7 +91,7 @@
           document.getElementById("modal-title").innerHTML = `
             ${name}
             <div style="font-size: 0.5em; margin-top: 4px;">
-              <a href="/restaurant/${encodeURIComponent(name)}/" target="_blank" style="color: #1a73e8; text-decoration: none;">
+              <a href="/restaurant/${encodeURIComponent(name)}/" style="color: #1a73e8; text-decoration: none;">
                 View Profile →
               </a>
             </div>

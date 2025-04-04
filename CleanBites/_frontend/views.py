@@ -8,8 +8,15 @@ from django.contrib.auth.backends import ModelBackend
 from _api._users.models import Customer, DM
 from django.db.models import Q
 from django.db import transaction
+from django.http import HttpResponse
+from _frontend.utils import has_unread_messages
 
+# Get user model
 User = get_user_model()
+
+# Constants for message categories
+AUTH_MESSAGE = "auth_message"  # For login/registration related messages
+INBOX_MESSAGE = "inbox_message"  # For inbox related messages
 
 
 # =====================================================================================
@@ -21,29 +28,40 @@ def landing_view(request):
 
 @login_required(login_url="/login/")
 def home_view(request):
-    return render(request, "home.html")
+    context = {"has_unread_messages": has_unread_messages(request.user)}
+    return render(request, "home.html", context)
 
 
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
+
     is_owner = False
-    owned_restaurant = Restaurant.objects.get(user=request.user)
-    if owned_restaurant == restaurant:
+    if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
+
     return render(
         request,
         "maps/restaurant_detail.html",
         {
             "restaurant": restaurant,
             "is_owner": is_owner,
+            "has_unread_messages": has_unread_messages(request.user),
         },
     )
 
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    return render(request, "maps/nycmap_dynamic.html")
+    context = {"has_unread_messages": has_unread_messages(request.user)}
+    return render(request, "maps/nycmap_dynamic.html", context)
+
+
+@login_required(login_url="/login/")
+def user_profile(request, username):
+    user = get_object_or_404(Customer, username__iexact=username)
+    context = {"user": user, "has_unread_messages": has_unread_messages(request.user)}
+    return render(request, "user_profile.html", context)
 
 
 @login_required(login_url="/login/")
@@ -59,6 +77,7 @@ def messages_view(request, chat_user_id=None):
                 "active_chat": None,
                 "messages": [],
                 "error": "Your profile could not be found.",
+                "has_unread_messages": has_unread_messages(request.user),
             },
         )
 
@@ -73,7 +92,15 @@ def messages_view(request, chat_user_id=None):
                 "name": other.first_name,
                 "email": other.email,
                 "avatar_url": "/static/images/avatar-placeholder.png",
+                "has_unread": False,  # Initialize unread flag
             }
+
+    # Check for unread messages in each conversation
+    for participant_id in participants:
+        has_unread = DM.objects.filter(
+            sender_id=participant_id, receiver=user, read=False
+        ).exists()
+        participants[participant_id]["has_unread"] = has_unread
 
     conversations = list(participants.values())
 
@@ -90,6 +117,11 @@ def messages_view(request, chat_user_id=None):
             | (Q(sender=active_chat) & Q(receiver=user))
         ).order_by("sent_at")
 
+        # Mark messages as read when viewed
+        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
+            read=True
+        )
+
         for msg in raw_messages:
             try:
                 byte_data = bytes(msg.message)
@@ -105,6 +137,7 @@ def messages_view(request, chat_user_id=None):
             "conversations": conversations,
             "active_chat": active_chat,
             "messages": messages,
+            "has_unread_messages": has_unread_messages(request.user),
         },
     )
 
@@ -112,21 +145,43 @@ def messages_view(request, chat_user_id=None):
 @login_required(login_url="/login/")
 def send_message(request, chat_user_id):
     if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                messages.error(
+                    request,
+                    "Your account was not found. Please contact support.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return HttpResponse("Sender not found", status=404)
+
         recipient = get_object_or_404(Customer, id=chat_user_id)
         message_text = request.POST.get("message")
 
         if recipient == sender:
-            messages.error(request, "You can't message yourself.")
+            messages.error(
+                request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
+            )
             return redirect("chat", chat_user_id=recipient.id)
 
         if not message_text.strip():
-            messages.error(request, "Message cannot be empty.")
+            messages.error(
+                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
+            )
             return redirect("chat", chat_user_id=recipient.id)
 
-        # Save the DM
+        # Save the DM with read=False for new messages
         DM.objects.create(
-            sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+            sender=sender,
+            receiver=recipient,
+            message=message_text.encode("utf-8"),
+            read=False,
         )
 
         return redirect("chat", chat_user_id=recipient.id)
@@ -135,46 +190,100 @@ def send_message(request, chat_user_id):
 @login_required(login_url="/login/")
 def send_message_generic(request):
     if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                messages.error(
+                    request,
+                    "Your account was not found. Please contact support.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return redirect("messages inbox")
+
         recipient_email = request.POST.get("recipient")
         message_text = request.POST.get("message")
 
+        if not recipient_email:
+            messages.error(
+                request,
+                "Please enter a recipient email address.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+
+        if not message_text.strip():
+            messages.error(
+                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
+            )
+            return redirect("messages inbox")
+
         try:
+            # First try to find the recipient as a Customer
             recipient = Customer.objects.get(email=recipient_email)
+
             if recipient == sender:
-                messages.error(request, "You can't message yourself.")
+                messages.error(
+                    request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
+                )
                 return redirect("messages inbox")
 
-            # Create DM
+            # Create DM with read=False for new messages
             DM.objects.create(
-                sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+                sender=sender,
+                receiver=recipient,
+                message=message_text.encode("utf-8"),
+                read=False,
             )
+
             return redirect("chat", chat_user_id=recipient.id)
 
         except Customer.DoesNotExist:
-            messages.error(request, "Recipient not found.")
+            # Check if recipient exists as a Restaurant
+            try:
+                restaurant_recipient = Restaurant.objects.get(email=recipient_email)
+                messages.error(
+                    request,
+                    f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+            except Restaurant.DoesNotExist:
+                # Recipient doesn't exist at all
+                messages.error(
+                    request,
+                    f"Recipient '{recipient_email}' does not exist. Please check the email address and try again.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+
             return redirect("messages inbox")
 
 
 @login_required(login_url="/login/")
-def delete_conversation(request, chat_user_id):
+def delete_conversation(request, other_user_id):
     try:
         user = Customer.objects.get(email=request.user.email)
-        other_user = get_object_or_404(Customer, id=chat_user_id)
+        other_user = Customer.objects.get(id=other_user_id)
 
-        # Delete all DMs between the two users
+        # Delete all messages between these two users (in both directions)
         DM.objects.filter(
             (Q(sender=user) & Q(receiver=other_user))
             | (Q(sender=other_user) & Q(receiver=user))
         ).delete()
 
         messages.success(
-            request, f"Conversation with {other_user.first_name} has been deleted."
+            request,
+            f"Conversation with {other_user.first_name} has been deleted.",
+            extra_tags=INBOX_MESSAGE,
         )
+        return redirect("messages inbox")
     except Customer.DoesNotExist:
-        messages.error(request, "User not found or you are not authorized.")
-
-    return redirect("messages inbox")
+        messages.error(request, "Your account was not found.", extra_tags=INBOX_MESSAGE)
+        return redirect("messages inbox")
 
 
 @login_required(login_url="/login/")
@@ -221,6 +330,85 @@ def update_restaurant_profile_view(request):
     return redirect("home")
 
 
+@login_required(login_url="/login/")
+def profile_router(request, username):
+    try:
+        user_obj = Restaurant.objects.get(username=username)
+
+        is_owner = False
+        if request.user.is_authenticated and request.user.username == user_obj.username:
+            is_owner = True
+
+        return render(
+            request,
+            "maps/restaurant_detail.html",
+            {
+                "restaurant": user_obj,
+                "is_owner": is_owner,
+                "has_unread_messages": has_unread_messages(request.user),
+            },
+        )
+    except Restaurant.DoesNotExist:
+        try:
+            user_obj = Customer.objects.get(username=username)
+            return render(
+                request,
+                "user_profile.html",
+                {
+                    "customer": user_obj,
+                    "has_unread_messages": has_unread_messages(request.user),
+                },
+            )
+        except Customer.DoesNotExist:
+            return redirect("home")  # or a 404 page
+
+
+@login_required(login_url="/login/")
+def debug_unread_messages(request):
+    """Debug view to check unread messages status."""
+    from django.http import JsonResponse
+
+    try:
+        user = Customer.objects.get(email=request.user.email)
+        unread_count = DM.objects.filter(receiver=user, read=False).count()
+        unread_messages = list(
+            DM.objects.filter(receiver=user, read=False).values(
+                "id", "sender__email", "sent_at"
+            )
+        )
+
+        # Format sent_at for better readability
+        for msg in unread_messages:
+            if "sent_at" in msg:
+                msg["sent_at"] = msg["sent_at"].strftime("%Y-%m-%d %H:%M:%S")
+
+        return JsonResponse(
+            {
+                "has_unread_messages": has_unread_messages(request.user),
+                "unread_count": unread_count,
+                "unread_messages": unread_messages,
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
+    except Customer.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": "Customer not found",
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
+    except Exception as e:
+        return JsonResponse(
+            {
+                "error": str(e),
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
+
+
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
 # =====================================================================================
@@ -235,7 +423,9 @@ def login_view(request):
             login(request, user)
             return redirect("home")  # Redirect to homepage after login
         else:
-            messages.error(request, "Invalid username or password")
+            messages.error(
+                request, "Invalid username or password", extra_tags=AUTH_MESSAGE
+            )
             return redirect("/")  # Stay on landing page
 
     return redirect("/")
@@ -254,11 +444,11 @@ def register_view(request):
         password2 = request.POST.get("password2")
 
         if password1 != password2:
-            messages.error(request, "Passwords do not match")
+            messages.error(request, "Passwords do not match", extra_tags=AUTH_MESSAGE)
             return redirect("register")
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already taken")
+            messages.error(request, "Username already taken", extra_tags=AUTH_MESSAGE)
             return redirect("register")
 
         # Ensure email is unique in both User and Customer tables
@@ -266,19 +456,19 @@ def register_view(request):
             User.objects.filter(email=email).exists()
             or Customer.objects.filter(email=email).exists()
         ):
-            messages.error(request, "Email is already in use")
+            messages.error(request, "Email is already in use", extra_tags=AUTH_MESSAGE)
             return redirect("register")
 
         # Create the user & customer
         user = User.objects.create_user(
             username=username, email=email, password=password1
         )
-        customer = Customer.objects.create(email=email)
+        customer = Customer.objects.create(email=email, username=username)
 
-        # ✅ Explicitly set authentication backend to avoid 'backend' error
+        # Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
 
-        # ✅ Log in the user
+        # Log in the user
         login(request, user)
 
         return redirect("home")  # Redirect to homepage after registration
@@ -305,21 +495,27 @@ def restaurant_verify(request):
 
         # Check if passwords match
         if password != confirm_password:
-            messages.error(request, "Passwords do not match.")
+            messages.error(request, "Passwords do not match.", extra_tags=AUTH_MESSAGE)
             return redirect("restaurant_register")
 
         # Check if the verification code is correct
         if verification_code != HARDCODE_VERIFY:
-            messages.error(request, "Invalid verification code.")
+            messages.error(
+                request, "Invalid verification code.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         # Ensure username & email are unique
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Username is already taken.")
+            messages.error(
+                request, "Username is already taken.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         if User.objects.filter(email=email).exists():
-            messages.error(request, "Email is already registered.")
+            messages.error(
+                request, "Email is already registered.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         # Perform atomic transaction (user creation + restaurant email update)
@@ -335,17 +531,26 @@ def restaurant_verify(request):
                 # Update the selected restaurant's email
                 restaurant = Restaurant.objects.get(id=restaurant_id)
                 restaurant.email = email  # Assign new owner's email to restaurant
+                restaurant.username = username
                 restaurant.save()
 
-            messages.success(request, "Registration successful! You can now log in.")
-            return redirect("/")  # ✅ Redirect to landing page
+            messages.success(
+                request,
+                "Registration successful! You can now log in.",
+                extra_tags=AUTH_MESSAGE,
+            )
+            return redirect("/")  # Redirect to landing page
 
         except Restaurant.DoesNotExist:
-            messages.error(request, "Selected restaurant does not exist.")
+            messages.error(
+                request, "Selected restaurant does not exist.", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
         except Exception as e:
-            messages.error(request, f"An error occurred: {str(e)}")
+            messages.error(
+                request, f"An error occurred: {str(e)}", extra_tags=AUTH_MESSAGE
+            )
             return redirect("restaurant_register")
 
     return redirect("restaurant_register")  # Redirect if accessed via GET
