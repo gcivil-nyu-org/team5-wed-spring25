@@ -5,7 +5,9 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 
 from _api._users.models import Customer, DM
+from _api._restaurants.models import Restaurant
 from _frontend.utils import has_unread_messages
+from django.contrib.gis.geos import Point
 
 User = get_user_model()
 
@@ -128,3 +130,164 @@ class MessageSystemTests(TestCase):
         self.assertFalse(
             DM.objects.filter(receiver=self.customer1, read=False).exists()
         )
+
+
+class RestaurantViewTests(TestCase):
+    def setUp(self):
+        # Create test users
+        self.user1 = User.objects.create_user(
+            username="user1", email="user1@test.com", password="testpass123"
+        )
+        self.customer1 = Customer.objects.create(
+            username="user1", email="user1@test.com", first_name="User", last_name="One"
+        )
+
+        # Create test restaurant
+        self.restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,  # Manhattan is typically represented as 1
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # Example NYC coordinates
+        )
+
+        self.client = Client()
+
+    def test_restaurant_detail_view(self):
+        """Test restaurant detail view for both owners and regular users"""
+        # Test as non-owner
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(
+            reverse("restaurant_detail", args=[self.restaurant.name])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["is_owner"])
+        self.assertEqual(response.context["restaurant"], self.restaurant)
+
+        # Test as owner
+        owner = User.objects.create_user(
+            username="restaurant1", email="restaurant@test.com", password="testpass123"
+        )
+        self.client.login(username="restaurant1", password="testpass123")
+        response = self.client.get(
+            reverse("restaurant_detail", args=[self.restaurant.name])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["is_owner"])
+
+    def test_restaurant_detail_case_insensitive(self):
+        """Test restaurant name matching is case insensitive"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(
+            reverse("restaurant_detail", args=["test restaurant"])
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_restaurant_register_view(self):
+        """Test restaurant registration page shows unverified restaurants"""
+        # Create unverified restaurant
+        Restaurant.objects.create(
+            name="Unverified Restaurant",
+            email="Not Provided",
+            phone="123-456-7890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            borough=1,  # Manhattan
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # NYC coordinates
+        )
+
+        response = self.client.get(reverse("restaurant_register"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["restaurants"]), 1)
+
+    def test_restaurant_verify_success(self):
+        """Test successful restaurant verification"""
+        restaurant = Restaurant.objects.create(
+            name="Unverified Restaurant",
+            email="Not Provided",
+            phone="123-456-7890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            borough=1,  # Manhattan
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # NYC coordinates
+        )
+
+        data = {
+            "restaurant": restaurant.id,
+            "username": "newowner",
+            "email": "owner@test.com",
+            "password": "testpass123",
+            "confirm_password": "testpass123",
+            "verify": "1234",
+        }
+
+        response = self.client.post(reverse("restaurant_verify"), data)
+        self.assertEqual(response.status_code, 302)
+
+        # Verify updates
+        updated = Restaurant.objects.get(id=restaurant.id)
+        self.assertEqual(updated.email, "owner@test.com")
+        self.assertEqual(updated.username, "newowner")
+        self.assertTrue(User.objects.filter(username="newowner").exists())
+
+    def test_restaurant_verify_failures(self):
+        """Test various failure cases for restaurant verification"""
+        restaurant = Restaurant.objects.create(
+            name="Unverified Restaurant",
+            email="test@example.com",
+            phone="123-456-7890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            borough=1,  # Manhattan
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # NYC coordinates
+        )
+
+        # Test wrong verification code
+        data = {
+            "restaurant": restaurant.id,
+            "username": "newowner",
+            "email": "owner@test.com",
+            "password": "testpass123",
+            "confirm_password": "testpass123",
+            "verify": "wrongcode",
+        }
+        response = self.client.post(reverse("restaurant_verify"), data)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            Restaurant.objects.get(id=restaurant.id).email, "test@example.com"
+        )
+
+        # Test password mismatch
+        data = {
+            "restaurant": restaurant.id,
+            "username": "newowner",
+            "email": "owner@test.com",
+            "password": "testpass123",
+            "confirm_password": "mismatch",
+            "verify": "1234",
+        }
+        response = self.client.post(reverse("restaurant_verify"), data)
+        self.assertEqual(response.status_code, 302)
