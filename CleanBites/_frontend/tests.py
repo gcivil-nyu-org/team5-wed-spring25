@@ -36,6 +36,22 @@ class ViewTests(TestCase):
         response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'home.html')
+        
+    def test_home_view_unauthenticated(self):
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse('login')))
+        
+    def test_register_view_post_valid(self):
+        data = {
+            'username': 'newuser',
+            'email': 'new@test.com',
+            'password1': 'complexpassword123',
+            'password2': 'complexpassword123'
+        }
+        response = self.client.post(reverse('register'), data, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(User.objects.filter(username='newuser').exists())
 
 class MessageSystemTests(TestCase):
     def setUp(self):
