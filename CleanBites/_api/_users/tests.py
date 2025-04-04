@@ -6,24 +6,22 @@ from _api._restaurants.models import Restaurant
 
 # Create your tests here.
 
+
 class CustomerModelTests(TestCase):
     def test_required_fields(self):
         # Test that required fields are enforced
         with self.assertRaises(Exception):
             with transaction.atomic():
                 Customer.objects.create(
-                    first_name=None,
-                    last_name=None,
-                    email=None,
-                    username=None
+                    first_name=None, last_name=None, email=None, username=None
                 )
-        
+
         # Test valid creation
         customer = Customer.objects.create(
             first_name="John",
             last_name="Doe",
             email="john@example.com",
-            username="johndoe"
+            username="johndoe",
         )
         self.assertEqual(Customer.objects.count(), 1)
 
@@ -33,17 +31,11 @@ class ModeratorModelTests(TestCase):
         # Test that required fields are enforced
         with self.assertRaises(Exception):
             with transaction.atomic():
-                Moderator.objects.create(
-                    first_name=None,
-                    last_name=None,
-                    email=None
-                )
-        
+                Moderator.objects.create(first_name=None, last_name=None, email=None)
+
         # Test valid creation
         moderator = Moderator.objects.create(
-            first_name="Jane",
-            last_name="Smith",
-            email="jane@example.com"
+            first_name="Jane", last_name="Smith", email="jane@example.com"
         )
         self.assertEqual(Moderator.objects.count(), 1)
 
@@ -54,30 +46,24 @@ class DMModelTests(TestCase):
             first_name="John",
             last_name="Doe",
             email="john@example.com",
-            username="johndoe"
+            username="johndoe",
         )
         self.customer2 = Customer.objects.create(
             first_name="Jane",
             last_name="Smith",
             email="jane@example.com",
-            username="janesmith"
+            username="janesmith",
         )
-    
+
     def test_required_fields(self):
         # Test that required fields are enforced
         with self.assertRaises(Exception):
             with transaction.atomic():
-                DM.objects.create(
-                    sender=None,
-                    receiver=None,
-                    message=b''
-                )
-        
+                DM.objects.create(sender=None, receiver=None, message=b"")
+
         # Test valid creation
         dm = DM.objects.create(
-            sender=self.customer1,
-            receiver=self.customer2,
-            message=b'Test message'
+            sender=self.customer1, receiver=self.customer2, message=b"Test message"
         )
         self.assertEqual(DM.objects.count(), 1)
         self.assertFalse(dm.read)  # Default value check
@@ -89,7 +75,7 @@ class FavoriteRestaurantModelTests(TestCase):
             first_name="John",
             last_name="Doe",
             email="john@example.com",
-            username="johndoe"
+            username="johndoe",
         )
         self.restaurant = Restaurant.objects.create(
             name="Test Restaurant",
@@ -102,29 +88,24 @@ class FavoriteRestaurantModelTests(TestCase):
             inspection_date="2025-01-01",
             borough=1,
             cuisine_description="Test",
-            violation_description="None"
+            violation_description="None",
         )
-    
+
     def test_required_fields(self):
         # Test that required fields are enforced
         with self.assertRaises(Exception):
             with transaction.atomic():
-                FavoriteRestaurant.objects.create(
-                    customer=None,
-                    restaurant=None
-                )
-        
+                FavoriteRestaurant.objects.create(customer=None, restaurant=None)
+
         # Test valid creation and unique constraint
         fav = FavoriteRestaurant.objects.create(
-            customer=self.customer,
-            restaurant=self.restaurant
+            customer=self.customer, restaurant=self.restaurant
         )
         self.assertEqual(FavoriteRestaurant.objects.count(), 1)
-        
+
         # Test unique constraint
         with self.assertRaises(Exception):
             with transaction.atomic():
                 FavoriteRestaurant.objects.create(
-                    customer=self.customer,
-                    restaurant=self.restaurant
+                    customer=self.customer, restaurant=self.restaurant
                 )

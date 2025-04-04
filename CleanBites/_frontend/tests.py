@@ -9,135 +9,122 @@ from _frontend.utils import has_unread_messages
 
 User = get_user_model()
 
+
 class ViewTests(TestCase):
     def setUp(self):
         # Create test user
         self.user1 = User.objects.create_user(
-            username='user1', 
-            email='user1@test.com', 
-            password='testpass123'
+            username="user1", email="user1@test.com", password="testpass123"
         )
         self.customer1 = Customer.objects.create(
-            username='user1', 
-            email='user1@test.com',
-            first_name='User',
-            last_name='One'
+            username="user1", email="user1@test.com", first_name="User", last_name="One"
         )
-        
+
         self.client = Client()
-    
+
     def test_landing_view(self):
-        response = self.client.get(reverse('landing'))
+        response = self.client.get(reverse("landing"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'landing.html')
-    
+        self.assertTemplateUsed(response, "landing.html")
+
     def test_home_view_authenticated(self):
-        self.client.login(username='user1', password='testpass123')
-        response = self.client.get(reverse('home'))
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'home.html')
-        
+        self.assertTemplateUsed(response, "home.html")
+
     def test_home_view_unauthenticated(self):
-        response = self.client.get(reverse('home'))
+        response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.startswith(reverse('login')))
-        
+        self.assertTrue(response.url.startswith(reverse("login")))
+
     def test_register_view_post_valid(self):
         data = {
-            'username': 'newuser',
-            'email': 'new@test.com',
-            'password1': 'complexpassword123',
-            'password2': 'complexpassword123'
+            "username": "newuser",
+            "email": "new@test.com",
+            "password1": "complexpassword123",
+            "password2": "complexpassword123",
         }
-        response = self.client.post(reverse('register'), data, follow=True)
+        response = self.client.post(reverse("register"), data, follow=True)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(User.objects.filter(username='newuser').exists())
+        self.assertTrue(User.objects.filter(username="newuser").exists())
+
 
 class MessageSystemTests(TestCase):
     def setUp(self):
         # Create test users
         self.user1 = User.objects.create_user(
-            username='user1', 
-            email='user1@test.com', 
-            password='testpass123'
+            username="user1", email="user1@test.com", password="testpass123"
         )
         self.customer1 = Customer.objects.create(
-            username='user1', 
-            email='user1@test.com',
-            first_name='User',
-            last_name='One'
+            username="user1", email="user1@test.com", first_name="User", last_name="One"
         )
-        
+
         self.user2 = User.objects.create_user(
-            username='user2', 
-            email='user2@test.com', 
-            password='testpass123'
+            username="user2", email="user2@test.com", password="testpass123"
         )
         self.customer2 = Customer.objects.create(
-            username='user2', 
-            email='user2@test.com',
-            first_name='User',
-            last_name='Two'
+            username="user2", email="user2@test.com", first_name="User", last_name="Two"
         )
-        
+
         self.client = Client()
-    
+
     def test_dm_creation(self):
         """Test basic DM creation"""
         dm = DM.objects.create(
             sender=self.customer1,
             receiver=self.customer2,
-            message=b'Test message',
-            read=False
+            message=b"Test message",
+            read=False,
         )
         self.assertEqual(dm.sender, self.customer1)
         self.assertEqual(dm.receiver, self.customer2)
-        self.assertEqual(dm.message, b'Test message')
+        self.assertEqual(dm.message, b"Test message")
         self.assertFalse(dm.read)
         self.assertFalse(dm.flagged)
         self.assertIsNone(dm.flagged_by)
-    
+
     def test_dm_self_send_prevention(self):
         """Test that users can't send DMs to themselves"""
         with self.assertRaises(ValidationError):
             dm = DM(
-                sender=self.customer1,
-                receiver=self.customer1,
-                message=b'Test message'
+                sender=self.customer1, receiver=self.customer1, message=b"Test message"
             )
             dm.full_clean()
-    
+
     def test_has_unread_messages(self):
         """Test the has_unread_messages utility function"""
         # No messages initially
         self.assertFalse(has_unread_messages(self.user1))
-        
+
         # Create unread message
         DM.objects.create(
             sender=self.customer2,
             receiver=self.customer1,
-            message=b'Test message',
-            read=False
+            message=b"Test message",
+            read=False,
         )
         self.assertTrue(has_unread_messages(self.user1))
-        
+
         # Mark as read
         DM.objects.filter(receiver=self.customer1).update(read=True)
         self.assertFalse(has_unread_messages(self.user1))
-        
+
     def test_message_view_mark_read(self):
         """Test that viewing messages marks them as read"""
         # Create unread message
         DM.objects.create(
             sender=self.customer2,
             receiver=self.customer1,
-            message=b'Test message',
-            read=False
+            message=b"Test message",
+            read=False,
         )
-        
+
         # Login and view messages
-        self.client.login(username='user1', password='testpass123')
-        response = self.client.get(reverse('messages inbox'))
-        
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(reverse("messages inbox"))
+
         # Message should now be marked as read
-        self.assertFalse(DM.objects.filter(receiver=self.customer1, read=False).exists())
+        self.assertFalse(
+            DM.objects.filter(receiver=self.customer1, read=False).exists()
+        )

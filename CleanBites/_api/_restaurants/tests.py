@@ -8,8 +8,9 @@ from _api._restaurants.models import Restaurant, Comment, Reply
 from _api._users.models import Customer
 from django.contrib.gis.geos import Point
 
+
 class TestAPIEndpoint(TestCase):
-    @patch('_api._restaurants.fetch_data.requests.get')
+    @patch("_api._restaurants.fetch_data.requests.get")
     def test_nyc_api_connectivity(self, mock_get):
         """Test we can connect to NYC API endpoint"""
         # Mock successful API response
@@ -19,12 +20,12 @@ class TestAPIEndpoint(TestCase):
 
         # Make test request
         response = requests.get(NYC_DATA_URL)
-        
+
         # Verify we got a successful response
         self.assertEqual(response.status_code, 200)
         mock_get.assert_called_once_with(NYC_DATA_URL)
 
-    @patch('_api._restaurants.fetch_data.requests.get')
+    @patch("_api._restaurants.fetch_data.requests.get")
     def test_nyc_api_response_format(self, mock_get):
         """Test NYC API returns JSON data"""
         # Mock response with sample data
@@ -36,33 +37,40 @@ class TestAPIEndpoint(TestCase):
         # Make test request
         response = requests.get(NYC_DATA_URL)
         data = response.json()
-        
+
         # Verify response format
         self.assertIsInstance(data, list)
         self.assertIn("camis", data[0])
         self.assertIn("dba", data[0])
 
+
 class RestaurantModelTests(TestCase):
     def test_production_no_duplicate_emails(self):
         """Test production database has no duplicate restaurant emails (except 'Not Provided')"""
         # Get all emails that aren't 'Not Provided'
-        emails = Restaurant.objects.exclude(email='Not Provided') \
-                                  .values_list('email', flat=True)
-        
+        emails = Restaurant.objects.exclude(email="Not Provided").values_list(
+            "email", flat=True
+        )
+
         # Find duplicates
         seen = set()
         duplicates = set(email for email in emails if email in seen or seen.add(email))
-        
+
         # Verify no duplicates found
-        self.assertEqual(len(duplicates), 0, 
-                         msg=f"Duplicate emails found in production: {duplicates}")
+        self.assertEqual(
+            len(duplicates),
+            0,
+            msg=f"Duplicate emails found in production: {duplicates}",
+        )
 
     def test_restaurant_required_fields(self):
         """Test required fields are properly validated"""
         with self.assertRaises(Exception):
             Restaurant.objects.create(name=None)  # name should be required
         with self.assertRaises(Exception):
-            Restaurant.objects.create(hygiene_rating=None)  # hygiene_rating should be required
+            Restaurant.objects.create(
+                hygiene_rating=None
+            )  # hygiene_rating should be required
 
     def test_comment_required_fields(self):
         """Test Comment model required fields"""
@@ -78,22 +86,22 @@ class RestaurantModelTests(TestCase):
             inspection_date="2025-01-01",
             borough=1,
             cuisine_description="Test",
-            violation_description="None"
+            violation_description="None",
         )
         customer = Customer.objects.create(
             username="testuser",
             email="user@example.com",
             first_name="Test",
             last_name="User",
-            id=1
+            id=1,
         )
-        
+
         # Test required fields
         with self.assertRaises(Exception):
             Comment.objects.create(commenter=None, restaurant=restaurant)
         with self.assertRaises(Exception):
             Comment.objects.create(commenter=customer, restaurant=None)
-            
+
     def test_reply_required_fields(self):
         """Test Reply model required fields"""
         # Create test comment
@@ -108,21 +116,19 @@ class RestaurantModelTests(TestCase):
             inspection_date="2025-01-01",
             borough=1,
             cuisine_description="Test",
-            violation_description="None"
+            violation_description="None",
         )
         customer = Customer.objects.create(
             username="testuser",
             email="user@example.com",
             first_name="Test",
             last_name="User",
-            id=1
+            id=1,
         )
         comment = Comment.objects.create(
-            commenter=customer,
-            restaurant=restaurant,
-            karma=0
+            commenter=customer, restaurant=restaurant, karma=0
         )
-        
+
         # Test required fields
         with self.assertRaises(Exception):
             Reply.objects.create(comment=None, replier=customer)
