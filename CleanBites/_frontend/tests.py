@@ -9,6 +9,34 @@ from _frontend.utils import has_unread_messages
 
 User = get_user_model()
 
+class ViewTests(TestCase):
+    def setUp(self):
+        # Create test user
+        self.user1 = User.objects.create_user(
+            username='user1', 
+            email='user1@test.com', 
+            password='testpass123'
+        )
+        self.customer1 = Customer.objects.create(
+            username='user1', 
+            email='user1@test.com',
+            first_name='User',
+            last_name='One'
+        )
+        
+        self.client = Client()
+    
+    def test_landing_view(self):
+        response = self.client.get(reverse('landing'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'landing.html')
+    
+    def test_home_view_authenticated(self):
+        self.client.login(username='user1', password='testpass123')
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'home.html')
+
 class MessageSystemTests(TestCase):
     def setUp(self):
         # Create test users
