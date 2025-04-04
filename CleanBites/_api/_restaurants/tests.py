@@ -310,3 +310,81 @@ class CommentViewSetTests(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Comment.objects.count(), 0)
+
+class ReplyViewSetTests(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.customer = Customer.objects.create(
+            username="testuser",
+            email="user@example.com",
+            first_name="Test",
+            last_name="User"
+        )
+        self.restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            email="test@example.com",
+            phone="1234567890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            hygiene_rating=90,
+            inspection_date="2025-01-01",
+            borough=1,
+            cuisine_description="Test",
+            violation_description="None",
+            geo_coords=Point(-73.966, 40.78)
+        )
+        self.comment = Comment.objects.create(
+            commenter=self.customer,
+            restaurant=self.restaurant,
+            comment=b"Test comment content",
+            karma=5
+        )
+        self.reply = Reply.objects.create(
+            commenter=self.customer,
+            comment=self.comment,
+            reply=b"Test reply content",
+            karma=3
+        )
+        self.url = reverse('reply-list')
+
+    def test_list_replies(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_filter_replies_by_comment(self):
+        url = f"{self.url}?comment={self.comment.id}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_filter_replies_by_commenter(self):
+        url = f"{self.url}?commenter={self.customer.id}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_create_reply(self):
+        data = {
+            "commenter": self.customer.id,
+            "comment": self.comment.id,
+            "reply": "New test reply"
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Reply.objects.count(), 2)
+
+    def test_update_reply(self):
+        url = reverse('reply-detail', args=[self.reply.id])
+        data = {"karma": 5}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.reply.refresh_from_db()
+        self.assertEqual(self.reply.karma, 5)
+
+    def test_delete_reply(self):
+        url = reverse('reply-detail', args=[self.reply.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Reply.objects.count(), 0)
