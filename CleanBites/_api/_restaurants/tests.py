@@ -237,3 +237,76 @@ class RestaurantGeoJSONViewTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+
+
+class CommentViewSetTests(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.customer = Customer.objects.create(
+            username="testuser",
+            email="user@example.com",
+            first_name="Test",
+            last_name="User"
+        )
+        self.restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            email="test@example.com",
+            phone="1234567890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            hygiene_rating=90,
+            inspection_date="2025-01-01",
+            borough=1,
+            cuisine_description="Test",
+            violation_description="None",
+            geo_coords=Point(-73.966, 40.78)
+        )
+        self.comment = Comment.objects.create(
+            commenter=self.customer,
+            restaurant=self.restaurant,
+            comment=b"Test comment content",
+            karma=5
+        )
+        self.url = reverse('comment-list')
+
+    def test_list_comments(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_filter_comments_by_restaurant(self):
+        url = f"{self.url}?restaurant={self.restaurant.id}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_filter_comments_by_commenter(self):
+        url = f"{self.url}?commenter={self.customer.id}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_create_comment(self):
+        data = {
+            "commenter": self.customer.id,
+            "restaurant": self.restaurant.id,
+            "comment": "New test comment"
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Comment.objects.count(), 2)
+
+    def test_update_comment(self):
+        url = reverse('comment-detail', args=[self.comment.id])
+        data = {"karma": 10}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.comment.refresh_from_db()
+        self.assertEqual(self.comment.karma, 10)
+
+    def test_delete_comment(self):
+        url = reverse('comment-detail', args=[self.comment.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Comment.objects.count(), 0)
