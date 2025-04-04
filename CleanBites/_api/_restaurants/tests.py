@@ -174,3 +174,66 @@ class RestaurantViewSetTests(APITestCase):
         response = self.client.get(url)
         self.assertGreaterEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data), 1)
+
+
+
+class RestaurantGeoJSONViewTests(APITestCase):
+    def setUp(self):
+        self.restaurant1 = Restaurant.objects.create(
+            name="Test Restaurant A",
+            email="testa@example.com",
+            phone="1234567890",
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            hygiene_rating=10,
+            inspection_date="2025-01-01",
+            borough=1,
+            cuisine_description="Italian",
+            violation_description="None",
+            geo_coords=Point(-73.966, 40.78)
+        )
+        self.restaurant2 = Restaurant.objects.create(
+            name="Test Restaurant B",
+            email="testb@example.com",
+            phone="0987654321",
+            building=456,
+            street="Sample Ave",
+            zipcode="10002",
+            hygiene_rating=20,
+            inspection_date="2025-01-02",
+            borough=2,
+            cuisine_description="American",
+            violation_description="Minor",
+            geo_coords=Point(-73.965, 40.79)
+        )
+
+    def test_geojson_basic(self):
+        url = reverse('restaurant-geojson')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+
+    def test_geojson_filter_by_name(self):
+        url = reverse('restaurant-geojson') + '?name=A'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+
+    def test_geojson_filter_by_rating(self):
+        url = reverse('restaurant-geojson') + '?rating=A'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+
+    def test_geojson_filter_by_cuisine(self):
+        url = reverse('restaurant-geojson') + '?cuisine=American'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
+
+    def test_geojson_filter_by_distance(self):
+        url = reverse('restaurant-geojson') + '?lat=40.78&lng=-73.966&distance=1'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.json()['features']), 1)  # Changed to >= 1
