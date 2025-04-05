@@ -14,6 +14,7 @@ from django.test import RequestFactory
 User = get_user_model()
 
 
+# ALL FRONTEND TESTS ==================================================================
 class ViewTests(TestCase):
     def setUp(self):
         # Create test user
