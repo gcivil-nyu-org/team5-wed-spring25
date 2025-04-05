@@ -318,6 +318,36 @@ class UtilityTests(TestCase):
         self.assertTrue(has_unread_messages(self.user1))
         self.assertFalse(has_unread_messages(self.user2))
 
+    def test_has_unread_messages_unauthenticated(self):
+        """Test with unauthenticated/anonymous users"""
+        from django.contrib.auth.models import AnonymousUser
+
+        self.assertFalse(has_unread_messages(None))
+        self.assertFalse(has_unread_messages(AnonymousUser()))
+
+    def test_has_unread_messages_no_customer(self):
+        """Test when user has no associated customer"""
+        user = User.objects.create_user('no_customer@test.com', 'password')
+        self.assertFalse(has_unread_messages(user))
+
+    def test_has_unread_messages_read_status(self):
+        """Test read/unread message detection"""
+        # Create read message
+        DM.objects.create(
+            sender=self.customer2, receiver=self.customer1, message=b"read", read=True
+        )
+        self.assertFalse(has_unread_messages(self.user1))
+
+        # Create unread message
+        DM.objects.create(
+            sender=self.customer2, receiver=self.customer1, message=b"unread", read=False
+        )
+        self.assertTrue(has_unread_messages(self.user1))
+
+        # Mark as read and verify
+        DM.objects.filter(receiver=self.customer1).update(read=True)
+        self.assertFalse(has_unread_messages(self.user1))
+
 
 class RestaurantViewTests(TestCase):
     def setUp(self):
