@@ -23,6 +23,13 @@ class ViewTests(TestCase):
             username="user1", email="user1@test.com", first_name="User", last_name="One"
         )
 
+        self.user2 = User.objects.create_user(
+            username="user2", email="user2@test.com", password="testpass123"
+        )
+        self.customer2 = Customer.objects.create(
+            username="user2", email="user2@test.com", first_name="User", last_name="Two"
+        )
+
         self.client = Client()
 
     def test_landing_view(self):
@@ -86,6 +93,53 @@ class ViewTests(TestCase):
         # Verify the redirected page loads correctly
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["restaurant"], restaurant)
+
+    def test_messages_view(self):
+        """Test messages_view functionality"""
+        # Test with no messages
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(reverse("messages inbox"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["conversations"]), 0)
+        self.assertIsNone(response.context["active_chat"])
+        self.assertEqual(len(response.context["messages"]), 0)
+
+        # Create test messages
+        DM.objects.create(
+            sender=self.customer1,
+            receiver=self.customer2,
+            message=b"Test message 1",
+        )
+        DM.objects.create(
+            sender=self.customer2,
+            receiver=self.customer1,
+            message=b"Test message 2",
+            read=False,
+        )
+
+        # Test conversation list
+        response = self.client.get(reverse("messages inbox"))
+        self.assertEqual(len(response.context["conversations"]), 1)
+        self.assertEqual(response.context["conversations"][0]["id"], self.customer2.id)
+        self.assertTrue(response.context["conversations"][0]["has_unread"])
+
+        # Test message decoding
+        chat_response = self.client.get(
+            reverse("chat", kwargs={"chat_user_id": self.customer2.id})
+        )
+        self.assertEqual(len(chat_response.context["messages"]), 2)
+        self.assertEqual(chat_response.context["messages"][0].decoded_message, "Test message 1")
+        self.assertEqual(chat_response.context["messages"][1].decoded_message, "Test message 2")
+
+        # Verify unread message was marked as read
+        updated_dm = DM.objects.get(message=b"Test message 2")
+        self.assertTrue(updated_dm.read)
+
+        # Test error handling for missing profile
+        self.customer1.delete()
+        error_response = self.client.get(reverse("messages inbox"))
+        self.assertEqual(len(error_response.context["conversations"]), 0)
+        self.assertEqual(error_response.context["error"], "Your profile could not be found.")
 
 
 class MessageSystemTests(TestCase):
