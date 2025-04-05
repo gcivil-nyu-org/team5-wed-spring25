@@ -149,6 +149,42 @@ class ViewTests(TestCase):
             error_response.context["error"], "Your profile could not be found."
         )
 
+    def test_active_chat_selection(self):
+        """Test active chat selection logic in messages_view"""
+        # Create test messages
+        DM.objects.create(
+            sender=self.customer1,
+            receiver=self.customer2,
+            message=b"First message",
+        )
+        DM.objects.create(
+            sender=self.customer2,
+            receiver=self.customer1,
+            message=b"Second message",
+        )
+
+        # Test 1: No chat_user_id specified - should default to first conversation
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(reverse("messages inbox"))
+        self.assertEqual(response.context["active_chat"].id, self.customer2.id)
+        self.assertEqual(len(response.context["messages"]), 2)
+        self.assertEqual(response.context["messages"][0].decoded_message, "First message")
+        self.assertEqual(response.context["messages"][1].decoded_message, "Second message")
+
+        # Test 2: Specific chat_user_id specified
+        response = self.client.get(
+            reverse("chat", kwargs={"chat_user_id": self.customer2.id})
+        )
+        self.assertEqual(response.context["active_chat"].id, self.customer2.id)
+        self.assertEqual(len(response.context["messages"]), 2)
+
+        # Test 3: Invalid chat_user_id should 404
+        response = self.client.get(
+            reverse("chat", kwargs={"chat_user_id": 999}),
+            follow=True
+        )
+        self.assertEqual(response.status_code, 404)
+
     def test_messages_view_missing_profile(self):
         """Test error handling when customer profile doesn't exist"""
         # Create a user without a customer profile
