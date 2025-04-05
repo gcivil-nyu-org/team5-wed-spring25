@@ -233,6 +233,30 @@ class MessageSystemTests(TestCase):
 
         self.client = Client()
 
+    def test_send_message_orphaned_user(self):
+        """Test error handling when user has no Customer or Restaurant profile"""
+        # Create user without any profile
+        orphan_user = User.objects.create_user(
+            username="orphan", email="orphan@test.com", password="testpass123"
+        )
+
+        self.client.login(username="orphan", password="testpass123")
+        response = self.client.post(
+            reverse("send_message", kwargs={"chat_user_id": self.customer1.id}),
+            {"message": "Test message"},
+        )
+
+        # Verify error response
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.content.decode(), "Sender not found")
+
+        # Verify error message was added
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(
+            str(messages[0]), "Your account was not found. Please contact support."
+        )
+
     def test_dm_creation(self):
         """Test basic DM creation"""
         dm = DM.objects.create(
