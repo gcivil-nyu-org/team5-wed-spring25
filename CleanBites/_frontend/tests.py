@@ -7,9 +7,7 @@ from django.contrib.messages import get_messages
 
 from _api._users.models import Customer, DM
 from _api._restaurants.models import Restaurant
-from _frontend.utils import (
-    has_unread_messages
-)
+from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
 
 User = get_user_model()
