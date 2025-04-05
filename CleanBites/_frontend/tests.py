@@ -149,6 +149,23 @@ class ViewTests(TestCase):
             error_response.context["error"], "Your profile could not be found."
         )
 
+    def test_messages_view_missing_profile(self):
+        """Test error handling when customer profile doesn't exist"""
+        # Create a user without a customer profile
+        user = User.objects.create_user(
+            username="orphanuser", email="orphan@test.com", password="testpass123"
+        )
+
+        self.client.login(username="orphanuser", password="testpass123")
+        response = self.client.get(reverse("messages inbox"))
+
+        # Verify error message is shown (matches view exactly)
+        self.assertEqual(response.context["error"], "Your profile could not be found.")
+        # Verify empty conversation data
+        self.assertEqual(response.context["conversations"], [])
+        self.assertIsNone(response.context["active_chat"])
+        self.assertEqual(response.context["messages"], [])
+
     def test_dynamic_map_view(self):
         """Test dynamic_map_view returns 200 and correct context"""
         self.client.login(username="user1", password="testpass123")
