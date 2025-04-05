@@ -17,6 +17,7 @@ body, html {
     top: 0;
     left: 0;
     z-index: 1000;
+    height: 84px;
   }
 
   .navbar-left h2 {
@@ -24,13 +25,31 @@ body, html {
     font-size: 24px;
   }
 
+  .navbar-left,
+  .navbar-right {
+    flex: 0 0 auto;
+  }
+
+
   .search-bar {
+    flex: 1 1 auto;
     display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-bar form {
+    display: flex;
+    align-items: center;
     gap: 10px;
+    flex-wrap: nowrap;   /* keep them on one line if possible */
+    white-space: nowrap; /* prevent text wrap */
   }
 
   .search-bar input {
-    padding: 5px;
+    flex: 0 1 auto;
+    min-width: 120px;
+    /* padding: 5px; */
     font-size: 14px;
   }
 
@@ -56,6 +75,41 @@ body, html {
     gap: 10px; 
   }
 
+  #rating-checkboxes-container {
+    background-color: #f2f2f2;
+    padding: 8px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    /* flex: 0 0 auto;
+    margin: 0 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start; */
+  }
+
+  #rating-checkboxes-container .ratings-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+
+  #rating-checkboxes-container .ratings-options {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+  }
+
+  #rating-checkboxes-container .ratings-options label {
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .search-bar input[type="checkbox"] {
+    min-width: 30px;
+  }
+
   .navbar-right .btn {
     background-color: red;
     color: white;
@@ -66,7 +120,7 @@ body, html {
 
   main {
     position: absolute;
-    top: 50px; /* Adjust based on navbar height */
+    top: 84px; /* Adjust based on navbar height */
     bottom: 0;
     width: 100%;
   }
