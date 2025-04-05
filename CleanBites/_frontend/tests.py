@@ -149,6 +149,62 @@ class ViewTests(TestCase):
             error_response.context["error"], "Your profile could not be found."
         )
 
+    def test_active_chat_selection(self):
+        """Test active chat selection logic in messages_view"""
+        # Create test messages
+        DM.objects.create(
+            sender=self.customer1,
+            receiver=self.customer2,
+            message=b"First message",
+        )
+        DM.objects.create(
+            sender=self.customer2,
+            receiver=self.customer1,
+            message=b"Second message",
+        )
+
+        # Test 1: No chat_user_id specified - should default to first conversation
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(reverse("messages inbox"))
+        self.assertEqual(response.context["active_chat"].id, self.customer2.id)
+        self.assertEqual(len(response.context["messages"]), 2)
+        self.assertEqual(
+            response.context["messages"][0].decoded_message, "First message"
+        )
+        self.assertEqual(
+            response.context["messages"][1].decoded_message, "Second message"
+        )
+
+        # Test 2: Specific chat_user_id specified
+        response = self.client.get(
+            reverse("chat", kwargs={"chat_user_id": self.customer2.id})
+        )
+        self.assertEqual(response.context["active_chat"].id, self.customer2.id)
+        self.assertEqual(len(response.context["messages"]), 2)
+
+        # Test 3: Invalid chat_user_id should 404
+        response = self.client.get(
+            reverse("chat", kwargs={"chat_user_id": 999}), follow=True
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_messages_view_missing_profile(self):
+        """Test error handling when customer profile doesn't exist"""
+        # Create a user without a customer profile
+        user = User.objects.create_user(
+            username="orphanuser", email="orphan@test.com", password="testpass123"
+        )
+
+        self.client.login(username="orphanuser", password="testpass123")
+        response = self.client.get(reverse("messages inbox"))
+
+        # Verify error message is shown (matches view exactly)
+        self.assertEqual(response.context["error"], "Your profile could not be found.")
+        # Verify empty conversation data
+        self.assertEqual(response.context["conversations"], [])
+        self.assertIsNone(response.context["active_chat"])
+        self.assertEqual(response.context["messages"], [])
+
     def test_dynamic_map_view(self):
         """Test dynamic_map_view returns 200 and correct context"""
         self.client.login(username="user1", password="testpass123")
@@ -176,6 +232,30 @@ class MessageSystemTests(TestCase):
         )
 
         self.client = Client()
+
+    def test_send_message_orphaned_user(self):
+        """Test error handling when user has no Customer or Restaurant profile"""
+        # Create user without any profile
+        orphan_user = User.objects.create_user(
+            username="orphan", email="orphan@test.com", password="testpass123"
+        )
+
+        self.client.login(username="orphan", password="testpass123")
+        response = self.client.post(
+            reverse("send_message", kwargs={"chat_user_id": self.customer1.id}),
+            {"message": "Test message"},
+        )
+
+        # Verify error response
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.content.decode(), "Sender not found")
+
+        # Verify error message was added
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(
+            str(messages[0]), "Your account was not found. Please contact support."
+        )
 
     def test_dm_creation(self):
         """Test basic DM creation"""
@@ -270,6 +350,109 @@ class MessageSystemTests(TestCase):
             f"Conversation with {self.customer2.first_name}", str(messages[0])
         )
 
+    def test_send_message_generic_success(self):
+        """Test successful message sending via generic endpoint"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user2@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            DM.objects.filter(sender=self.customer1, receiver=self.customer2).exists()
+        )
+
+    def test_send_message_generic_orphaned_user(self):
+        """Test error when sender has no profile"""
+        orphan_user = User.objects.create_user(
+            username="orphan", email="orphan@test.com", password="testpass123"
+        )
+        self.client.login(username="orphan", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user1@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(
+            str(messages[0]), "Your account was not found. Please contact support."
+        )
+
+    def test_send_message_generic_missing_recipient(self):
+        """Test error when recipient email is missing"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"), {"message": "Test message"}
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(str(messages[0]), "Please enter a recipient email address.")
+
+    def test_send_message_generic_empty_message(self):
+        """Test error when message is empty"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user2@test.com", "message": ""},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(str(messages[0]), "Message cannot be empty.")
+
+    def test_send_message_generic_self_message(self):
+        """Test error when messaging self"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user1@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(str(messages[0]), "You can't message yourself.")
+
+    def test_send_message_generic_restaurant_recipient(self):
+        """Test error when recipient is a restaurant"""
+        restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,  # Manhattan is typically represented as 1
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # Example NYC coordinates
+        )
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "restaurant@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(
+            str(messages[0]),
+            "'restaurant@test.com' is a restaurant account. Currently, you can only message customer accounts.",
+        )
+
+    def test_send_message_generic_invalid_recipient(self):
+        """Test error when recipient doesn't exist"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "nonexistent@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(
+            str(messages[0]),
+            "Recipient 'nonexistent@test.com' does not exist. Please check the email address and try again.",
+        )
+
 
 class UtilityTests(TestCase):
     """Basic tests for utility functions"""
@@ -317,6 +500,39 @@ class UtilityTests(TestCase):
         )
         self.assertTrue(has_unread_messages(self.user1))
         self.assertFalse(has_unread_messages(self.user2))
+
+    def test_has_unread_messages_unauthenticated(self):
+        """Test with unauthenticated/anonymous users"""
+        from django.contrib.auth.models import AnonymousUser
+
+        self.assertFalse(has_unread_messages(None))
+        self.assertFalse(has_unread_messages(AnonymousUser()))
+
+    def test_has_unread_messages_no_customer(self):
+        """Test when user has no associated customer"""
+        user = User.objects.create_user("no_customer@test.com", "password")
+        self.assertFalse(has_unread_messages(user))
+
+    def test_has_unread_messages_read_status(self):
+        """Test read/unread message detection"""
+        # Create read message
+        DM.objects.create(
+            sender=self.customer2, receiver=self.customer1, message=b"read", read=True
+        )
+        self.assertFalse(has_unread_messages(self.user1))
+
+        # Create unread message
+        DM.objects.create(
+            sender=self.customer2,
+            receiver=self.customer1,
+            message=b"unread",
+            read=False,
+        )
+        self.assertTrue(has_unread_messages(self.user1))
+
+        # Mark as read and verify
+        DM.objects.filter(receiver=self.customer1).update(read=True)
+        self.assertFalse(has_unread_messages(self.user1))
 
 
 class RestaurantViewTests(TestCase):
@@ -545,6 +761,36 @@ class AuthenticationTests(TestCase):
         )
         self.assertContains(response, "Passwords do not match")
 
+    def test_register_username_already_taken(self):
+        """Test registration fails when username is already taken"""
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "testuser",  # Same as existing user
+                "email": "new@example.com",
+                "password1": "Testpass123!",
+                "password2": "Testpass123!",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Username already taken")
+        self.assertEqual(response.status_code, 200)  # Should stay on same page
+
+    def test_register_email_already_taken(self):
+        """Test registration fails when email is already taken"""
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "newuser",
+                "email": "test@example.com",
+                "password1": "Testpass123!",
+                "password2": "Testpass123!",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Email is already in use")
+        self.assertEqual(response.status_code, 200)  # Should stay on same page
+
 
 class SmokeTests(TestCase):
     """Basic smoke tests to verify views load without errors"""
@@ -571,3 +817,128 @@ class SmokeTests(TestCase):
         response = self.client.get(reverse("dynamic-map"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "maps/nycmap_dynamic.html")
+
+
+class RestaurantVerificationTests(TestCase):
+    """Tests for restaurant verification and registration"""
+
+    def setUp(self):
+        self.client = Client()
+        # Create existing user and restaurant for testing conflicts
+        self.user = User.objects.create_user(
+            username="existinguser",
+            email="existing@example.com",
+            password="testpass123",
+        )
+        self.restaurant = Restaurant.objects.create(
+            id=1,
+            name="Test Restaurant",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+        self.valid_restaurant = Restaurant.objects.create(
+            id=2,
+            name="Valid Restaurant",
+            username="",
+            email="",
+            borough=1,
+            building=456,
+            street="Valid St",
+            zipcode="10002",
+            phone="987-654-3210",
+            cuisine_description="Italian",
+            hygiene_rating=0,
+            violation_description="__",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.985, 40.758),
+        )
+
+    def test_password_mismatch(self):
+        """Test verification fails when passwords don't match"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "newuser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Mismatch123!",
+                "verify": "0000",  # Default verification code
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Passwords do not match.")
+
+    def test_invalid_verification_code(self):
+        """Test verification fails with wrong code"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "newuser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "wrongcode",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Invalid verification code.")
+
+    def test_username_taken(self):
+        """Test verification fails when username exists"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "existinguser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "1234",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Username is already taken.")
+
+    def test_email_taken(self):
+        """Test verification fails when email exists"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "newuser",
+                "email": "existing@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "1234",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Email is already registered.")
+
+    def test_restaurant_not_found(self):
+        """Test verification fails when restaurant doesn't exist"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "999",  # Non-existent ID
+                "username": "newuser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "1234",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Selected restaurant does not exist.")
