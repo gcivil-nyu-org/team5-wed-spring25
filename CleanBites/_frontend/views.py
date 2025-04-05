@@ -10,6 +10,7 @@ from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
+from .forms import Review
 
 # Get user model
 User = get_user_model()
@@ -35,7 +36,7 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
-
+    reviews = Comment.objects.filter(restaurant=restaurant).order_by('posted_at')
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -45,6 +46,7 @@ def restaurant_detail(request, name):
         "maps/restaurant_detail.html",
         {
             "restaurant": restaurant,
+            "reviews" : reviews,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
         },
@@ -338,13 +340,14 @@ def profile_router(request, username):
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
-
+        reviews = Comment.objects.get(restaurant=user_obj.name) #adding reviews 
         return render(
             request,
             "maps/restaurant_detail.html",
             {
                 "restaurant": user_obj,
                 "is_owner": is_owner,
+                "reviews": reviews,
                 "has_unread_messages": has_unread_messages(request.user),
             },
         )
@@ -539,6 +542,15 @@ def delete_conversation(request, chat_user_id):
 
     return redirect("messages inbox")
 
+@login_required(login_url="/login/")
+def write_comment(request, restaurant):
+    form = Review()
+    restaurant = get_object_or_404(Restaurant, name=restaurant)
+    context = {
+        'restaurant' : restaurant,
+        'form' : form
+    }
+    return render(request, 'addreview', context)
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
