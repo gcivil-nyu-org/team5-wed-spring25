@@ -1,11 +1,12 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from _api._restaurants.models import Restaurant
+from _api._restaurants.models import Restaurant, Comment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer
+from _api._users.models import Customer, DM
+from django.db.models import Q
 from django.db import transaction
 
 User = get_user_model()
@@ -38,6 +39,137 @@ def dynamic_map_view(request):
 def user_profile(request, username):
     user = get_object_or_404(Customer, username__iexact=username)
     return render(request, "user_profile.html", {"user": user})
+
+
+@login_required(login_url="/login/")
+def messages_view(request, chat_user_id=None):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        return render(
+            request,
+            "inbox.html",
+            {
+                "conversations": [],
+                "active_chat": None,
+                "messages": [],
+                "error": "Your profile could not be found.",
+            },
+        )
+
+    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
+
+    participants = {}
+    for dm in all_dms:
+        other = dm.receiver if dm.sender == user else dm.sender
+        if other.id not in participants:
+            participants[other.id] = {
+                "id": other.id,
+                "name": other.first_name,
+                "email": other.email,
+                "avatar_url": "/static/images/avatar-placeholder.png",
+            }
+
+    conversations = list(participants.values())
+
+    active_chat = None
+    if chat_user_id:
+        active_chat = get_object_or_404(Customer, id=chat_user_id)
+    elif conversations:
+        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
+
+    messages = []
+    if active_chat:
+        raw_messages = DM.objects.filter(
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
+        ).order_by("sent_at")
+
+        for msg in raw_messages:
+            try:
+                byte_data = bytes(msg.message)
+                msg.decoded_message = byte_data.decode("utf-8")
+            except Exception as e:
+                msg.decoded_message = "[Could not decode message]"
+            messages.append(msg)
+
+    return render(
+        request,
+        "inbox.html",
+        {
+            "conversations": conversations,
+            "active_chat": active_chat,
+            "messages": messages,
+        },
+    )
+
+
+@login_required(login_url="/login/")
+def send_message(request, chat_user_id):
+    if request.method == "POST":
+        sender = Customer.objects.get(email=request.user.email)
+        recipient = get_object_or_404(Customer, id=chat_user_id)
+        message_text = request.POST.get("message")
+
+        if recipient == sender:
+            messages.error(request, "You can't message yourself.")
+            return redirect("chat", chat_user_id=recipient.id)
+
+        if not message_text.strip():
+            messages.error(request, "Message cannot be empty.")
+            return redirect("chat", chat_user_id=recipient.id)
+
+        # Save the DM
+        DM.objects.create(
+            sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+        )
+
+        return redirect("chat", chat_user_id=recipient.id)
+    
+
+@login_required(login_url="/login/")
+def send_message_generic(request):
+    if request.method == "POST":
+        sender = Customer.objects.get(email=request.user.email)
+        recipient_email = request.POST.get("recipient")
+        message_text = request.POST.get("message")
+
+        try:
+            recipient = Customer.objects.get(email=recipient_email)
+            if recipient == sender:
+                messages.error(request, "You can't message yourself.")
+                return redirect("messages inbox")
+
+            # Create DM
+            DM.objects.create(
+                sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+            )
+            return redirect("chat", chat_user_id=recipient.id)
+
+        except Customer.DoesNotExist:
+            messages.error(request, "Recipient not found.")
+            return redirect("messages inbox")
+
+
+@login_required(login_url="/login/")
+def delete_conversation(request, chat_user_id):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+        other_user = get_object_or_404(Customer, id=chat_user_id)
+
+        # Delete all DMs between the two users
+        DM.objects.filter(
+            (Q(sender=user) & Q(receiver=other_user))
+            | (Q(sender=other_user) & Q(receiver=user))
+        ).delete()
+
+        messages.success(
+            request, f"Conversation with {other_user.first_name} has been deleted."
+        )
+    except Customer.DoesNotExist:
+        messages.error(request, "User not found or you are not authorized.")
+
+    return redirect("messages inbox")
 
 
 # =====================================================================================

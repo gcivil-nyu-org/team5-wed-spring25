@@ -30,7 +30,10 @@ class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     commenter = models.ForeignKey("_users.Customer", on_delete=models.CASCADE)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    title = models.BinaryField(null=True, blank=True)
     comment = models.BinaryField(null=True, blank=True)  # BYTEA for binary data
+    rating = models.IntegerField(default=1)
+    health_rating = models.IntegerField(default=1)
     karma = models.IntegerField(default=0)
     flagged = models.BooleanField(default=False)
     flagged_by = models.ForeignKey(
