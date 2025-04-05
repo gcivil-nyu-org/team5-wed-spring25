@@ -98,6 +98,15 @@
       color: white;
       margin-left: 10px;
     }
+    #add-review-btn {
+      margin: 25px 0;
+      padding: 10px 20px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -159,6 +168,11 @@
       <button type="button" id="cancel-edit">Cancel</button>
     </form>
   </div>
+  <a href="{% url 'addreview' restaurant %}" id="add-review-btn">
+    <strong>Write a review</strong>
+  </a>
+  {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
+
 </div>
 
 <script>
