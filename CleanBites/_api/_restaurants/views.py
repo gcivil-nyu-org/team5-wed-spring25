@@ -43,25 +43,6 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     # Ordering: allow ?ordering=inspection_date (or ?ordering=-inspection_date for descending)
     ordering_fields = ["inspection_date", "hygiene_rating"]
 
-    def get_queryset(self):
-
-        queryset = Restaurant.object.all()
-        request = self.request
-        hygiene_rating = request.GET.get("hygiene_rating")  # Example: ?hygiene_rating=5
-        cuisines = request.GET.getlist(
-            "cuisine_description"
-        )  # Example: ?cuisine_description=Chinese,Italian
-        if hygiene_rating:
-            try:
-                queryset = queryset.filter(hygiene_rating=int(hygiene_rating))
-            except ValueError:
-                pass
-
-        if cuisines:
-            queryset = queryset.filter(cuisine_description__in=cuisines)
-
-        return super().get_queryset()
-
 
 class RestaurantListView(generics.ListAPIView):
     queryset = Restaurant.objects.all()
