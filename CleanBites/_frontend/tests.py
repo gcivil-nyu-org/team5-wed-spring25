@@ -128,8 +128,12 @@ class ViewTests(TestCase):
             reverse("chat", kwargs={"chat_user_id": self.customer2.id})
         )
         self.assertEqual(len(chat_response.context["messages"]), 2)
-        self.assertEqual(chat_response.context["messages"][0].decoded_message, "Test message 1")
-        self.assertEqual(chat_response.context["messages"][1].decoded_message, "Test message 2")
+        self.assertEqual(
+            chat_response.context["messages"][0].decoded_message, "Test message 1"
+        )
+        self.assertEqual(
+            chat_response.context["messages"][1].decoded_message, "Test message 2"
+        )
 
         # Verify unread message was marked as read
         updated_dm = DM.objects.get(message=b"Test message 2")
@@ -139,7 +143,9 @@ class ViewTests(TestCase):
         self.customer1.delete()
         error_response = self.client.get(reverse("messages inbox"))
         self.assertEqual(len(error_response.context["conversations"]), 0)
-        self.assertEqual(error_response.context["error"], "Your profile could not be found.")
+        self.assertEqual(
+            error_response.context["error"], "Your profile could not be found."
+        )
 
     def test_dynamic_map_view(self):
         """Test dynamic_map_view returns 200 and correct context"""
@@ -259,8 +265,7 @@ class MessageSystemTests(TestCase):
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn(
-            f"Conversation with {self.customer2.first_name}", 
-            str(messages[0])
+            f"Conversation with {self.customer2.first_name}", str(messages[0])
         )
 
 
