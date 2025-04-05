@@ -327,7 +327,7 @@ class UtilityTests(TestCase):
 
     def test_has_unread_messages_no_customer(self):
         """Test when user has no associated customer"""
-        user = User.objects.create_user('no_customer@test.com', 'password')
+        user = User.objects.create_user("no_customer@test.com", "password")
         self.assertFalse(has_unread_messages(user))
 
     def test_has_unread_messages_read_status(self):
@@ -340,7 +340,10 @@ class UtilityTests(TestCase):
 
         # Create unread message
         DM.objects.create(
-            sender=self.customer2, receiver=self.customer1, message=b"unread", read=False
+            sender=self.customer2,
+            receiver=self.customer1,
+            message=b"unread",
+            read=False,
         )
         self.assertTrue(has_unread_messages(self.user1))
 
