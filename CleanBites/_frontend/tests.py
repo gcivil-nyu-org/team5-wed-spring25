@@ -578,6 +578,36 @@ class AuthenticationTests(TestCase):
         )
         self.assertContains(response, "Passwords do not match")
 
+    def test_register_username_already_taken(self):
+        """Test registration fails when username is already taken"""
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "testuser",  # Same as existing user
+                "email": "new@example.com",
+                "password1": "Testpass123!",
+                "password2": "Testpass123!",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Username already taken")
+        self.assertEqual(response.status_code, 200)  # Should stay on same page
+
+    def test_register_email_already_taken(self):
+        """Test registration fails when email is already taken"""
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "newuser",
+                "email": "test@example.com",
+                "password1": "Testpass123!",
+                "password2": "Testpass123!",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Email is already in use")
+        self.assertEqual(response.status_code, 200)  # Should stay on same page
+
 
 class SmokeTests(TestCase):
     """Basic smoke tests to verify views load without errors"""
