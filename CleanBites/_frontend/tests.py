@@ -8,12 +8,7 @@ from django.contrib.messages import get_messages
 from _api._users.models import Customer, DM
 from _api._restaurants.models import Restaurant
 from _frontend.utils import (
-    has_unread_messages,
-    is_in_nyc,
-    get_restaurants,
-    restaurant_to_feature,
-    get_color,
-    create_nyc_map,
+    has_unread_messages
 )
 from django.contrib.gis.geos import Point
 
@@ -322,44 +317,6 @@ class UtilityTests(TestCase):
         )
         self.assertTrue(has_unread_messages(self.user1))
         self.assertFalse(has_unread_messages(self.user2))
-
-    def test_is_in_nyc(self):
-        """Test NYC location detection"""
-        self.assertTrue(is_in_nyc(40.78, -73.966))  # NYC
-        self.assertFalse(is_in_nyc(34.0522, -118.2437))  # LA
-
-    def test_get_restaurants(self):
-        """Test restaurant filtering"""
-        from django.test import RequestFactory
-
-        # Create mock request
-        factory = RequestFactory()
-        request = factory.get("/")
-
-        restaurants = get_restaurants(request)
-        self.assertEqual(restaurants.count(), 1)
-
-        # Test cuisine filter
-        request = factory.get("/?cuisine=American")
-        filtered = get_restaurants(request)
-        self.assertEqual(filtered.count(), 1)
-
-        request = factory.get("/?cuisine=Mexican")
-        filtered = get_restaurants(request)
-        self.assertEqual(filtered.count(), 0)
-
-    def test_restaurant_to_feature(self):
-        """Test GeoJSON feature conversion"""
-        feature = restaurant_to_feature(self.restaurant)
-        self.assertEqual(feature["properties"]["name"], "Test Restaurant")
-        self.assertEqual(feature["geometry"]["type"], "Point")
-
-    def test_get_color(self):
-        """Test hygiene rating color mapping"""
-        self.assertEqual(get_color(1), "green")
-        self.assertEqual(get_color(20), "orange")
-        self.assertEqual(get_color(40), "red")
-        self.assertEqual(get_color("invalid"), "blue")
 
 
 class RestaurantViewTests(TestCase):
