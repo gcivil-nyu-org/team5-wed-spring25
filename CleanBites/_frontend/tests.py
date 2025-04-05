@@ -481,59 +481,92 @@ class RestaurantViewTests(TestCase):
 
 class AuthenticationTests(TestCase):
     """Tests for user authentication views (login, logout, register)"""
-    
+
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="testuser", email="test@example.com", password="testpass123"
         )
         self.customer = Customer.objects.create(
-            username="testuser",
-            email="test@example.com"
+            username="testuser", email="test@example.com"
         )
-    
+
     def test_login_success(self):
         """Test successful login redirects to home"""
-        response = self.client.post(reverse('login'), {
-            'username': 'testuser',
-            'password': 'testpass123'
-        }, follow=True)
-        self.assertRedirects(response, reverse('home'))
-    
+        response = self.client.post(
+            reverse("login"),
+            {"username": "testuser", "password": "testpass123"},
+            follow=True,
+        )
+        self.assertRedirects(response, reverse("home"))
+
     def test_login_failure(self):
         """Test failed login shows error"""
-        response = self.client.post(reverse('login'), {
-            'username': 'testuser',
-            'password': 'wrongpass'
-        }, follow=True)
+        response = self.client.post(
+            reverse("login"),
+            {"username": "testuser", "password": "wrongpass"},
+            follow=True,
+        )
         self.assertContains(response, "Invalid username or password")
-        self.assertRedirects(response, reverse('landing'))
-    
+        self.assertRedirects(response, reverse("landing"))
+
     def test_logout(self):
         """Test logout redirects to landing page"""
-        self.client.login(username='testuser', password='testpass123')
-        response = self.client.get(reverse('logout'))
-        self.assertRedirects(response, '/')
-    
+        self.client.login(username="testuser", password="testpass123")
+        response = self.client.get(reverse("logout"))
+        self.assertRedirects(response, "/")
+
     def test_register_success(self):
         """Test successful registration"""
-        response = self.client.post(reverse('register'), {
-            'username': 'newuser',
-            'email': 'new@example.com',
-            'password1': 'Testpass123!',
-            'password2': 'Testpass123!'
-        })
-        self.assertRedirects(response, '/home/')
-        self.assertTrue(User.objects.filter(email='new@example.com').exists())
-    
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "newuser",
+                "email": "new@example.com",
+                "password1": "Testpass123!",
+                "password2": "Testpass123!",
+            },
+        )
+        self.assertRedirects(response, "/home/")
+        self.assertTrue(User.objects.filter(email="new@example.com").exists())
+
     def test_register_password_mismatch(self):
         """Test registration with mismatched passwords"""
-        response = self.client.post(reverse('register'), {
-            'username': 'newuser',
-            'email': 'new@example.com',
-            'password1': 'Testpass123!',
-            'password2': 'Different123!'
-        }, follow=True)
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "newuser",
+                "email": "new@example.com",
+                "password1": "Testpass123!",
+                "password2": "Different123!",
+            },
+            follow=True,
+        )
         self.assertContains(response, "Passwords do not match")
+
+
+class SmokeTests(TestCase):
+    """Basic smoke tests to verify views load without errors"""
+
+    def test_landing_view(self):
+        response = self.client.get(reverse("landing"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "landing.html")
+
+    def test_home_view_authenticated(self):
+        user = User.objects.create_user(
+            username="test", email="test@example.com", password="test123"
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "home.html")
+
+    def test_dynamic_map_view(self):
+        user = User.objects.create_user(
+            username="test", email="test@example.com", password="test123"
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse("dynamic-map"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "maps/nycmap_dynamic.html")
