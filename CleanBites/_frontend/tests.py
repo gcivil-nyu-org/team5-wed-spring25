@@ -9,6 +9,7 @@ from _api._users.models import Customer, DM
 from _api._restaurants.models import Restaurant
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
+from django.test import RequestFactory
 
 User = get_user_model()
 
@@ -476,3 +477,63 @@ class RestaurantViewTests(TestCase):
         }
         response = self.client.post(reverse("restaurant_verify"), data)
         self.assertEqual(response.status_code, 302)
+
+
+class AuthenticationTests(TestCase):
+    """Tests for user authentication views (login, logout, register)"""
+    
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="testuser",
+            email="test@example.com",
+            password="testpass123"
+        )
+        self.customer = Customer.objects.create(
+            username="testuser",
+            email="test@example.com"
+        )
+    
+    def test_login_success(self):
+        """Test successful login redirects to home"""
+        response = self.client.post(reverse('login'), {
+            'username': 'testuser',
+            'password': 'testpass123'
+        }, follow=True)
+        self.assertRedirects(response, reverse('home'))
+    
+    def test_login_failure(self):
+        """Test failed login shows error"""
+        response = self.client.post(reverse('login'), {
+            'username': 'testuser',
+            'password': 'wrongpass'
+        }, follow=True)
+        self.assertContains(response, "Invalid username or password")
+        self.assertRedirects(response, reverse('landing'))
+    
+    def test_logout(self):
+        """Test logout redirects to landing page"""
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('logout'))
+        self.assertRedirects(response, '/')
+    
+    def test_register_success(self):
+        """Test successful registration"""
+        response = self.client.post(reverse('register'), {
+            'username': 'newuser',
+            'email': 'new@example.com',
+            'password1': 'Testpass123!',
+            'password2': 'Testpass123!'
+        })
+        self.assertRedirects(response, '/home/')
+        self.assertTrue(User.objects.filter(email='new@example.com').exists())
+    
+    def test_register_password_mismatch(self):
+        """Test registration with mismatched passwords"""
+        response = self.client.post(reverse('register'), {
+            'username': 'newuser',
+            'email': 'new@example.com',
+            'password1': 'Testpass123!',
+            'password2': 'Different123!'
+        }, follow=True)
+        self.assertContains(response, "Passwords do not match")
