@@ -141,6 +141,14 @@ class ViewTests(TestCase):
         self.assertEqual(len(error_response.context["conversations"]), 0)
         self.assertEqual(error_response.context["error"], "Your profile could not be found.")
 
+    def test_dynamic_map_view(self):
+        """Test dynamic_map_view returns 200 and correct context"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(reverse("dynamic-map"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("has_unread_messages", response.context)
+        self.assertTemplateUsed(response, "maps/nycmap_dynamic.html")
+
 
 class MessageSystemTests(TestCase):
     def setUp(self):
