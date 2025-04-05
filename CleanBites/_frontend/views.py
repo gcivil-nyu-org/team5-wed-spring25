@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from _api._restaurants.models import Restaurant, Comment
 from _api._restaurants.models import Restaurant, Comment
+from _api._restaurants.models import Restaurant, Comment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
@@ -367,125 +368,134 @@ def debug_unread_messages(request):
 
 
 @login_required(login_url="/login/")
-def write_comment(request, id):
-    restaurant_obj = get_object_or_404(Restaurant, id=id)
-    author = get_object_or_404(Customer, username=request.user.username)
-
-    if request.method == "POST":
-        form = Review(request.POST)
-        if form.is_valid():
-            review = form.save(commit=False)
-            review.commenter = author
-            review.restaurant = restaurant_obj
-            review.rating = request.POST.get("rating")
-            review.health_rating = request.POST.get("health_rating")
-            review.save()
-            return redirect("restaurant_detail", id=restaurant_obj.id)
-        else:
-            print(form.errors)  # helpful for debugging
-    else:
-        form = Review()
-
-    context = {"restaurant": restaurant_obj, "form": form}
-    return render(request, "addreview.html", context)
-
-
-@login_required(login_url="/login/")
-def moderator_profile_view(request):
-    # verify user is a moderator
+def messages_view(request, chat_user_id=None):
     try:
-        moderator = Moderator.objects.get(email=request.user.email)
-    except Moderator.DoesNotExist:
-        messages.error(request, "Unauthorized action.")
-        return redirect("home")
-    # query for flagged DMs and comments
-    flagged_dms = DM.objects.filter(flagged=True)
-    flagged_comments = Comment.objects.filter(flagged=True)
-
-    # decode DM messages
-    for dm in flagged_dms:
-        try:
-            dm.decoded_message = bytes(dm.message).decode("utf-8")
-        except Exception as e:
-            dm.decoded_message = "[Could not decode message]"
-
-    context = {
-        "moderator": moderator,
-        "flagged_dms": flagged_dms,
-        "flagged_comments": flagged_comments,
-    }
-    return render(request, "admin_profile.html", context)
-
-
-@login_required(login_url="/login/")
-def deactivate_account(request, user_type, user_id):
-    # verify user is a moderator
-    try:
-        moderator = Moderator.objects.get(email=request.user.email)
-    except Moderator.DoesNotExist:
-        messages.error(request, "Unauthorized action.")
-        return redirect("home")
-
-    if user_type == "customer":
-        user_obj = get_object_or_404(Customer, id=user_id)
-    elif user_type == "restaurant":
-        user_obj = get_object_or_404(Restaurant, id=user_id)
-    else:
-        messages.error(request, "Invalid user type.")
-        return redirect("moderator_profile")
-
-    # deactivate Django user instance
-    if hasattr(user_obj, "user"):
-        user_obj.user.is_active = False
-        user_obj.user.save()
-    else:
-        user_obj.is_activated = False
-        user_obj.save()
-
-    messages.success(
-        request, f"{user_type.capitalize()} account deactivated successfully."
-    )
-    return redirect("moderator_profile")
-
-
-@login_required(login_url="/login/")
-def delete_comment(request, comment_id):
-    try:
-        moderator = Moderator.objects.get(email=request.user.email)
-    except Moderator.DoesNotExist:
-        messages.error(request, "Unauthorized action.")
-        return redirect("home")
-
-    comment = get_object_or_404(Comment, id=comment_id)
-    comment.delete()
-    messages.success(request, "Comment deleted successfully.")
-    return redirect("moderator_profile")
-
-
-@login_required(login_url="/login/")
-def global_search(request):
-    query = request.GET.get("q", "").strip()
-    if not query:
-        return JsonResponse({"results": []})
-
-    customers = Customer.objects.filter(username__icontains=query).values("username")[
-        :5
-    ]
-    restaurants = Restaurant.objects.filter(name__icontains=query).values(
-        "id", "name", "username"
-    )[:5]
-
-    results = []
-
-    for c in customers:
-        results.append(
-            {"label": f"👤 {c['username']}", "url": f"/user/{c['username']}/"}
+        user = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        return render(
+            request,
+            "inbox.html",
+            {
+                "conversations": [],
+                "active_chat": None,
+                "messages": [],
+                "error": "Your profile could not be found.",
+            },
         )
 
-    for r in restaurants:
-        results.append({"label": f"🍽️ {r['name']}", "url": f"/restaurant/{r['id']}/"})
+    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
 
-    return JsonResponse({"results": results})
+    participants = {}
+    for dm in all_dms:
+        other = dm.receiver if dm.sender == user else dm.sender
+        if other.id not in participants:
+            participants[other.id] = {
+                "id": other.id,
+                "name": other.first_name,
+                "email": other.email,
+                "avatar_url": "/static/images/avatar-placeholder.png",
+            }
+
+    conversations = list(participants.values())
+
+    active_chat = None
+    if chat_user_id:
+        active_chat = get_object_or_404(Customer, id=chat_user_id)
+    elif conversations:
+        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
+
+    messages = []
+    if active_chat:
+        raw_messages = DM.objects.filter(
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
+        ).order_by("sent_at")
+
+        for msg in raw_messages:
+            try:
+                byte_data = bytes(msg.message)
+                msg.decoded_message = byte_data.decode("utf-8")
+            except Exception as e:
+                msg.decoded_message = "[Could not decode message]"
+            messages.append(msg)
+
+    return render(
+        request,
+        "inbox.html",
+        {
+            "conversations": conversations,
+            "active_chat": active_chat,
+            "messages": messages,
+        },
+    )
+
+
+@login_required(login_url="/login/")
+def send_message(request, chat_user_id):
+    if request.method == "POST":
+        sender = Customer.objects.get(email=request.user.email)
+        recipient = get_object_or_404(Customer, id=chat_user_id)
+        message_text = request.POST.get("message")
+
+        if recipient == sender:
+            messages.error(request, "You can't message yourself.")
+            return redirect("chat", chat_user_id=recipient.id)
+
+        if not message_text.strip():
+            messages.error(request, "Message cannot be empty.")
+            return redirect("chat", chat_user_id=recipient.id)
+
+        # Save the DM
+        DM.objects.create(
+            sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+        )
+
+        return redirect("chat", chat_user_id=recipient.id)
+    
+
+@login_required(login_url="/login/")
+def send_message_generic(request):
+    if request.method == "POST":
+        sender = Customer.objects.get(email=request.user.email)
+        recipient_email = request.POST.get("recipient")
+        message_text = request.POST.get("message")
+
+        try:
+            recipient = Customer.objects.get(email=recipient_email)
+            if recipient == sender:
+                messages.error(request, "You can't message yourself.")
+                return redirect("messages inbox")
+
+            # Create DM
+            DM.objects.create(
+                sender=sender, receiver=recipient, message=message_text.encode("utf-8")
+            )
+            return redirect("chat", chat_user_id=recipient.id)
+
+        except Customer.DoesNotExist:
+            messages.error(request, "Recipient not found.")
+            return redirect("messages inbox")
+
+
+@login_required(login_url="/login/")
+def delete_conversation(request, chat_user_id):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+        other_user = get_object_or_404(Customer, id=chat_user_id)
+
+        # Delete all DMs between the two users
+        DM.objects.filter(
+            (Q(sender=user) & Q(receiver=other_user))
+            | (Q(sender=other_user) & Q(receiver=user))
+        ).delete()
+
+        messages.success(
+            request, f"Conversation with {other_user.first_name} has been deleted."
+        )
+    except Customer.DoesNotExist:
+        messages.error(request, "User not found or you are not authorized.")
+
+    return redirect("messages inbox")
 
 
 # =====================================================================================
