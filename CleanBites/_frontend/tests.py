@@ -269,6 +269,47 @@ class MessageSystemTests(TestCase):
         )
 
 
+class UtilityTests(TestCase):
+    """Basic tests for utility functions"""
+    
+    def setUp(self):
+        # Create two test users
+        self.user1 = User.objects.create_user(
+            username="test1", 
+            email="test1@test.com",
+            password="testpass123"
+        )
+        self.customer1 = Customer.objects.create(
+            username="test1", 
+            email="test1@test.com"
+        )
+        
+        self.user2 = User.objects.create_user(
+            username="test2", 
+            email="test2@test.com",
+            password="testpass123"
+        )
+        self.customer2 = Customer.objects.create(
+            username="test2", 
+            email="test2@test.com"
+        )
+    
+    def test_has_unread_messages_utility(self):
+        """Test has_unread_messages returns correct boolean"""
+        # No messages
+        self.assertFalse(has_unread_messages(self.user1))
+        
+        # User2 sends message to User1
+        DM.objects.create(
+            sender=self.customer2,
+            receiver=self.customer1,
+            message=b"test",
+            read=False
+        )
+        self.assertTrue(has_unread_messages(self.user1))
+        self.assertFalse(has_unread_messages(self.user2))
+
+
 class RestaurantViewTests(TestCase):
     def setUp(self):
         # Create test users
