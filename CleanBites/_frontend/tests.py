@@ -168,8 +168,12 @@ class ViewTests(TestCase):
         response = self.client.get(reverse("messages inbox"))
         self.assertEqual(response.context["active_chat"].id, self.customer2.id)
         self.assertEqual(len(response.context["messages"]), 2)
-        self.assertEqual(response.context["messages"][0].decoded_message, "First message")
-        self.assertEqual(response.context["messages"][1].decoded_message, "Second message")
+        self.assertEqual(
+            response.context["messages"][0].decoded_message, "First message"
+        )
+        self.assertEqual(
+            response.context["messages"][1].decoded_message, "Second message"
+        )
 
         # Test 2: Specific chat_user_id specified
         response = self.client.get(
@@ -180,8 +184,7 @@ class ViewTests(TestCase):
 
         # Test 3: Invalid chat_user_id should 404
         response = self.client.get(
-            reverse("chat", kwargs={"chat_user_id": 999}),
-            follow=True
+            reverse("chat", kwargs={"chat_user_id": 999}), follow=True
         )
         self.assertEqual(response.status_code, 404)
 
