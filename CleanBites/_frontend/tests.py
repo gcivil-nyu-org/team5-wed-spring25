@@ -350,6 +350,109 @@ class MessageSystemTests(TestCase):
             f"Conversation with {self.customer2.first_name}", str(messages[0])
         )
 
+    def test_send_message_generic_success(self):
+        """Test successful message sending via generic endpoint"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user2@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            DM.objects.filter(sender=self.customer1, receiver=self.customer2).exists()
+        )
+
+    def test_send_message_generic_orphaned_user(self):
+        """Test error when sender has no profile"""
+        orphan_user = User.objects.create_user(
+            username="orphan", email="orphan@test.com", password="testpass123"
+        )
+        self.client.login(username="orphan", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user1@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(
+            str(messages[0]), "Your account was not found. Please contact support."
+        )
+
+    def test_send_message_generic_missing_recipient(self):
+        """Test error when recipient email is missing"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"), {"message": "Test message"}
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(str(messages[0]), "Please enter a recipient email address.")
+
+    def test_send_message_generic_empty_message(self):
+        """Test error when message is empty"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user2@test.com", "message": ""},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(str(messages[0]), "Message cannot be empty.")
+
+    def test_send_message_generic_self_message(self):
+        """Test error when messaging self"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "user1@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(str(messages[0]), "You can't message yourself.")
+
+    def test_send_message_generic_restaurant_recipient(self):
+        """Test error when recipient is a restaurant"""
+        restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,  # Manhattan is typically represented as 1
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # Example NYC coordinates
+        )
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "restaurant@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(
+            str(messages[0]),
+            "'restaurant@test.com' is a restaurant account. Currently, you can only message customer accounts.",
+        )
+
+    def test_send_message_generic_invalid_recipient(self):
+        """Test error when recipient doesn't exist"""
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            reverse("send_message_generic"),
+            {"recipient": "nonexistent@test.com", "message": "Test message"},
+        )
+        self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(
+            str(messages[0]),
+            "Recipient 'nonexistent@test.com' does not exist. Please check the email address and try again.",
+        )
+
 
 class UtilityTests(TestCase):
     """Basic tests for utility functions"""
