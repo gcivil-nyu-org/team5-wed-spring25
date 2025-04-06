@@ -289,45 +289,37 @@ def delete_conversation(request, other_user_id):
 @login_required(login_url="/login/")
 def update_restaurant_profile_view(request):
     try:
-        restaurant = Restaurant.objects.get(user=request.user)
+        restaurant = Restaurant.objects.get(username=request.user)
     except Restaurant.DoesNotExist:
         messages.error(request, "No restaurant is linked to your account.")
         return redirect("home")
 
     if request.method == "POST":
-        if "name" in request.POST:
-            restaurant.name = request.POST.get("name")
-        if "phone" in request.POST:
-            restaurant.phone = request.POST.get("phone")
-        if "street" in request.POST:
-            restaurant.street = request.POST.get("street")
-        if "building" in request.POST and request.POST.get("building").isdigit():
-            restaurant.building = int(request.POST.get("building"))
-        if "zipcode" in request.POST:
-            restaurant.zipcode = request.POST.get("zipcode")
-        if "cuisine_description" in request.POST:
-            restaurant.cuisine_description = request.POST.get("cuisine_description")
-        else:
-            restaurant.name = request.POST.get("name", restaurant.name)
-            restaurant.building = request.POST.get("building", restaurant.building)
-            restaurant.street = request.POST.get("street", restaurant.street)
-            restaurant.zipcode = request.POST.get("zipcode", restaurant.zipcode)
-            restaurant.phone = request.POST.get("phone", restaurant.phone)
-            restaurant.cuisine_description = request.POST.get(
-                "cuisine_description", restaurant.cuisine_description
-            )
-            restaurant.violation_description = request.POST.get(
-                "description", restaurant.violation_description
-            )
+        try:
+            if "name" in request.POST:
+                restaurant.name = request.POST.get("name")
+            if "phone" in request.POST:
+                restaurant.phone = request.POST.get("phone")
+            if "street" in request.POST:
+                restaurant.street = request.POST.get("street")
+            if "building" in request.POST and request.POST.get("building").isdigit():
+                restaurant.building = int(request.POST.get("building"))
+            if "zipcode" in request.POST:
+                restaurant.zipcode = request.POST.get("zipcode")
+            if "cuisine_description" in request.POST:
+                restaurant.cuisine_description = request.POST.get("cuisine_description")
 
-        if "profile_image" in request.FILES:
-            restaurant.profile_image = request.FILES["profile_image"]
+            if "profile_image" in request.FILES:
+                restaurant.profile_image = request.FILES["profile_image"]
 
-        restaurant.save()
-        messages.success(request, "Restaurant profile updated successfully!")
-        return redirect("restaurant_detail", name=restaurant.name)
+            restaurant.save()
+            messages.success(request, "Restaurant profile updated successfully!")
+            return redirect("restaurant_detail", name=restaurant.name)
+        except Exception as e:
+            messages.error(request, f"Error updating profile: {e}")
+            return redirect("home")
 
-    return redirect("home")
+    return redirect("restaurant_detail", name=restaurant.name)
 
 
 @login_required(login_url="/login/")
