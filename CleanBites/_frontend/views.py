@@ -550,7 +550,7 @@ def write_comment(request, restaurant):
         'restaurant' : restaurant,
         'form' : form
     }
-    return render(request, 'addreview', context)
+    return render(request, 'addreview.html', context)
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
