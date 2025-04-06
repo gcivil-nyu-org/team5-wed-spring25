@@ -168,7 +168,7 @@
       <button type="button" id="cancel-edit">Cancel</button>
     </form>
   </div>
-  <a href="{% url 'addreview' restaurant %}" id="add-review-btn">
+  <a href="{% url 'addreview' restaurant.name %}" id="add-review-btn">
     <strong>Write a review</strong>
   </a>
   {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
