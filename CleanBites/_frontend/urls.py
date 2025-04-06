@@ -23,7 +23,7 @@ urlpatterns = [
     path(
         "update-profile/",
         views.update_restaurant_profile_view,
-        name="update_restaurant_profile",
+        name="update-profile",
     ),
     path("inbox/", views.messages_view, name="messages inbox"),
     path("inbox/<int:chat_user_id>/", views.messages_view, name="chat"),
