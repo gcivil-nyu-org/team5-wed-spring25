@@ -4,7 +4,7 @@
     <div id="wrapper">
         <!--Contents-->
         <div>
-            <h1>{{restaurant.name}}</h1>
+            <h1><a href="{% url 'restaurant_detail' restaurant.name %}">{{restaurant.name}}</a></h1>
             <br>
         </div>
         <br>

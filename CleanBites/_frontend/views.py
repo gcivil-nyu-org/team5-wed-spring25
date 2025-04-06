@@ -544,11 +544,27 @@ def delete_conversation(request, chat_user_id):
 
 @login_required(login_url="/login/")
 def write_comment(request, restaurant):
-    form = Review()
-    restaurant = get_object_or_404(Restaurant, name=restaurant)
+    restaurant_obj = get_object_or_404(Restaurant, name=restaurant)
+    author = get_object_or_404(Customer, username=request.user.username)
+
+    if request.method == 'POST':
+        form = Review(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.commenter = author
+            review.restaurant = restaurant_obj
+            review.rating = request.POST.get('rating')
+            review.health_rating = request.POST.get('health_rating')
+            review.save()
+            return redirect('restaurant_detail', name=restaurant_obj.name)
+        else:
+            print(form.errors)  # helpful for debugging
+    else:
+        form = Review()
+
     context = {
-        'restaurant' : restaurant,
-        'form' : form
+        'restaurant': restaurant_obj,
+        'form': form
     }
     return render(request, 'addreview.html', context)
 
@@ -606,7 +622,7 @@ def register_view(request):
         user = User.objects.create_user(
             username=username, email=email, password=password1
         )
-        customer = Customer.objects.create(email=email, username=username)
+        customer = Customer.objects.create(email=email, username=username, fav_cuisine='Italian') #change me Italian as default
 
         # Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"

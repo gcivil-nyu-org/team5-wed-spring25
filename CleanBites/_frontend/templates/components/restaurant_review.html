@@ -5,10 +5,13 @@
         {% for comment in reviews %}
           <li class="review">
             <div class="review-header">
-              <strong>Rating: {{ reviews.rating }}/5</strong>
-              <span class="review-date">{{ Comment.posted_at|date:"F j, Y" }}</span>
+              <strong>{{ comment.commenter}}</strong>
+              <strong>Rating: {{ comment.rating }}/5</strong>
+              <strong>Health Rating: {{ comment.health_rating }}/5</strong>
+              <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
             </div>
-            <p class="review-text">{{ Comment.comment }}</p>
+            <p class="review-title">{{ comment.title}}</p>
+            <p class="review-text">{{ comment.comment }}</p>
           </li>
         {% endfor %}
       </ul>
