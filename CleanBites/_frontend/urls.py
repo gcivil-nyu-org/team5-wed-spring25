@@ -15,7 +15,7 @@ urlpatterns = [
     ),
     path("mapdynamic/", views.dynamic_map_view, name="dynamic-map"),
     path(
-        "restaurant/<str:name>/",
+        "restaurant/<int:id>/",
         views.restaurant_detail,
         name="restaurant_detail",
     ),

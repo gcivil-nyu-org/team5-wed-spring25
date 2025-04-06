@@ -34,9 +34,9 @@ def home_view(request):
 
 
 @login_required(login_url="/login/")
-def restaurant_detail(request, name):
-    restaurant = get_object_or_404(Restaurant, name__iexact=name)
-    reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
+def restaurant_detail(request, id):
+    restaurant = get_object_or_404(Restaurant, id=id)
+
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
