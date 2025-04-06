@@ -38,9 +38,7 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
-    reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
-    avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
-    avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
+
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
