@@ -434,10 +434,32 @@ def bookmarks_view(request):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
-    # GET request handling
-    customer = get_object_or_404(Customer, username=request.user.username)
-    favorites = FavoriteRestaurant.objects.filter(customer=customer)
-    return render(request, "components/bookmarks.html", {'favorites': favorites})
+    try:
+        if not hasattr(request.user, 'username'):
+            return JsonResponse({'error': 'Customer profile missing'}, status=400)
+            
+        customer = Customer.objects.get(username=request.user.username)
+
+        restaurant_ids = FavoriteRestaurant.objects.filter(
+            customer_id=customer.id
+        ).values_list('restaurant_id', flat=True)
+        
+        restaurants = list(Restaurant.objects.filter(
+            id__in=restaurant_ids
+        ).values('id', 'name', 'phone', 'cuisine_description'))
+        
+        return JsonResponse({
+            'restaurants': restaurants,
+            'count': len(restaurants)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # This will log the full error
+        return JsonResponse({
+            'error': str(e),
+            'type': type(e).__name__
+        }, status=500)
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data

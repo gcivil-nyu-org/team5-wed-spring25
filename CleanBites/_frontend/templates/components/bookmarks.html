@@ -6,18 +6,7 @@
       <h4>Favorite Restaurants</h4>
     </div>
     <div class="bookmarks-list">
-      {% for favorite in favorites %}
-        {% if favorite.customer.username == request.user.username %}
-          <div class="bookmark-item">
-            <div class="bookmark-name">{{ favorite.restaurant.name }}</div>
-            <div class="bookmark-meta">
-              <span class="bookmark-address">{{ favorite.restaurant.address }}</span>
-            </div>
-          </div>
-        {% endif %}
-      {% empty %}
-        <div class="no-favorites">No favorites added yet</div>
-      {% endfor %}
+    <!-- Content will be populated by JavaScript -->
     </div>
   </div>
 </div>
@@ -98,6 +87,52 @@
 
 <script>
   // JavaScript remains the same since the functionality doesn't change
+  document.addEventListener('DOMContentLoaded', function() {
+    fetch('/bookmarks/')
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => { 
+            throw new Error(err.error || 'Request failed');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.restaurants) {
+          const bookmarksList = document.querySelector('.bookmarks-list');
+          
+          // Clear existing content
+          bookmarksList.innerHTML = '';
+          
+          if (data.restaurants.length === 0) {
+            bookmarksList.innerHTML = '<div class="no-favorites">No favorites added yet</div>';
+            return;
+          }
+          
+          // Create HTML for each restaurant
+          data.restaurants.forEach(restaurant => {
+            const item = document.createElement('div');
+            item.className = 'bookmark-item';
+            item.innerHTML = `
+              <div class="bookmark-name">${restaurant.name}</div>
+              <div class="bookmark-meta">
+                <span class="bookmark-address">${restaurant.address}</span>
+              </div>
+            `;
+            bookmarksList.appendChild(item);
+          });
+          
+        } else {
+          console.error('Unexpected response:', data);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error.message);
+        const bookmarksList = document.querySelector('.bookmarks-list');
+        bookmarksList.innerHTML = '<div class="no-favorites">Error loading favorites</div>';
+      });
+  });
+  
   function toggleBookmarks() {
     const sidebar = document.querySelector('.bookmarks-sidebar');
     sidebar.classList.toggle('collapsed');
