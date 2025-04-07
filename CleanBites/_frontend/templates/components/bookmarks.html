@@ -7,6 +7,7 @@
     </div>
     <div class="bookmarks-list">
     <!-- Content will be populated by JavaScript -->
+    <!-- Content will be populated by JavaScript -->
     </div>
   </div>
 </div>
@@ -114,9 +115,7 @@
             const item = document.createElement('div');
             item.className = 'bookmark-item';
             item.innerHTML = `
-              <a href="/restaurant/${restaurant.id}/" style="text-decoration: none;">
-                <div class="bookmark-name" style="color: #007bff">${restaurant.name}</div>
-              </a>
+              <div class="bookmark-name">${restaurant.name}</div>
               <div class="bookmark-meta">
                 <span class="bookmark-address">${restaurant.address}</span>
               </div>
