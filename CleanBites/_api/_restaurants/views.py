@@ -112,6 +112,7 @@ class RestaurantGeoJSONView(APIView):
                     "coordinates": [restaurant.geo_coords.x, restaurant.geo_coords.y],
                 },
                 "properties": {
+                    "id": restaurant.id,
                     "name": restaurant.name,
                     "hygiene_rating": restaurant.hygiene_rating,
                     "cuisine": restaurant.cuisine_description,
