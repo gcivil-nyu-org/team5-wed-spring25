@@ -454,8 +454,6 @@ def bookmarks_view(request):
         })
         
     except Exception as e:
-        import traceback
-        traceback.print_exc()  # This will log the full error
         return JsonResponse({
             'error': str(e),
             'type': type(e).__name__
