@@ -7,7 +7,7 @@ from django.contrib.messages import get_messages
 from django.utils import timezone
 from django.utils import timezone
 
-from _api._users.models import Customer, DM
+from _api._users.models import Customer, DM, FavoriteRestaurant
 from _api._restaurants.models import Restaurant
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
@@ -1337,20 +1337,25 @@ class RestaurantVerificationTests(TestCase):
         self.assertContains(response, "Selected restaurant does not exist.")
 
 
-"""
-------------------------COMMENTED OUT ATM WILL FIX IN FUTURE FOR COVERAGE-------------------------------
-class WriteReviewTest(TestCase):
+class BookmarksTests(TestCase):
     def setUp(self):
-        # Create a user and customer
-        self.user = User.objects.create_user(username='testuser', password='testpass')
-        self.customer = Customer.objects.create(username='testuser')
-
-        # Create a restaurant
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='user1',
+            password='testpass123',
+            email='user1@test.com'
+        )
+        self.customer = Customer.objects.create(
+            username="user1",
+            email="user1@test.com",
+            first_name="User",
+            last_name="One"
+        )
         self.restaurant = Restaurant.objects.create(
-            name="Testeraunt",
+            name="Test Restaurant",
             username="restaurant1",
             email="restaurant@test.com",
-            borough=1,  # Manhattan is typically represented as 1
+            borough=1,  # Manhattan
             building=123,
             street="Test St",
             zipcode="10001",
@@ -1359,50 +1364,78 @@ class WriteReviewTest(TestCase):
             hygiene_rating=1,
             violation_description="No violations",
             inspection_date="2023-01-01",
-            geo_coords=Point(-73.966, 40.78),  # Example NYC coordinates
+            geo_coords=Point(-73.966, 40.78)
         )
+        self.bookmarks_url = reverse('bookmarks_view')
 
+    def test_bookmark_view_requires_login(self):
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 302)  # Should redirect to login
 
-        # Login client
-        self.client = Client()
-        self.client.login(username='testuser', password='testpass')
-
-        # URL
-        self.url = reverse('restaurant_detail', args=[self.restaurant.name])
-
-    def test_get_request_returns_form(self):
-        response = self.client.get(self.url)
+    def test_add_bookmark_success(self):
+        self.client.login(username='user1', password='testpass123')
+        response = self.client.post(
+            self.bookmarks_url,
+            {'restaurant_id': self.restaurant.id}
+        )
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'addreview.html')
-        self.assertIn('form', response.context)
-        self.assertEqual(response.context['restaurant'], self.restaurant)
+        self.assertTrue(response.json()['success'])
+        self.assertTrue(FavoriteRestaurant.objects.filter(
+            customer=self.customer,
+            restaurant=self.restaurant
+        ).exists())
 
-    def test_post_valid_review(self):
-        post_data = {
-            'text': 'Great food!',
-            'rating': '5',
-            'health_rating': '4'
-        }
-        response = self.client.post(self.url, post_data, follow=True)
-        self.assertRedirects(response, reverse('restaurant_detail', kwargs={'name': self.restaurant.name}))
-        
-        # Confirm the review was created
-        self.assertEqual(Comment.objects.count(), 1)
-        review = Comment.objects.first()
-        self.assertEqual(review.commenter, self.customer)
-        self.assertEqual(review.restaurant, self.restaurant)
-        self.assertEqual(review.text, 'Great food!')
-        self.assertEqual(review.rating, '5')
-        self.assertEqual(review.health_rating, '4')
+    def test_add_duplicate_bookmark(self):
+        FavoriteRestaurant.objects.create(
+            customer=self.customer,
+            restaurant=self.restaurant
+        )
+        self.client.login(username='user1', password='testpass123')
+        response = self.client.post(
+            self.bookmarks_url,
+            {'restaurant_id': self.restaurant.id}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
 
-    def test_post_invalid_review(self):
-        # Submit without required fields
-        post_data = {
-            'rating': '',  # Assume this is required in the form
-            'health_rating': '4'
-        }
-        response = self.client.post(self.url, post_data)
+    def test_add_bookmark_invalid_restaurant(self):
+        self.client.login(username='user1', password='testpass123')
+        response = self.client.post(
+            self.bookmarks_url,
+            {'restaurant_id': 9999}  # Non-existent ID
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()['success'])
+
+    def test_get_bookmarks_empty(self):
+        self.client.login(username='user1', password='testpass123')
+        response = self.client.get(self.bookmarks_url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'addreview.html')
-        self.assertFormError(response, 'form', 'text', 'This field is required.')  # Adjust to match your form field
-        self.assertEqual(Comment.objects.count(), 0)"""
+        data = response.json()
+        self.assertEqual(len(data['restaurants']), 0)
+        self.assertEqual(data['count'], 0)
+
+    def test_get_bookmarks_with_data(self):
+        FavoriteRestaurant.objects.create(
+            customer=self.customer,
+            restaurant=self.restaurant
+        )
+        self.client.login(username='user1', password='testpass123')
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['restaurants']), 1)
+        self.assertEqual(data['count'], 1)
+        self.assertEqual(data['restaurants'][0]['name'], 'Test Restaurant')
+
+    def test_missing_customer_profile(self):
+        # Create user without customer profile
+        user2 = User.objects.create_user(
+            username='user2',
+            password='testpass123',
+            email='testuser2@test.com'
+        )
+        self.client.login(username='user2', password='testpass123')
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('error', response.json())
