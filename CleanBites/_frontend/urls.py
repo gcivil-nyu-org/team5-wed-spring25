@@ -40,4 +40,5 @@ urlpatterns = [
         views.debug_unread_messages,
         name="debug_unread_messages",
     ),
+    path("bookmarks/", views.bookmarks_view, name="bookmarks_view"),
 ]

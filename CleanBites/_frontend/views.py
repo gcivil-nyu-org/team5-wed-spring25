@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer, DM
+from _api._users.models import Customer, DM, FavoriteRestaurant
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
@@ -408,6 +408,11 @@ def debug_unread_messages(request):
             }
         )
 
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    customer = get_object_or_404(Customer, username=request.user.username)
+    favorites = FavoriteRestaurant.objects.filter(customer=customer)
+    return render(request, "components/bookmarks.html", {'favorites': favorites})
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data

@@ -146,9 +146,14 @@ function toggleSidebar() {
   sidebar.classList.toggle('collapsed');
 }
 
-document.getElementById('sidebar-search-form').addEventListener('submit', function (e) {
-  e.preventDefault(); 
-  performSidebarSearch();    
+document.addEventListener('click', function(e) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.querySelector('.sidebar-toggle');
+    
+    if (!sidebar.contains(e.target) && e.target !== toggleBtn && !sidebar.classList.contains('collapsed')) {
+      sidebar.classList.add('collapsed');
+      toggleBtn.textContent = '☰';
+    }
 });
 
 function performSidebarSearch() {
