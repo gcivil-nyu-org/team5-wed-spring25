@@ -1,11 +1,12 @@
 <div class="reviews-section">
     <h2>Recent Reviews for {{ restaurant.name }}</h2>
     {% if reviews %}
+    <div class="scrollable-reviews">
       <ul class="review-list">
         {% for comment in reviews %}
           <li class="review">
             <div class="review-header">
-              <strong>{{ comment.commenter}}</strong>
+              <strong>{{ comment.commenter.username}}</strong>
               <strong>Rating: {{ comment.rating }}/5</strong>
               <strong>Health Rating: {{ comment.health_rating }}/5</strong>
               <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
@@ -15,12 +16,31 @@
           </li>
         {% endfor %}
       </ul>
+    </div>
     {% else %}
       <p>No reviews yet for {{ restaurant.name }}.</p>
     {% endif %}
   </div>
   
   <style>
+    .scrollable-reviews {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px; /* makes space for the scrollbar */
+    margin-top: 1em;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #fefefe;
+    }
+
+    .scrollable-reviews::-webkit-scrollbar {
+    width: 8px;
+    }
+
+    .scrollable-reviews::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 4px;
+    }
     .reviews-section {
       margin-top: 2em;
       padding: 1em;

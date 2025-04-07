@@ -1,72 +1,233 @@
 {% load static %}
 {% load widget_tweaks %}
-<div id="outer">
-    <div id="wrapper">
-        <!--Contents-->
-        <div>
-            <h1><a href="{% url 'restaurant_detail' restaurant.name %}">{{restaurant.name}}</a></h1>
-            <br>
+<style>
+    /* General Styling */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+.outer-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.wrapper-container {
+    padding: 20px;
+}
+
+/* Header Styling */
+.restaurant-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.restaurant-name {
+    color: #333;
+    text-decoration: none;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.restaurant-name:hover {
+    text-decoration: underline;
+}
+
+/* Divider Line */
+.divider {
+    margin: 20px 0;
+    border: 0;
+    border-top: 1px solid #ddd;
+}
+
+/* Form Styling */
+.review-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.rating-section, .health-rating-section, .fieldWrapper {
+    margin-bottom: 20px;
+}
+
+/* Star Rating */
+.star-rating label {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating i {
+    font-size: 24px;
+    color: #ddd;
+}
+
+.star-rating input:checked ~ i {
+    color: #ffcc00;
+}
+
+/* Health Rating */
+.price-rating label {
+    margin-right: 20px;
+}
+
+.price-rating .price {
+    font-size: 20px;
+    color: #333;
+}
+
+.price-rating i {
+    color: #28a745;
+    margin-right: 5px;
+}
+
+/* Input Fields */
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+/* Submit Button */
+.submit-btn-container {
+    text-align: center;
+}
+
+.submit-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.submit-btn:hover {
+    background-color: #218838;
+}
+
+.submit-btn:active {
+    background-color: #1e7e34;
+}
+
+.fieldWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.fieldWrapper .section-title {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.fieldWrapper .form-control {
+    max-width: 600px;
+}
+
+</style>
+<div id="outer" class="outer-container">
+    <div id="wrapper" class="wrapper-container">
+        <div class="restaurant-header">
+            <h1>
+                <a href="{% url 'restaurant_detail' restaurant.name %}" class="restaurant-name">{{ restaurant.name }}</a>
+            </h1>
         </div>
-        <br>
-        <hr>
-        <form action="{% url 'addreview' restaurant.name %}" method="post">
+
+        <hr class="divider">
+
+        <form action="{% url 'addreview' restaurant.name %}" method="post" class="review-form">
             {% csrf_token %}
 
-            <div>
-                <h6>Your overall rating of the restaurant</h6>
-                <label class="rating">
-                    <input type="radio" name="rating" value="1" checked>
-                    <i class=" fas fa-star text-warning" /></i>
-                </label>
-                <label class="rating">
-                    <input type="radio" name="rating" value="2">
-                    <i class=" fas fa-star text-warning" /></i>
-                </label>
-                <label class="rating">
-                    <input type="radio" name="rating" value="3">
-                    <i class=" fas fa-star text-warning" /></i>
-                </label>
-                <label class="rating">
-                    <input type="radio" name="rating" value="4">
-                    <i class=" fas fa-star text-warning" /></i>
-                </label>
-                <label class="rating">
-                    <input type="radio" name="rating" value="5">
-                    <i class=" fas fa-star text-warning" /></i>
-                </label>
-            </div>
-            <br>
-
-            <div>
-                <h6>How clean is this restaurant?</h6>
-                <label>
-                    <input type="radio" name="health_rating" value="1" checked>
-                    <div class="price"><i class="fas fa-dollar-sign"></i></div>
-                </label>
-                <label>
-                    <input type="radio" name="health_rating" value="2">
-                    <div class="price"><i class="fas fa-dollar-sign"></i><i class="fas fa-dollar-sign"></i></div>
-                </label>
-                <label>
-                    <input type="radio" name="health_rating" value="3">
-                    <div class="price"><i class="fas fa-dollar-sign"></i><i class="fas fa-dollar-sign"></i><i class="fas fa-dollar-sign"></i></div>
-                </label>
-                <br><br>
+            <!-- Rating Section -->
+            <div class="rating-section">
+                <h6 class="section-title">Your overall rating of the restaurant</h6>
+                    <label class="rating">
+                        <input type="radio" name="rating" value="1" checked>
+                    </label>
+                    <label class="rating">
+                        <input type="radio" name="rating" value="2">
+                    </label>
+                    <label class="rating">
+                        <input type="radio" name="rating" value="3">
+                    </label>
+                    <label class="rating">
+                        <input type="radio" name="rating" value="4">
+                    </label>
+                    <label class="rating">
+                        <input type="radio" name="rating" value="5">
+                    </label>
+                </div>
             </div>
 
-            <div class="fieldWrapper">
-                <h6>Title of your review</h6>
-                {% render_field form.title class="form-control" placeholder="Summarize your visit or highlight an interesting detail" %}
-            </div><br>
-            <div class="fieldWrapper">
-                <h6>Your review</h6>
-                {% render_field form.comment class="form-control" placeholder="Tell people about the food, atmosphere, service, etc." %}
-            </div><br>
+            <hr class="divider">
 
-            <input type="submit" value="Submit your review" class="btn btn-success"
-                style="font-weight: 500; margin-bottom: 50px">
-            <br>
+            <!-- Health Rating Section -->
+            <div class="health-rating-section">
+                <h6 class="section-title">How clean is this restaurant?</h6>
+                    <label>
+                        <input type="radio" name="health_rating" value="1" checked>
+                    </label>
+                    <label>
+                        <input type="radio" name="health_rating" value="2">
+                    </label>
+                    <label>
+                        <input type="radio" name="health_rating" value="3">
+                    </label>
+                    <label>
+                        <input type="radio" name="health_rating" value="4">
+                    </label>
+                    <label>
+                        <input type="radio" name="health_rating" value="5">
+                    </label>
+                </div>
+            </div>
 
+            <hr class="divider">
+
+            <!-- Title of Review Section -->
+            <div class="fieldWrapper">
+                <h6 class="section-title">Title of your review</h6>
+                {% render_field form.title class="form-control" %}
+            </div>
+
+            <!-- Review Text Section -->
+            <div class="fieldWrapper">
+                <h6 class="section-title">Your review</h6>
+                {% render_field form.comment class="form-control" %}
+            </div>
+
+            <div class="submit-btn-container">
+                <input type="submit" value="Submit your review" class="btn btn-success submit-btn">
+            </div>
         </form>
     </div>
 </div>
