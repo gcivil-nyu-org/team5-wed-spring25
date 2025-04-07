@@ -72,7 +72,6 @@
             const address = feature.properties.street || "N/A";
             const rating = feature.properties.hygiene_rating || "N/A";
 
-<<<<<<< HEAD
             const modal = document.getElementById("side-modal");
             document.getElementById("modal-title").innerHTML = `
                 ${name}
@@ -87,22 +86,6 @@
                 <p><strong>Address:</strong> ${address}</p>
                 <p><strong>Hygiene Rating:</strong> ${getLetterGrade(rating, true)}</p>
             `;
-=======
-          const modal = document.getElementById("side-modal");
-          document.getElementById("modal-title").innerHTML = `
-            ${name}
-            <div style="font-size: 0.5em; margin-top: 4px;">
-              <a href="/restaurant/${feature.properties.id}/" style="color: #1a73e8; text-decoration: none;">
-                View Profile →
-              </a>
-            </div>
-          `;
-          document.getElementById("modal-content").innerHTML = `
-            <p><strong>Cuisine:</strong> ${cuisine}</p>
-            <p><strong>Address:</strong> ${address}</p>
-            <p><strong>Hygiene Rating:</strong> ${getLetterGrade(feature.properties.hygiene_rating || 0, true)}</p>
-          `;
->>>>>>> develop
 
             modal.classList.add("show");
         }
