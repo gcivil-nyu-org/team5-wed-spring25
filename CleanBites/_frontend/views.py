@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer, DM
+from _api._users.models import Customer, DM, FavoriteRestaurant
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
@@ -211,15 +211,111 @@ def write_comment(request, restaurant):
             review.save()
             return redirect('restaurant_detail', name=restaurant_obj.name)
         else:
-            print(form.errors)  # helpful for debugging
-    else:
-        form = Review()
+            restaurant.name = request.POST.get("name", restaurant.name)
+            restaurant.building = request.POST.get("building", restaurant.building)
+            restaurant.street = request.POST.get("street", restaurant.street)
+            restaurant.zipcode = request.POST.get("zipcode", restaurant.zipcode)
+            restaurant.phone = request.POST.get("phone", restaurant.phone)
+            restaurant.cuisine_description = request.POST.get(
+                "cuisine_description", restaurant.cuisine_description
+            )
+            restaurant.violation_description = request.POST.get(
+                "description", restaurant.violation_description
+            )
 
-    context = {
-        'restaurant': restaurant_obj,
-        'form': form
-    }
-    return render(request, 'addreview.html', context)
+        if "profile_image" in request.FILES:
+            restaurant.profile_image = request.FILES["profile_image"]
+
+        restaurant.save()
+        messages.success(request, "Restaurant profile updated successfully!")
+        return redirect("restaurant_detail", name=restaurant.name)
+
+    return redirect("home")
+
+
+@login_required(login_url="/login/")
+def profile_router(request, username):
+    try:
+        user_obj = Restaurant.objects.get(username=username)
+
+        is_owner = False
+        if request.user.is_authenticated and request.user.username == user_obj.username:
+            is_owner = True
+
+        return render(
+            request,
+            "maps/restaurant_detail.html",
+            {
+                "restaurant": user_obj,
+                "is_owner": is_owner,
+                "has_unread_messages": has_unread_messages(request.user),
+            },
+        )
+    except Restaurant.DoesNotExist:
+        try:
+            user_obj = Customer.objects.get(username=username)
+            return render(
+                request,
+                "user_profile.html",
+                {
+                    "customer": user_obj,
+                    "has_unread_messages": has_unread_messages(request.user),
+                },
+            )
+        except Customer.DoesNotExist:
+            return redirect("home")  # or a 404 page
+
+
+@login_required(login_url="/login/")
+def debug_unread_messages(request):
+    """Debug view to check unread messages status."""
+    from django.http import JsonResponse
+
+    try:
+        user = Customer.objects.get(email=request.user.email)
+        unread_count = DM.objects.filter(receiver=user, read=False).count()
+        unread_messages = list(
+            DM.objects.filter(receiver=user, read=False).values(
+                "id", "sender__email", "sent_at"
+            )
+        )
+
+        # Format sent_at for better readability
+        for msg in unread_messages:
+            if "sent_at" in msg:
+                msg["sent_at"] = msg["sent_at"].strftime("%Y-%m-%d %H:%M:%S")
+
+        return JsonResponse(
+            {
+                "has_unread_messages": has_unread_messages(request.user),
+                "unread_count": unread_count,
+                "unread_messages": unread_messages,
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
+    except Customer.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": "Customer not found",
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
+    except Exception as e:
+        return JsonResponse(
+            {
+                "error": str(e),
+                "user_email": request.user.email,
+                "is_authenticated": request.user.is_authenticated,
+            }
+        )
+
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    customer = get_object_or_404(Customer, username=request.user.username)
+    favorites = FavoriteRestaurant.objects.filter(customer=customer)
+    return render(request, "components/bookmarks.html", {'favorites': favorites})
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data

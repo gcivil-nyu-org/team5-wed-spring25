@@ -42,12 +42,5 @@ urlpatterns = [
         views.debug_unread_messages,
         name="debug_unread_messages",
     ),
-    path(
-        "deactivate/<str:user_type>/<int:user_id>/",
-        views.deactivate_account,
-        name="deactivate_account",
-    ),
-    path(
-        "delete_comment/<int:comment_id>/", views.delete_comment, name="delete_comment"
-    ),
+    path("bookmarks/", views.bookmarks_view, name="bookmarks_view"),
 ]
