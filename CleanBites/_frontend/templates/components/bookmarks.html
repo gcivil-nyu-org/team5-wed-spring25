@@ -114,7 +114,9 @@
             const item = document.createElement('div');
             item.className = 'bookmark-item';
             item.innerHTML = `
-              <div class="bookmark-name" style="color: #007bff">${restaurant.name}</div>
+              <a href="/restaurant/${restaurant.id}/" style="text-decoration: none;">
+                <div class="bookmark-name" style="color: #007bff">${restaurant.name}</div>
+              </a>
               <div class="bookmark-meta">
                 <span class="bookmark-address">${restaurant.address}</span>
               </div>
