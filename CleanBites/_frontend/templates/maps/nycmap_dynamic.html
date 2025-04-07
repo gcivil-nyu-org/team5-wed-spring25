@@ -84,7 +84,15 @@
         document.getElementById("side-modal").classList.remove("show");
     }
 
+
+        let currentRestaurantId = null;
+
         function showModal(feature) {
+            currentRestaurantId = feature.properties.id;
+            const name = feature.properties.name || "Unnamed Restaurant";
+            const cuisine = feature.properties.cuisine || "N/A";
+            const address = feature.properties.street || "N/A";
+            const rating = feature.properties.hygiene_rating || "N/A";
             currentRestaurantId = feature.properties.id;
             const name = feature.properties.name || "Unnamed Restaurant";
             const cuisine = feature.properties.cuisine || "N/A";
@@ -95,7 +103,7 @@
             document.getElementById("modal-title").innerHTML = `
                 ${name}
                 <div style="font-size: 0.5em; margin-top: 4px;">
-                    <a href="#" onclick="window.parent.goToProfilePage(currentRestaurantId); return false;" style="color: #1a73e8; text-decoration: none;">
+                    <a href="/restaurant/${encodeURIComponent(name)}/" style="color: #1a73e8; text-decoration: none;">
                         View Profile →
                     </a>
                 </div>
@@ -107,8 +115,78 @@
             `;
 
             modal.classList.add("show");
+            modal.classList.add("show");
         }
 
+        async function addBookmark() {
+            if (!currentRestaurantId) return;
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!csrfToken) {
+                    showToast('Session expired - please refresh the page');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('restaurant_id', currentRestaurantId);
+                formData.append('csrfmiddlewaretoken', csrfToken);
+
+                const response = await fetch('/bookmarks/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+
+                const result = await response.json();
+                showToast(result.success ? 'Bookmark added!' : (result.error || 'Failed to bookmark'));
+                
+                if (result.success) {
+                    const btn = document.querySelector('.bookmark-btn');
+                    if (btn) btn.classList.add('bookmarked');
+                }
+            } catch (error) {
+                console.error('Bookmark error:', error);
+                showToast('Error: Please try again');
+            }
+        }
+
+        function getCSRFToken() {
+            // Try to get from meta tag
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) return metaTag.content;
+            
+            // Fallback to cookie
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            return cookieValue || '';
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+
+        // Function to determine marker color based on hygiene rating
         function getColorByRating(rating) {
             if (rating >= 28) return "#ff0000";
             else if (rating >= 14) return "#ffa500";
