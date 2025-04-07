@@ -787,7 +787,6 @@ class RestaurantViewTests(TestCase):
         self.client.login(username="user1", password="testpass123")
         response = self.client.get(
             reverse("restaurant_detail", args=[self.restaurant.id])
-            reverse("restaurant_detail", args=[self.restaurant.id])
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["is_owner"])
@@ -800,19 +799,10 @@ class RestaurantViewTests(TestCase):
         self.client.login(username="restaurant1", password="testpass123")
         response = self.client.get(
             reverse("restaurant_detail", args=[self.restaurant.id])
-            reverse("restaurant_detail", args=[self.restaurant.id])
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["is_owner"])
 
-    # using the restaurant id for detail view and this test is no longer needed
-    # def test_restaurant_detail_case_insensitive(self):
-    #     """Test restaurant name matching is case insensitive"""
-    #     self.client.login(username="user1", password="testpass123")
-    #     response = self.client.get(
-    #         reverse("restaurant_detail", args=["test restaurant"])
-    #     )
-    #     self.assertEqual(response.status_code, 200)
     # using the restaurant id for detail view and this test is no longer needed
     # def test_restaurant_detail_case_insensitive(self):
     #     """Test restaurant name matching is case insensitive"""
