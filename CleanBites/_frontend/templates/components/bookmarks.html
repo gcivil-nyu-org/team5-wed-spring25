@@ -98,6 +98,54 @@
 
 <script>
   // JavaScript remains the same since the functionality doesn't change
+  document.addEventListener('DOMContentLoaded', function() {
+    fetch('/bookmarks/')
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => { 
+            throw new Error(err.error || 'Request failed');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.restaurants) {
+          const bookmarksList = document.querySelector('.bookmarks-list');
+          
+          // Clear existing content
+          bookmarksList.innerHTML = '';
+          
+          if (data.restaurants.length === 0) {
+            bookmarksList.innerHTML = '<div class="no-favorites">No favorites added yet</div>';
+            return;
+          }
+          
+          // Create HTML for each restaurant
+          data.restaurants.forEach(restaurant => {
+            const item = document.createElement('div');
+            item.className = 'bookmark-item';
+            item.innerHTML = `
+              <a href="/restaurant/${restaurant.id}/" style="text-decoration: none;">
+                <div class="bookmark-name" style="color: #007bff">${restaurant.name}</div>
+              </a>
+              <div class="bookmark-meta">
+                <span class="bookmark-address">${restaurant.address}</span>
+              </div>
+            `;
+            bookmarksList.appendChild(item);
+          });
+          
+        } else {
+          console.error('Unexpected response:', data);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error.message);
+        const bookmarksList = document.querySelector('.bookmarks-list');
+        bookmarksList.innerHTML = '<div class="no-favorites">Error loading favorites</div>';
+      });
+  });
+  
   function toggleBookmarks() {
     const sidebar = document.querySelector('.bookmarks-sidebar');
     sidebar.classList.toggle('collapsed');
