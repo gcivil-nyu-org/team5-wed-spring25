@@ -36,7 +36,7 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
-    reviews = Comment.objects.filter(restaurant=restaurant).order_by('posted_at')
+    reviews = Comment.objects.filter(restaurant=restaurant).order_by('-posted_at')
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -340,7 +340,7 @@ def profile_router(request, username):
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
-        reviews = Comment.objects.get(restaurant=user_obj.name) #adding reviews 
+        reviews = Comment.objects.filter(restaurant=user_obj.name).order_by('-posted_at') #adding reviews 
         return render(
             request,
             "maps/restaurant_detail.html",
@@ -354,11 +354,13 @@ def profile_router(request, username):
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
+            reviews = Comment.objects.filter(commenter=user_obj).order_by('-posted_at')
             return render(
                 request,
                 "user_profile.html",
                 {
                     "customer": user_obj,
+                    "reviews": reviews,
                     "has_unread_messages": has_unread_messages(request.user),
                 },
             )

@@ -58,6 +58,47 @@
             color: #555;
             line-height: 1.5;
         }
+        .scrollable-reviews {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px; /* makes space for the scrollbar */
+    margin-top: 1em;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #fefefe;
+    }
+
+    .scrollable-reviews::-webkit-scrollbar {
+    width: 8px;
+    }
+
+    .scrollable-reviews::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 4px;
+    }
+    .reviews-section {
+      margin-top: 2em;
+      padding: 1em;
+      border-top: 1px solid #ddd;
+    }
+    .review-list {
+      list-style: none;
+      padding: 0;
+    }
+    .review {
+      margin-bottom: 1.5em;
+      padding-bottom: 1em;
+      border-bottom: 1px solid #eee;
+    }
+    .review-header {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 0.3em;
+    }
+    .review-text {
+      font-size: 1em;
+      color: #333;
+    }
     </style>
 </head>
 <body>
@@ -70,21 +111,29 @@
         </header>
     <div id="main">
 
-        <!-- Content -->
-            <section id="content" class="main">
-
-                <!-- Text -->
-                    <section>
-                        <p>Nunc lacinia ante nunc ac lobortis. Interdum adipiscing gravida odio porttitor sem non mi integer non faucibus ornare mi ut ante amet placerat aliquet. Volutpat eu sed ante lacinia sapien lorem accumsan varius montes viverra nibh in adipiscing blandit tempus accumsan.</p>
-                        <hr />
-                        <h2>Recent User Review 1</h2>
-                        <p>User Review 1 Body</p>
-                        <h2>Recent User Review 2</h2>
-                        <p>User Review 2 Body</p>
-                        <h2>Recent User Review 3</h2>
-                        <p>User Review 3 Body</p>
-                        <hr />
-
+        <div class="reviews-section">
+            <h2>Recent Reviews for {{ user.username }}</h2>
+            {% if reviews %}
+            <div class="scrollable-reviews">
+              <ul class="review-list">
+                {% for comment in reviews %}
+                  <li class="review">
+                    <div class="review-header">
+                      <strong>{{ comment.commenter.username}}</strong>
+                      <strong>Rating: {{ comment.rating }}/5</strong>
+                      <strong>Health Rating: {{ comment.health_rating }}/5</strong>
+                      <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
+                    </div>
+                    <p class="review-title">{{ comment.title}}</p>
+                    <p class="review-text">{{ comment.comment }}</p>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% else %}
+              <p>No reviews yet for {{ user.username }}.</p>
+            {% endif %}
+          </div>
 </div>
 
 </body>
