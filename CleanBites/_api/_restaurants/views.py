@@ -117,8 +117,7 @@ class RestaurantGeoJSONView(APIView):
                     "hygiene_rating": restaurant.hygiene_rating,
                     "cuisine": restaurant.cuisine_description,
                     "street": restaurant.street,
-                    "zipcode": restaurant.zipcode,
-                    "id": restaurant.id,
+                    "zipcode": restaurant.zipcode
                 },
             }
             for restaurant in queryset
