@@ -10,6 +10,7 @@ from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
+from django.http import JsonResponse
 
 # Get user model
 User = get_user_model()
@@ -410,6 +411,30 @@ def debug_unread_messages(request):
 
 @login_required(login_url="/login/")
 def bookmarks_view(request):
+    if request.method == 'POST':
+        try:
+            restaurant_id = request.POST.get('restaurant_id')
+            if not restaurant_id:
+                return JsonResponse({'success': False, 'error': 'Restaurant ID required'}, status=400)
+                
+            restaurant = Restaurant.objects.get(id=restaurant_id)
+            customer = Customer.objects.get(username=request.user.username)
+            
+            # Check if bookmark exists
+            if FavoriteRestaurant.objects.filter(customer=customer, restaurant=restaurant).exists():
+                return JsonResponse({'success': False, 'error': 'Restaurant already bookmarked'}, status=400)
+                
+            FavoriteRestaurant.objects.create(customer=customer, restaurant=restaurant)
+            return JsonResponse({'success': True, 'message': 'Bookmark added successfully'})
+            
+        except Restaurant.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Restaurant not found'}, status=404)
+        except Customer.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    # GET request handling
     customer = get_object_or_404(Customer, username=request.user.username)
     favorites = FavoriteRestaurant.objects.filter(customer=customer)
     return render(request, "components/bookmarks.html", {'favorites': favorites})
