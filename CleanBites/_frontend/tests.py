@@ -949,15 +949,10 @@ class BookmarksTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
-            username='user1',
-            password='testpass123',
-            email='user1@test.com'
+            username="user1", password="testpass123", email="user1@test.com"
         )
         self.customer = Customer.objects.create(
-            username="user1",
-            email="user1@test.com",
-            first_name="User",
-            last_name="One"
+            username="user1", email="user1@test.com", first_name="User", last_name="One"
         )
         self.restaurant = Restaurant.objects.create(
             name="Test Restaurant",
@@ -972,78 +967,72 @@ class BookmarksTests(TestCase):
             hygiene_rating=1,
             violation_description="No violations",
             inspection_date="2023-01-01",
-            geo_coords=Point(-73.966, 40.78)
+            geo_coords=Point(-73.966, 40.78),
         )
-        self.bookmarks_url = reverse('bookmarks_view')
+        self.bookmarks_url = reverse("bookmarks_view")
 
     def test_bookmark_view_requires_login(self):
         response = self.client.get(self.bookmarks_url)
         self.assertEqual(response.status_code, 302)  # Should redirect to login
 
     def test_add_bookmark_success(self):
-        self.client.login(username='user1', password='testpass123')
+        self.client.login(username="user1", password="testpass123")
         response = self.client.post(
-            self.bookmarks_url,
-            {'restaurant_id': self.restaurant.id}
+            self.bookmarks_url, {"restaurant_id": self.restaurant.id}
         )
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()['success'])
-        self.assertTrue(FavoriteRestaurant.objects.filter(
-            customer=self.customer,
-            restaurant=self.restaurant
-        ).exists())
+        self.assertTrue(response.json()["success"])
+        self.assertTrue(
+            FavoriteRestaurant.objects.filter(
+                customer=self.customer, restaurant=self.restaurant
+            ).exists()
+        )
 
     def test_add_duplicate_bookmark(self):
         FavoriteRestaurant.objects.create(
-            customer=self.customer,
-            restaurant=self.restaurant
+            customer=self.customer, restaurant=self.restaurant
         )
-        self.client.login(username='user1', password='testpass123')
+        self.client.login(username="user1", password="testpass123")
         response = self.client.post(
-            self.bookmarks_url,
-            {'restaurant_id': self.restaurant.id}
+            self.bookmarks_url, {"restaurant_id": self.restaurant.id}
         )
         self.assertEqual(response.status_code, 400)
-        self.assertFalse(response.json()['success'])
+        self.assertFalse(response.json()["success"])
 
     def test_add_bookmark_invalid_restaurant(self):
-        self.client.login(username='user1', password='testpass123')
+        self.client.login(username="user1", password="testpass123")
         response = self.client.post(
-            self.bookmarks_url,
-            {'restaurant_id': 9999}  # Non-existent ID
+            self.bookmarks_url, {"restaurant_id": 9999}  # Non-existent ID
         )
         self.assertEqual(response.status_code, 404)
-        self.assertFalse(response.json()['success'])
+        self.assertFalse(response.json()["success"])
 
     def test_get_bookmarks_empty(self):
-        self.client.login(username='user1', password='testpass123')
+        self.client.login(username="user1", password="testpass123")
         response = self.client.get(self.bookmarks_url)
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(len(data['restaurants']), 0)
-        self.assertEqual(data['count'], 0)
+        self.assertEqual(len(data["restaurants"]), 0)
+        self.assertEqual(data["count"], 0)
 
     def test_get_bookmarks_with_data(self):
         FavoriteRestaurant.objects.create(
-            customer=self.customer,
-            restaurant=self.restaurant
+            customer=self.customer, restaurant=self.restaurant
         )
-        self.client.login(username='user1', password='testpass123')
+        self.client.login(username="user1", password="testpass123")
         response = self.client.get(self.bookmarks_url)
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(len(data['restaurants']), 1)
-        self.assertEqual(data['count'], 1)
-        self.assertEqual(data['restaurants'][0]['name'], 'Test Restaurant')
+        self.assertEqual(len(data["restaurants"]), 1)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["restaurants"][0]["name"], "Test Restaurant")
 
     def test_missing_customer_profile(self):
         # Create user without customer profile
         user2 = User.objects.create_user(
-            username='user2',
-            password='testpass123',
-            email='testuser2@test.com'
+            username="user2", password="testpass123", email="testuser2@test.com"
         )
-        self.client.login(username='user2', password='testpass123')
+        self.client.login(username="user2", password="testpass123")
         response = self.client.get(self.bookmarks_url)
         self.assertEqual(response.status_code, 500)
-        self.assertIn('error', response.json())
+        self.assertIn("error", response.json())
