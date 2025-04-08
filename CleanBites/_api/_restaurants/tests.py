@@ -390,80 +390,85 @@ class ReplyViewSetTests(APITestCase):
         self.assertEqual(Reply.objects.count(), 0)
 
 
-
 class RestaurantDataFetchingTests(TestCase):
     """Tests for the restaurant data fetching functionality."""
-    
-    @patch('_api._restaurants.fetch_data.requests.get')
+
+    @patch("_api._restaurants.fetch_data.requests.get")
     def test_successful_data_fetch(self, mock_get):
         """Test successful API response processing with custom URL."""
         test_url = "https://test.data.nyc.gov/mock-restaurant-data.json"
-        test_data = [{
-            "camis": "123",
-            "dba": "Test Restaurant",
-            "email": "test@example.com",
-            "phone": "123-456-7890",
-            "building": "123",
-            "street": "Main St",
-            "zipcode": "10001",
-            "score": "10",
-            "record_date": "2025-01-01T12:00:00.000",
-            "boro": "1",
-            "cuisine_description": "American",
-            "violation_description": "None",
-            "longitude": "-73.9857",
-            "latitude": "40.7484"
-        }]
-        
+        test_data = [
+            {
+                "camis": "123",
+                "dba": "Test Restaurant",
+                "email": "test@example.com",
+                "phone": "123-456-7890",
+                "building": "123",
+                "street": "Main St",
+                "zipcode": "10001",
+                "score": "10",
+                "record_date": "2025-01-01T12:00:00.000",
+                "boro": "1",
+                "cuisine_description": "American",
+                "violation_description": "None",
+                "longitude": "-73.9857",
+                "latitude": "40.7484",
+            }
+        ]
+
         # Setup mock response
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = test_data
         mock_get.return_value = mock_response
-        
+
         from _api._restaurants.fetch_data import fetch_and_store_data
+
         fetch_and_store_data(test_url)
-        
+
         # Verify mock was called with our test URL
         mock_get.assert_called_once_with(test_url)
-        
+
         # Verify restaurant was created
         restaurant = Restaurant.objects.get(id=123)
         self.assertEqual(restaurant.name, "Test Restaurant")
         self.assertEqual(restaurant.hygiene_rating, 10)
-        
-    @patch('_api._restaurants.fetch_data.requests.get')
+
+    @patch("_api._restaurants.fetch_data.requests.get")
     def test_failed_api_request(self, mock_get):
         """Test handling of failed API requests with custom URL."""
         test_url = "https://test.data.nyc.gov/mock-restaurant-data.json"
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_get.return_value = mock_response
-        
+
         from _api._restaurants.fetch_data import fetch_and_store_data
+
         fetch_and_store_data(test_url)  # Should handle gracefully
-        
+
         # Verify mock was called with our test URL
         mock_get.assert_called_once_with(test_url)
-        
+
     def test_clean_int(self):
         """Test the clean_int utility function."""
         from _api._restaurants.fetch_data import clean_int
+
         self.assertEqual(clean_int("123"), 123)
         self.assertEqual(clean_int("abc"), 0)
         self.assertEqual(clean_int(None), 0)
-        
+
     def test_clean_string(self):
         """Test the clean_string utility function."""
         from _api._restaurants.fetch_data import clean_string
+
         self.assertEqual(clean_string(" test "), "test")
         self.assertEqual(clean_string(None), "Unknown")
-        
-    @patch('_api._restaurants.fetch_data.Nominatim')
+
+    @patch("_api._restaurants.fetch_data.Nominatim")
     def test_get_coords(self, mock_nominatim):
         """Test coordinate fetching with mock geocoding."""
         from _api._restaurants.fetch_data import get_coords
-        
+
         # Setup mock geocoder
         mock_geolocator = MagicMock()
         mock_location = MagicMock()
@@ -471,7 +476,7 @@ class RestaurantDataFetchingTests(TestCase):
         mock_location.latitude = 40.7484
         mock_geolocator.geocode.return_value = mock_location
         mock_nominatim.return_value = mock_geolocator
-        
+
         result = get_coords("123", "Main St", "Manhattan", "10001")
         self.assertEqual(result.x, -73.9857)
         self.assertEqual(result.y, 40.7484)
