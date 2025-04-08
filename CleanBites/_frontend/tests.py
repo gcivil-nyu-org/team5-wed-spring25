@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.messages import get_messages
 
 from _api._users.models import Customer, DM
-from _api._restaurants.models import Restaurant, Comment
+from _api._restaurants.models import Restaurant
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
 from django.test import RequestFactory
@@ -569,7 +569,7 @@ class RestaurantViewTests(TestCase):
         # Test as non-owner
         self.client.login(username="user1", password="testpass123")
         response = self.client.get(
-            reverse("restaurant_detail", args=[self.restaurant.name])
+            reverse("restaurant_detail", args=[self.restaurant.id])
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["is_owner"])
@@ -581,18 +581,19 @@ class RestaurantViewTests(TestCase):
         )
         self.client.login(username="restaurant1", password="testpass123")
         response = self.client.get(
-            reverse("restaurant_detail", args=[self.restaurant.name])
+            reverse("restaurant_detail", args=[self.restaurant.id])
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["is_owner"])
 
-    def test_restaurant_detail_case_insensitive(self):
-        """Test restaurant name matching is case insensitive"""
-        self.client.login(username="user1", password="testpass123")
-        response = self.client.get(
-            reverse("restaurant_detail", args=["test restaurant"])
-        )
-        self.assertEqual(response.status_code, 200)
+    # using the restaurant id for detail view and this test is no longer needed
+    # def test_restaurant_detail_case_insensitive(self):
+    #     """Test restaurant name matching is case insensitive"""
+    #     self.client.login(username="user1", password="testpass123")
+    #     response = self.client.get(
+    #         reverse("restaurant_detail", args=["test restaurant"])
+    #     )
+    #     self.assertEqual(response.status_code, 200)
 
     def test_restaurant_register_view(self):
         """Test restaurant registration page shows unverified restaurants"""
@@ -817,6 +818,131 @@ class SmokeTests(TestCase):
         response = self.client.get(reverse("dynamic-map"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "maps/nycmap_dynamic.html")
+
+
+class RestaurantVerificationTests(TestCase):
+    """Tests for restaurant verification and registration"""
+
+    def setUp(self):
+        self.client = Client()
+        # Create existing user and restaurant for testing conflicts
+        self.user = User.objects.create_user(
+            username="existinguser",
+            email="existing@example.com",
+            password="testpass123",
+        )
+        self.restaurant = Restaurant.objects.create(
+            id=1,
+            name="Test Restaurant",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+        self.valid_restaurant = Restaurant.objects.create(
+            id=2,
+            name="Valid Restaurant",
+            username="",
+            email="",
+            borough=1,
+            building=456,
+            street="Valid St",
+            zipcode="10002",
+            phone="987-654-3210",
+            cuisine_description="Italian",
+            hygiene_rating=0,
+            violation_description="__",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.985, 40.758),
+        )
+
+    def test_password_mismatch(self):
+        """Test verification fails when passwords don't match"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "newuser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Mismatch123!",
+                "verify": "0000",  # Default verification code
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Passwords do not match.")
+
+    def test_invalid_verification_code(self):
+        """Test verification fails with wrong code"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "newuser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "wrongcode",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Invalid verification code.")
+
+    def test_username_taken(self):
+        """Test verification fails when username exists"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "existinguser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "1234",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Username is already taken.")
+
+    def test_email_taken(self):
+        """Test verification fails when email exists"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "2",
+                "username": "newuser",
+                "email": "existing@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "1234",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Email is already registered.")
+
+    def test_restaurant_not_found(self):
+        """Test verification fails when restaurant doesn't exist"""
+        response = self.client.post(
+            reverse("restaurant_verify"),
+            {
+                "restaurant": "999",  # Non-existent ID
+                "username": "newuser",
+                "email": "new@example.com",
+                "password": "Testpass123!",
+                "confirm_password": "Testpass123!",
+                "verify": "1234",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Selected restaurant does not exist.")
 
 
 """
