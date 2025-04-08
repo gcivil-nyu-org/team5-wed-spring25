@@ -5,11 +5,12 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer, DM
+from _api._users.models import Customer, DM, FavoriteRestaurant
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
+from django.http import JsonResponse
 
 # Get user model
 User = get_user_model()
@@ -399,6 +400,66 @@ def debug_unread_messages(request):
                 "is_authenticated": request.user.is_authenticated,
             }
         )
+
+
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    if request.method == "POST":
+        try:
+            restaurant_id = request.POST.get("restaurant_id")
+            if not restaurant_id:
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant ID required"}, status=400
+                )
+
+            restaurant = Restaurant.objects.get(id=restaurant_id)
+            customer = Customer.objects.get(username=request.user.username)
+
+            # Check if bookmark exists
+            if FavoriteRestaurant.objects.filter(
+                customer=customer, restaurant=restaurant
+            ).exists():
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant already bookmarked"},
+                    status=400,
+                )
+
+            FavoriteRestaurant.objects.create(customer=customer, restaurant=restaurant)
+            return JsonResponse(
+                {"success": True, "message": "Bookmark added successfully"}
+            )
+
+        except Restaurant.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "Restaurant not found"}, status=404
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "User not found"}, status=404
+            )
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    try:
+        if not hasattr(request.user, "username"):
+            return JsonResponse({"error": "Customer profile missing"}, status=400)
+
+        customer = Customer.objects.get(username=request.user.username)
+
+        restaurant_ids = FavoriteRestaurant.objects.filter(
+            customer_id=customer.id
+        ).values_list("restaurant_id", flat=True)
+
+        restaurants = list(
+            Restaurant.objects.filter(id__in=restaurant_ids).values(
+                "id", "name", "phone", "cuisine_description"
+            )
+        )
+
+        return JsonResponse({"restaurants": restaurants, "count": len(restaurants)})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e), "type": type(e).__name__}, status=500)
 
 
 # =====================================================================================
