@@ -164,7 +164,7 @@ body {
 
         <hr class="divider">
 
-        <form action="{% url 'addreview' restaurant.name %}" method="post" class="review-form">
+        <form action="{% url 'addreview' restaurant.id %}" method="post" class="review-form">
             {% csrf_token %}
 
             <!-- Rating Section -->

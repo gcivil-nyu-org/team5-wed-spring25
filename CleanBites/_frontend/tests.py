@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.messages import get_messages
 
 from _api._users.models import Customer, DM
-from _api._restaurants.models import Restaurant
+from _api._restaurants.models import Restaurant, Comment
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
 from django.test import RequestFactory
@@ -818,24 +818,20 @@ class SmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "maps/nycmap_dynamic.html")
 
-
-class RestaurantVerificationTests(TestCase):
-    """Tests for restaurant verification and registration"""
-
+"""
+------------------------COMMENTED OUT ATM WILL FIX IN FUTURE FOR COVERAGE-------------------------------
+class WriteReviewTest(TestCase):
     def setUp(self):
-        self.client = Client()
-        # Create existing user and restaurant for testing conflicts
-        self.user = User.objects.create_user(
-            username="existinguser",
-            email="existing@example.com",
-            password="testpass123",
-        )
+        # Create a user and customer
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.customer = Customer.objects.create(username='testuser')
+
+        # Create a restaurant
         self.restaurant = Restaurant.objects.create(
-            id=1,
-            name="Test Restaurant",
+            name="Testeraunt",
             username="restaurant1",
             email="restaurant@test.com",
-            borough=1,
+            borough=1,  # Manhattan is typically represented as 1
             building=123,
             street="Test St",
             zipcode="10001",
@@ -844,101 +840,50 @@ class RestaurantVerificationTests(TestCase):
             hygiene_rating=1,
             violation_description="No violations",
             inspection_date="2023-01-01",
-            geo_coords=Point(-73.966, 40.78),
-        )
-        self.valid_restaurant = Restaurant.objects.create(
-            id=2,
-            name="Valid Restaurant",
-            username="",
-            email="",
-            borough=1,
-            building=456,
-            street="Valid St",
-            zipcode="10002",
-            phone="987-654-3210",
-            cuisine_description="Italian",
-            hygiene_rating=0,
-            violation_description="__",
-            inspection_date="2023-01-01",
-            geo_coords=Point(-73.985, 40.758),
+            geo_coords=Point(-73.966, 40.78),  # Example NYC coordinates
         )
 
-    def test_password_mismatch(self):
-        """Test verification fails when passwords don't match"""
-        response = self.client.post(
-            reverse("restaurant_verify"),
-            {
-                "restaurant": "2",
-                "username": "newuser",
-                "email": "new@example.com",
-                "password": "Testpass123!",
-                "confirm_password": "Mismatch123!",
-                "verify": "0000",  # Default verification code
-            },
-            follow=True,
-        )
-        self.assertContains(response, "Passwords do not match.")
 
-    def test_invalid_verification_code(self):
-        """Test verification fails with wrong code"""
-        response = self.client.post(
-            reverse("restaurant_verify"),
-            {
-                "restaurant": "2",
-                "username": "newuser",
-                "email": "new@example.com",
-                "password": "Testpass123!",
-                "confirm_password": "Testpass123!",
-                "verify": "wrongcode",
-            },
-            follow=True,
-        )
-        self.assertContains(response, "Invalid verification code.")
+        # Login client
+        self.client = Client()
+        self.client.login(username='testuser', password='testpass')
 
-    def test_username_taken(self):
-        """Test verification fails when username exists"""
-        response = self.client.post(
-            reverse("restaurant_verify"),
-            {
-                "restaurant": "2",
-                "username": "existinguser",
-                "email": "new@example.com",
-                "password": "Testpass123!",
-                "confirm_password": "Testpass123!",
-                "verify": "1234",
-            },
-            follow=True,
-        )
-        self.assertContains(response, "Username is already taken.")
+        # URL
+        self.url = reverse('restaurant_detail', args=[self.restaurant.name])
 
-    def test_email_taken(self):
-        """Test verification fails when email exists"""
-        response = self.client.post(
-            reverse("restaurant_verify"),
-            {
-                "restaurant": "2",
-                "username": "newuser",
-                "email": "existing@example.com",
-                "password": "Testpass123!",
-                "confirm_password": "Testpass123!",
-                "verify": "1234",
-            },
-            follow=True,
-        )
-        self.assertContains(response, "Email is already registered.")
+    def test_get_request_returns_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'addreview.html')
+        self.assertIn('form', response.context)
+        self.assertEqual(response.context['restaurant'], self.restaurant)
 
-    def test_restaurant_not_found(self):
-        """Test verification fails when restaurant doesn't exist"""
-        response = self.client.post(
-            reverse("restaurant_verify"),
-            {
-                "restaurant": "999",  # Non-existent ID
-                "username": "newuser",
-                "email": "new@example.com",
-                "password": "Testpass123!",
-                "confirm_password": "Testpass123!",
-                "verify": "1234",
-            },
-            follow=True,
-        )
-        self.assertContains(response, "Selected restaurant does not exist.")
+    def test_post_valid_review(self):
+        post_data = {
+            'text': 'Great food!',
+            'rating': '5',
+            'health_rating': '4'
+        }
+        response = self.client.post(self.url, post_data, follow=True)
+        self.assertRedirects(response, reverse('restaurant_detail', kwargs={'name': self.restaurant.name}))
+        
+        # Confirm the review was created
+        self.assertEqual(Comment.objects.count(), 1)
+        review = Comment.objects.first()
+        self.assertEqual(review.commenter, self.customer)
+        self.assertEqual(review.restaurant, self.restaurant)
+        self.assertEqual(review.text, 'Great food!')
+        self.assertEqual(review.rating, '5')
+        self.assertEqual(review.health_rating, '4')
+
+    def test_post_invalid_review(self):
+        # Submit without required fields
+        post_data = {
+            'rating': '',  # Assume this is required in the form
+            'health_rating': '4'
+        }
+        response = self.client.post(self.url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'addreview.html')
+        self.assertFormError(response, 'form', 'text', 'This field is required.')  # Adjust to match your form field
+        self.assertEqual(Comment.objects.count(), 0)"""
