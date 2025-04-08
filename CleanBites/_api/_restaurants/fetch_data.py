@@ -47,9 +47,9 @@ def clean_email(value):
 
 
 # ======================================================================================================
-def fetch_and_store_data():
+def fetch_and_store_data(URL):
     """Fetch restaurant data from NYC Open Data and store it in PostgreSQL."""
-    response = requests.get(NYC_DATA_URL)
+    response = requests.get(URL)
 
     if response.status_code == 200:
         data = response.json()
