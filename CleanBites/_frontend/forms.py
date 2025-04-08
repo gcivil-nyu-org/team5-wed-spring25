@@ -5,7 +5,7 @@ from _api._restaurants.models import Comment
 class Review(ModelForm):
     class Meta:
         model = Comment
-        fields = ('title', 'comment', 'rating', 'health_rating')
+        fields = ("title", "comment", "rating", "health_rating")
         widgets = {
-            'comment' : Textarea(attrs={'cols': 80, 'rows': 8}),
+            "comment": Textarea(attrs={"cols": 80, "rows": 8}),
         }
