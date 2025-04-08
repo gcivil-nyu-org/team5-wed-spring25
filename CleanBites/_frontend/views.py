@@ -545,8 +545,8 @@ def delete_conversation(request, chat_user_id):
     return redirect("messages inbox")
 
 @login_required(login_url="/login/")
-def write_comment(request, restaurant):
-    restaurant_obj = get_object_or_404(Restaurant, id=restaurant)
+def write_comment(request, id):
+    restaurant_obj = get_object_or_404(Restaurant, id=id)
     author = get_object_or_404(Customer, username=request.user.username)
 
     if request.method == 'POST':
