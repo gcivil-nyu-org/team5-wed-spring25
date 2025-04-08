@@ -572,6 +572,7 @@ class SmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "maps/nycmap_dynamic.html")
 
+
 """
 ------------------------COMMENTED OUT ATM WILL FIX IN FUTURE FOR COVERAGE-------------------------------
 class WriteReviewTest(TestCase):
@@ -620,7 +621,6 @@ class WriteReviewTest(TestCase):
         }
         response = self.client.post(self.url, post_data, follow=True)
         self.assertRedirects(response, reverse('restaurant_detail', kwargs={'name': self.restaurant.name}))
-        
         # Confirm the review was created
         self.assertEqual(Comment.objects.count(), 1)
         review = Comment.objects.first()

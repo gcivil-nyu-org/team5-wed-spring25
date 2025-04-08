@@ -36,7 +36,7 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, name):
     restaurant = get_object_or_404(Restaurant, name__iexact=name)
-    reviews = Comment.objects.filter(restaurant=restaurant).order_by('-posted_at')
+    reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -46,7 +46,7 @@ def restaurant_detail(request, name):
         "maps/restaurant_detail.html",
         {
             "restaurant": restaurant,
-            "reviews" : reviews,
+            "reviews": reviews,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
         },
@@ -340,7 +340,9 @@ def profile_router(request, username):
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
-        reviews = Comment.objects.filter(restaurant=user_obj.name).order_by('-posted_at') #adding reviews 
+        reviews = Comment.objects.filter(restaurant=user_obj.name).order_by(
+            "-posted_at"
+        )  # adding reviews
         return render(
             request,
             "maps/restaurant_detail.html",
@@ -354,7 +356,7 @@ def profile_router(request, username):
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
-            reviews = Comment.objects.filter(commenter=user_obj).order_by('-posted_at')
+            reviews = Comment.objects.filter(commenter=user_obj).order_by("-posted_at")
             return render(
                 request,
                 "user_profile.html",
@@ -498,7 +500,7 @@ def send_message(request, chat_user_id):
         )
 
         return redirect("chat", chat_user_id=recipient.id)
-    
+
 
 @login_required(login_url="/login/")
 def send_message_generic(request):
@@ -544,31 +546,30 @@ def delete_conversation(request, chat_user_id):
 
     return redirect("messages inbox")
 
+
 @login_required(login_url="/login/")
 def write_comment(request, id):
     restaurant_obj = get_object_or_404(Restaurant, id=id)
     author = get_object_or_404(Customer, username=request.user.username)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = Review(request.POST)
         if form.is_valid():
             review = form.save(commit=False)
             review.commenter = author
             review.restaurant = restaurant_obj
-            review.rating = request.POST.get('rating')
-            review.health_rating = request.POST.get('health_rating')
+            review.rating = request.POST.get("rating")
+            review.health_rating = request.POST.get("health_rating")
             review.save()
-            return redirect('restaurant_detail', name=restaurant_obj.name)
+            return redirect("restaurant_detail", name=restaurant_obj.name)
         else:
             print(form.errors)  # helpful for debugging
     else:
         form = Review()
 
-    context = {
-        'restaurant': restaurant_obj,
-        'form': form
-    }
-    return render(request, 'addreview.html', context)
+    context = {"restaurant": restaurant_obj, "form": form}
+    return render(request, "addreview.html", context)
+
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
