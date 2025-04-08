@@ -195,6 +195,31 @@ def delete_conversation(request, chat_user_id):
 
     return redirect("messages inbox")
 
+@login_required(login_url="/login/")
+def write_comment(request, restaurant):
+    restaurant_obj = get_object_or_404(Restaurant, id=restaurant)
+    author = get_object_or_404(Customer, username=request.user.username)
+
+    if request.method == 'POST':
+        form = Review(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.commenter = author
+            review.restaurant = restaurant_obj
+            review.rating = request.POST.get('rating')
+            review.health_rating = request.POST.get('health_rating')
+            review.save()
+            return redirect('restaurant_detail', name=restaurant_obj.name)
+        else:
+            print(form.errors)  # helpful for debugging
+    else:
+        form = Review()
+
+    context = {
+        'restaurant': restaurant_obj,
+        'form': form
+    }
+    return render(request, 'addreview.html', context)
 
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
@@ -251,47 +276,6 @@ def register_view(request):
             username=username, email=email, password=password1
         )
         customer = Customer.objects.create(email=email, username=username)
-
-        # Explicitly set authentication backend to avoid 'backend' error
-        user.backend = "django.contrib.auth.backends.ModelBackend"
-
-        # Log in the user
-        login(request, user)
-
-        return redirect("home")  # Redirect to homepage after registration
-
-    return redirect("/")
-
-
-def moderator_register(request):
-    if request.method == "POST":
-        username = request.POST.get("username")
-        email = request.POST.get("email")
-        password1 = request.POST.get("password1")
-        password2 = request.POST.get("password2")
-
-        if password1 != password2:
-            messages.error(request, "Passwords do not match", extra_tags=AUTH_MESSAGE)
-            return redirect("register")
-
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already taken", extra_tags=AUTH_MESSAGE)
-            return redirect("register")
-
-        # Ensure email is unique in both User and Moderator tables
-        if (
-            User.objects.filter(email=email).exists()
-            or Moderator.objects.filter(email=email).exists()
-        ):
-            messages.error(request, "Email is already in use", extra_tags=AUTH_MESSAGE)
-            return redirect("register")
-
-        # Create the user & moderator
-        user = User.objects.create_user(
-            username=username, email=email, password=password1
-        )
-        moderator = Moderator.objects.create(email=email, username=username)
-
         # Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
 
