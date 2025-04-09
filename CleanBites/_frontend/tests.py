@@ -720,7 +720,7 @@ class ModeratorViewTests(TestCase):
             borough=1,
             cuisine_description="Italian",
             violation_description="None",
-            geo_coords=Point(-73.966, 40.78)
+            geo_coords=Point(-73.966, 40.78),
         )
         # Create two customer records.
         self.cust_user1 = User.objects.create_user(
@@ -759,6 +759,7 @@ class ModeratorViewTests(TestCase):
             karma=0,
             restaurant=self.restaurant,
         )
+
     def test_moderator_profile_view_context(self):
         """
         Test that moderator_profile_view returns the flagged DMs and flagged Comments

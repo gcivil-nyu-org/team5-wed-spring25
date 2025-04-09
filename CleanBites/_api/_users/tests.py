@@ -35,7 +35,10 @@ class ModeratorModelTests(TestCase):
 
         # Test valid creation
         moderator = Moderator.objects.create(
-            first_name="Jane", last_name="Smith", email="jane@example.com", username="TestAdmin"
+            first_name="Jane",
+            last_name="Smith",
+            email="jane@example.com",
+            username="TestAdmin",
         )
         self.assertEqual(Moderator.objects.count(), 1)
 
