@@ -35,7 +35,7 @@ class ModeratorModelTests(TestCase):
 
         # Test valid creation
         moderator = Moderator.objects.create(
-            first_name="Jane", last_name="Smith", email="jane@example.com"
+            first_name="Jane", last_name="Smith", email="jane@example.com", username="TestAdmin"
         )
         self.assertEqual(Moderator.objects.count(), 1)
 
@@ -89,6 +89,7 @@ class FavoriteRestaurantModelTests(TestCase):
             borough=1,
             cuisine_description="Test",
             violation_description="None",
+            is_activated=True,
         )
 
     def test_required_fields(self):
