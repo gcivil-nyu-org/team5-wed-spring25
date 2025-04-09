@@ -412,7 +412,7 @@ def profile_router(request, username):
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
-        reviews = Comment.objects.filter(restaurant=user_obj.name).order_by(
+        reviews = Comment.objects.filter(restaurant=user_obj.id).order_by(
             "-posted_at"
         )  # adding reviews
         return render(
@@ -428,7 +428,9 @@ def profile_router(request, username):
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
-            reviews = Comment.objects.filter(commenter=user_obj).order_by("-posted_at")
+            reviews = Comment.objects.filter(commenter=user_obj.id).order_by(
+                "-posted_at"
+            )
             return render(
                 request,
                 "user_profile.html",
