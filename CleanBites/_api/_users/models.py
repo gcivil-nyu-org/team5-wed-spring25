@@ -7,6 +7,7 @@ class Customer(models.Model):
     last_name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=255)
+    is_activated = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -17,6 +18,7 @@ class Moderator(models.Model):
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     email = models.EmailField()
+    username = models.CharField(max_length=255)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
