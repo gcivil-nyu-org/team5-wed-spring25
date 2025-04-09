@@ -5,11 +5,12 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer, DM, Moderator
+from _api._users.models import Customer, DM, FavoriteRestaurant, Moderator
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
+from django.http import JsonResponse
 
 # Get user model
 User = get_user_model()
@@ -33,8 +34,8 @@ def home_view(request):
 
 
 @login_required(login_url="/login/")
-def restaurant_detail(request, name):
-    restaurant = get_object_or_404(Restaurant, name__iexact=name)
+def restaurant_detail(request, id):
+    restaurant = get_object_or_404(Restaurant, id=id)
 
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
@@ -296,45 +297,37 @@ def delete_conversation(request, other_user_id):
 @login_required(login_url="/login/")
 def update_restaurant_profile_view(request):
     try:
-        restaurant = Restaurant.objects.get(user=request.user)
+        restaurant = Restaurant.objects.get(username=request.user)
     except Restaurant.DoesNotExist:
         messages.error(request, "No restaurant is linked to your account.")
         return redirect("home")
 
     if request.method == "POST":
-        if "name" in request.POST:
-            restaurant.name = request.POST.get("name")
-        if "phone" in request.POST:
-            restaurant.phone = request.POST.get("phone")
-        if "street" in request.POST:
-            restaurant.street = request.POST.get("street")
-        if "building" in request.POST and request.POST.get("building").isdigit():
-            restaurant.building = int(request.POST.get("building"))
-        if "zipcode" in request.POST:
-            restaurant.zipcode = request.POST.get("zipcode")
-        if "cuisine_description" in request.POST:
-            restaurant.cuisine_description = request.POST.get("cuisine_description")
-        else:
-            restaurant.name = request.POST.get("name", restaurant.name)
-            restaurant.building = request.POST.get("building", restaurant.building)
-            restaurant.street = request.POST.get("street", restaurant.street)
-            restaurant.zipcode = request.POST.get("zipcode", restaurant.zipcode)
-            restaurant.phone = request.POST.get("phone", restaurant.phone)
-            restaurant.cuisine_description = request.POST.get(
-                "cuisine_description", restaurant.cuisine_description
-            )
-            restaurant.violation_description = request.POST.get(
-                "description", restaurant.violation_description
-            )
+        try:
+            if "name" in request.POST:
+                restaurant.name = request.POST.get("name")
+            if "phone" in request.POST:
+                restaurant.phone = request.POST.get("phone")
+            if "street" in request.POST:
+                restaurant.street = request.POST.get("street")
+            if "building" in request.POST and request.POST.get("building").isdigit():
+                restaurant.building = int(request.POST.get("building"))
+            if "zipcode" in request.POST:
+                restaurant.zipcode = request.POST.get("zipcode")
+            if "cuisine_description" in request.POST:
+                restaurant.cuisine_description = request.POST.get("cuisine_description")
 
-        if "profile_image" in request.FILES:
-            restaurant.profile_image = request.FILES["profile_image"]
+            if "profile_image" in request.FILES:
+                restaurant.profile_image = request.FILES["profile_image"]
 
-        restaurant.save()
-        messages.success(request, "Restaurant profile updated successfully!")
-        return redirect("restaurant_detail", name=restaurant.name)
+            restaurant.save()
+            messages.success(request, "Restaurant profile updated successfully!")
+            return redirect("restaurant_detail", name=restaurant.name)
+        except Exception as e:
+            messages.error(request, f"Error updating profile: {e}")
+            return redirect("home")
 
-    return redirect("home")
+    return redirect("restaurant_detail", name=restaurant.name)
 
 
 @login_required(login_url="/login/")
@@ -417,6 +410,66 @@ def debug_unread_messages(request):
                 "is_authenticated": request.user.is_authenticated,
             }
         )
+
+
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    if request.method == "POST":
+        try:
+            restaurant_id = request.POST.get("restaurant_id")
+            if not restaurant_id:
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant ID required"}, status=400
+                )
+
+            restaurant = Restaurant.objects.get(id=restaurant_id)
+            customer = Customer.objects.get(username=request.user.username)
+
+            # Check if bookmark exists
+            if FavoriteRestaurant.objects.filter(
+                customer=customer, restaurant=restaurant
+            ).exists():
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant already bookmarked"},
+                    status=400,
+                )
+
+            FavoriteRestaurant.objects.create(customer=customer, restaurant=restaurant)
+            return JsonResponse(
+                {"success": True, "message": "Bookmark added successfully"}
+            )
+
+        except Restaurant.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "Restaurant not found"}, status=404
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "User not found"}, status=404
+            )
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    try:
+        if not hasattr(request.user, "username"):
+            return JsonResponse({"error": "Customer profile missing"}, status=400)
+
+        customer = Customer.objects.get(username=request.user.username)
+
+        restaurant_ids = FavoriteRestaurant.objects.filter(
+            customer_id=customer.id
+        ).values_list("restaurant_id", flat=True)
+
+        restaurants = list(
+            Restaurant.objects.filter(id__in=restaurant_ids).values(
+                "id", "name", "phone", "cuisine_description"
+            )
+        )
+
+        return JsonResponse({"restaurants": restaurants, "count": len(restaurants)})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e), "type": type(e).__name__}, status=500)
 
 
 @login_required(login_url="/login/")
