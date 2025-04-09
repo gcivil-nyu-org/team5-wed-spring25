@@ -822,14 +822,9 @@ class ModeratorViewTests(TestCase):
         self.client.login(username="mod1", password="modpass")
         url = reverse("deactivate_account", args=["restaurant", restaurant.id])
         response = self.client.post(url)
-        # Depending on your model setup, either restaurant.user or restaurant.is_activated is used.
-        # Check for both possibilities:
-        try:
-            restaurant.user.refresh_from_db()
-            self.assertFalse(restaurant.user.is_active)
-        except AttributeError:
-            restaurant.refresh_from_db()
-            self.assertFalse(restaurant.is_activated)
+
+        restaurant.refresh_from_db()
+        self.assertFalse(restaurant.is_activated)
 
     def test_delete_comment(self):
         """
