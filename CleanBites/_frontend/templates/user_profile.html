@@ -115,7 +115,7 @@
                   {% for comment in reviews %}
                     <li class="review">
                       <div class="review-meta">
-                        <span class="review-restaurant"><a href="{% url 'restaurant_detail' comment.restaurant.name %}" class="restaurant-name">{{ comment.restaurant.name }}</a></span>
+                        <span class="review-restaurant"><a href="{% url 'restaurant_detail' comment.restaurant.id %}" class="restaurant-name">{{ comment.restaurant.name }}</a></span>
                         <span class="review-rating">Rating: {{ comment.rating }}/5</span>
                         <span class="review-health">Health Rating: {{ comment.health_rating }}/5</span>
                         <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>

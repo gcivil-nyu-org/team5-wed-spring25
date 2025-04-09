@@ -5,12 +5,13 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer, DM
+from _api._users.models import Customer, DM, FavoriteRestaurant
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
 from .forms import Review
+from django.http import JsonResponse
 
 # Get user model
 User = get_user_model()
@@ -34,9 +35,10 @@ def home_view(request):
 
 
 @login_required(login_url="/login/")
-def restaurant_detail(request, name):
-    restaurant = get_object_or_404(Restaurant, name__iexact=name)
+def restaurant_detail(request, id):
+    restaurant = get_object_or_404(Restaurant, id=id)
     reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
+
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -64,6 +66,84 @@ def user_profile(request, username):
     user = get_object_or_404(Customer, username__iexact=username)
     context = {"user": user, "has_unread_messages": has_unread_messages(request.user)}
     return render(request, "user_profile.html", context)
+
+
+@login_required(login_url="/login/")
+def messages_view(request, chat_user_id=None):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        return render(
+            request,
+            "inbox.html",
+            {
+                "conversations": [],
+                "active_chat": None,
+                "messages": [],
+                "error": "Your profile could not be found.",
+                "has_unread_messages": has_unread_messages(request.user),
+            },
+        )
+
+    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
+
+    participants = {}
+    for dm in all_dms:
+        other = dm.receiver if dm.sender == user else dm.sender
+        if other.id not in participants:
+            participants[other.id] = {
+                "id": other.id,
+                "name": other.first_name,
+                "email": other.email,
+                "avatar_url": "/static/images/avatar-placeholder.png",
+                "has_unread": False,  # Initialize unread flag
+            }
+
+    # Check for unread messages in each conversation
+    for participant_id in participants:
+        has_unread = DM.objects.filter(
+            sender_id=participant_id, receiver=user, read=False
+        ).exists()
+        participants[participant_id]["has_unread"] = has_unread
+
+    conversations = list(participants.values())
+
+    active_chat = None
+    if chat_user_id:
+        active_chat = get_object_or_404(Customer, id=chat_user_id)
+    elif conversations:
+        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
+
+    messages = []
+    if active_chat:
+        raw_messages = DM.objects.filter(
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
+        ).order_by("sent_at")
+
+        # Mark messages as read when viewed
+        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
+            read=True
+        )
+
+        for msg in raw_messages:
+            try:
+                byte_data = bytes(msg.message)
+                msg.decoded_message = byte_data.decode("utf-8")
+            except Exception as e:
+                msg.decoded_message = "[Could not decode message]"
+            messages.append(msg)
+
+    return render(
+        request,
+        "inbox.html",
+        {
+            "conversations": conversations,
+            "active_chat": active_chat,
+            "messages": messages,
+            "has_unread_messages": has_unread_messages(request.user),
+        },
+    )
 
 
 @login_required(login_url="/login/")
@@ -291,45 +371,37 @@ def delete_conversation(request, other_user_id):
 @login_required(login_url="/login/")
 def update_restaurant_profile_view(request):
     try:
-        restaurant = Restaurant.objects.get(user=request.user)
+        restaurant = Restaurant.objects.get(username=request.user)
     except Restaurant.DoesNotExist:
         messages.error(request, "No restaurant is linked to your account.")
         return redirect("home")
 
     if request.method == "POST":
-        if "name" in request.POST:
-            restaurant.name = request.POST.get("name")
-        if "phone" in request.POST:
-            restaurant.phone = request.POST.get("phone")
-        if "street" in request.POST:
-            restaurant.street = request.POST.get("street")
-        if "building" in request.POST and request.POST.get("building").isdigit():
-            restaurant.building = int(request.POST.get("building"))
-        if "zipcode" in request.POST:
-            restaurant.zipcode = request.POST.get("zipcode")
-        if "cuisine_description" in request.POST:
-            restaurant.cuisine_description = request.POST.get("cuisine_description")
-        else:
-            restaurant.name = request.POST.get("name", restaurant.name)
-            restaurant.building = request.POST.get("building", restaurant.building)
-            restaurant.street = request.POST.get("street", restaurant.street)
-            restaurant.zipcode = request.POST.get("zipcode", restaurant.zipcode)
-            restaurant.phone = request.POST.get("phone", restaurant.phone)
-            restaurant.cuisine_description = request.POST.get(
-                "cuisine_description", restaurant.cuisine_description
-            )
-            restaurant.violation_description = request.POST.get(
-                "description", restaurant.violation_description
-            )
+        try:
+            if "name" in request.POST:
+                restaurant.name = request.POST.get("name")
+            if "phone" in request.POST:
+                restaurant.phone = request.POST.get("phone")
+            if "street" in request.POST:
+                restaurant.street = request.POST.get("street")
+            if "building" in request.POST and request.POST.get("building").isdigit():
+                restaurant.building = int(request.POST.get("building"))
+            if "zipcode" in request.POST:
+                restaurant.zipcode = request.POST.get("zipcode")
+            if "cuisine_description" in request.POST:
+                restaurant.cuisine_description = request.POST.get("cuisine_description")
 
-        if "profile_image" in request.FILES:
-            restaurant.profile_image = request.FILES["profile_image"]
+            if "profile_image" in request.FILES:
+                restaurant.profile_image = request.FILES["profile_image"]
 
-        restaurant.save()
-        messages.success(request, "Restaurant profile updated successfully!")
-        return redirect("restaurant_detail", name=restaurant.name)
+            restaurant.save()
+            messages.success(request, "Restaurant profile updated successfully!")
+            return redirect("restaurant_detail", name=restaurant.id)
+        except Exception as e:
+            messages.error(request, f"Error updating profile: {e}")
+            return redirect("home")
 
-    return redirect("home")
+    return redirect("restaurant_detail", name=restaurant.id)
 
 
 @login_required(login_url="/login/")
@@ -417,137 +489,6 @@ def debug_unread_messages(request):
 
 
 @login_required(login_url="/login/")
-def messages_view(request, chat_user_id=None):
-    try:
-        user = Customer.objects.get(email=request.user.email)
-    except Customer.DoesNotExist:
-        return render(
-            request,
-            "inbox.html",
-            {
-                "conversations": [],
-                "active_chat": None,
-                "messages": [],
-                "error": "Your profile could not be found.",
-            },
-        )
-
-    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
-
-    participants = {}
-    for dm in all_dms:
-        other = dm.receiver if dm.sender == user else dm.sender
-        if other.id not in participants:
-            participants[other.id] = {
-                "id": other.id,
-                "name": other.first_name,
-                "email": other.email,
-                "avatar_url": "/static/images/avatar-placeholder.png",
-            }
-
-    conversations = list(participants.values())
-
-    active_chat = None
-    if chat_user_id:
-        active_chat = get_object_or_404(Customer, id=chat_user_id)
-    elif conversations:
-        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
-
-    messages = []
-    if active_chat:
-        raw_messages = DM.objects.filter(
-            (Q(sender=user) & Q(receiver=active_chat))
-            | (Q(sender=active_chat) & Q(receiver=user))
-        ).order_by("sent_at")
-
-        for msg in raw_messages:
-            try:
-                byte_data = bytes(msg.message)
-                msg.decoded_message = byte_data.decode("utf-8")
-            except Exception as e:
-                msg.decoded_message = "[Could not decode message]"
-            messages.append(msg)
-
-    return render(
-        request,
-        "inbox.html",
-        {
-            "conversations": conversations,
-            "active_chat": active_chat,
-            "messages": messages,
-        },
-    )
-
-
-@login_required(login_url="/login/")
-def send_message(request, chat_user_id):
-    if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
-        recipient = get_object_or_404(Customer, id=chat_user_id)
-        message_text = request.POST.get("message")
-
-        if recipient == sender:
-            messages.error(request, "You can't message yourself.")
-            return redirect("chat", chat_user_id=recipient.id)
-
-        if not message_text.strip():
-            messages.error(request, "Message cannot be empty.")
-            return redirect("chat", chat_user_id=recipient.id)
-
-        # Save the DM
-        DM.objects.create(
-            sender=sender, receiver=recipient, message=message_text.encode("utf-8")
-        )
-
-        return redirect("chat", chat_user_id=recipient.id)
-
-
-@login_required(login_url="/login/")
-def send_message_generic(request):
-    if request.method == "POST":
-        sender = Customer.objects.get(email=request.user.email)
-        recipient_email = request.POST.get("recipient")
-        message_text = request.POST.get("message")
-
-        try:
-            recipient = Customer.objects.get(email=recipient_email)
-            if recipient == sender:
-                messages.error(request, "You can't message yourself.")
-                return redirect("messages inbox")
-
-            # Create DM
-            DM.objects.create(
-                sender=sender, receiver=recipient, message=message_text.encode("utf-8")
-            )
-            return redirect("chat", chat_user_id=recipient.id)
-
-        except Customer.DoesNotExist:
-            messages.error(request, "Recipient not found.")
-            return redirect("messages inbox")
-
-
-@login_required(login_url="/login/")
-def delete_conversation(request, chat_user_id):
-    try:
-        user = Customer.objects.get(email=request.user.email)
-        other_user = get_object_or_404(Customer, id=chat_user_id)
-
-        # Delete all DMs between the two users
-        DM.objects.filter(
-            (Q(sender=user) & Q(receiver=other_user))
-            | (Q(sender=other_user) & Q(receiver=user))
-        ).delete()
-
-        messages.success(
-            request, f"Conversation with {other_user.first_name} has been deleted."
-        )
-    except Customer.DoesNotExist:
-        messages.error(request, "User not found or you are not authorized.")
-
-    return redirect("messages inbox")
-
-
-@login_required(login_url="/login/")
 def write_comment(request, id):
     restaurant_obj = get_object_or_404(Restaurant, id=id)
     author = get_object_or_404(Customer, username=request.user.username)
@@ -561,7 +502,7 @@ def write_comment(request, id):
             review.rating = request.POST.get("rating")
             review.health_rating = request.POST.get("health_rating")
             review.save()
-            return redirect("restaurant_detail", name=restaurant_obj.name)
+            return redirect("restaurant_detail", id=restaurant_obj.id)
         else:
             print(form.errors)  # helpful for debugging
     else:
@@ -569,6 +510,66 @@ def write_comment(request, id):
 
     context = {"restaurant": restaurant_obj, "form": form}
     return render(request, "addreview.html", context)
+
+
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    if request.method == "POST":
+        try:
+            restaurant_id = request.POST.get("restaurant_id")
+            if not restaurant_id:
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant ID required"}, status=400
+                )
+
+            restaurant = Restaurant.objects.get(id=restaurant_id)
+            customer = Customer.objects.get(username=request.user.username)
+
+            # Check if bookmark exists
+            if FavoriteRestaurant.objects.filter(
+                customer=customer, restaurant=restaurant
+            ).exists():
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant already bookmarked"},
+                    status=400,
+                )
+
+            FavoriteRestaurant.objects.create(customer=customer, restaurant=restaurant)
+            return JsonResponse(
+                {"success": True, "message": "Bookmark added successfully"}
+            )
+
+        except Restaurant.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "Restaurant not found"}, status=404
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "User not found"}, status=404
+            )
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    try:
+        if not hasattr(request.user, "username"):
+            return JsonResponse({"error": "Customer profile missing"}, status=400)
+
+        customer = Customer.objects.get(username=request.user.username)
+
+        restaurant_ids = FavoriteRestaurant.objects.filter(
+            customer_id=customer.id
+        ).values_list("restaurant_id", flat=True)
+
+        restaurants = list(
+            Restaurant.objects.filter(id__in=restaurant_ids).values(
+                "id", "name", "phone", "cuisine_description"
+            )
+        )
+
+        return JsonResponse({"restaurants": restaurants, "count": len(restaurants)})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e), "type": type(e).__name__}, status=500)
 
 
 # =====================================================================================
