@@ -7,8 +7,8 @@ from django.contrib.messages import get_messages
 from django.utils import timezone
 from django.utils import timezone
 
-from _api._users.models import Customer, DM, FavoriteRestaurant
-from _api._restaurants.models import Restaurant
+from _api._users.models import Moderator, Customer, DM
+from _api._restaurants.models import Restaurant, Comment
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
 from django.test import RequestFactory
