@@ -4,9 +4,10 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.contrib.messages import get_messages
+from django.utils import timezone
 
-from _api._users.models import Customer, DM
-from _api._restaurants.models import Restaurant
+from _api._users.models import Moderator, Customer, DM
+from _api._restaurants.models import Restaurant, Comment
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
 from django.test import RequestFactory
@@ -694,6 +695,137 @@ class RestaurantViewTests(TestCase):
         }
         response = self.client.post(reverse("restaurant_verify"), data)
         self.assertEqual(response.status_code, 302)
+
+
+class ModeratorViewTests(TestCase):
+    def setUp(self):
+        # Create a moderator user and associated Moderator record.
+        self.mod_user = User.objects.create_user(
+            username="mod1", email="mod1@test.com", password="modpass"
+        )
+        self.moderator = Moderator.objects.create(
+            username="mod1", email="mod1@test.com", first_name="Mod", last_name="One"
+        )
+
+        # Create two customer records.
+        self.cust_user1 = User.objects.create_user(
+            username="cust1", email="cust1@test.com", password="custpass"
+        )
+        self.customer1 = Customer.objects.create(
+            username="cust1", email="cust1@test.com", first_name="Cust", last_name="One"
+        )
+
+        self.cust_user2 = User.objects.create_user(
+            username="cust2", email="cust2@test.com", password="custpass"
+        )
+        self.customer2 = Customer.objects.create(
+            username="cust2", email="cust2@test.com", first_name="Cust", last_name="Two"
+        )
+
+        # Create a flagged DM:
+        # For example, a DM from customer1 to customer2 flagged by customer2.
+        self.flagged_dm = DM.objects.create(
+            sender=self.customer1,
+            receiver=self.customer2,
+            message=b"Flagged DM",  # Stored as bytes
+            flagged=True,
+            flagged_by=self.customer2,
+            read=False,
+        )
+
+        # Create a flagged Comment:
+        # For example, a comment by customer1 flagged by customer2.
+        self.flagged_comment = Comment.objects.create(
+            commenter=self.customer1,
+            comment="Flagged Comment",
+            posted_at=timezone.now(),
+            flagged=True,
+            flagged_by=self.customer2,
+        )
+
+        self.client = Client()
+
+    def test_moderator_profile_view_context(self):
+        """
+        Test that moderator_profile_view returns the flagged DMs and flagged Comments
+        in the context and decodes DM messages.
+        """
+        self.client.login(username="mod1", password="modpass")
+        response = self.client.get(reverse("moderator_profile"))
+        self.assertEqual(response.status_code, 200)
+
+        # Check that context contains flagged_dms and flagged_comments.
+        self.assertIn("flagged_dms", response.context)
+        self.assertIn("flagged_comments", response.context)
+        flagged_dms = response.context["flagged_dms"]
+        flagged_comments = response.context["flagged_comments"]
+
+        # Verify that our flagged DM is among those in context.
+        self.assertIn(self.flagged_dm, list(flagged_dms))
+        # Verify the DM message is decoded properly (should be "Flagged DM").
+        for dm in flagged_dms:
+            self.assertEqual(dm.decoded_message, "Flagged DM")
+
+        # Verify that our flagged comment is among those in context.
+        self.assertIn(self.flagged_comment, list(flagged_comments))
+        self.assertEqual(self.flagged_comment.comment, "Flagged Comment")
+
+    def test_deactivate_account_customer(self):
+        """
+        Test that a POST to the deactivate_account endpoint for a customer properly deactivates
+        the associated user account.
+        """
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("deactivate_account", args=["customer", self.customer1.id])
+        response = self.client.post(url)
+        # After deactivation, the Customer's linked auth user should have is_active = False.
+        self.customer1.user.refresh_from_db()
+        self.assertFalse(self.customer1.user.is_active)
+
+    def test_deactivate_account_restaurant(self):
+        """
+        Test that a POST to deactivate_account for a restaurant properly deactivates that account.
+        """
+        # Create a restaurant user and record.
+        rest_user = User.objects.create_user(
+            username="rest1", email="rest1@test.com", password="restpass"
+        )
+        restaurant = Restaurant.objects.create(
+            username="rest1",
+            name="Test Restaurant",
+            email="rest1@test.com",
+            phone="111-222-3333",
+            building=100,
+            street="Test Rd",
+            zipcode="12345",
+            borough=1,
+            cuisine_description="Test Cuisine",
+            hygiene_rating=1,
+            violation_description="None",
+            inspection_date="2023-01-01",
+            geo_coords=Point(0, 0),
+        )
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("deactivate_account", args=["restaurant", restaurant.id])
+        response = self.client.post(url)
+        # Depending on your model setup, either restaurant.user or restaurant.is_activated is used.
+        # Check for both possibilities:
+        try:
+            restaurant.user.refresh_from_db()
+            self.assertFalse(restaurant.user.is_active)
+        except AttributeError:
+            restaurant.refresh_from_db()
+            self.assertFalse(restaurant.is_activated)
+
+    def test_delete_comment(self):
+        """
+        Test that a POST to delete_comment removes the comment from the database.
+        """
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("delete_comment", args=[self.flagged_comment.id])
+        response = self.client.post(url)
+        with self.assertRaises(Comment.DoesNotExist):
+            Comment.objects.get(id=self.flagged_comment.id)
 
 
 class AuthenticationTests(TestCase):
