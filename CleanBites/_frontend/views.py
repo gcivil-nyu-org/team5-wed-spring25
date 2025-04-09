@@ -10,6 +10,7 @@ from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
+from .forms import Review
 from django.http import JsonResponse
 
 # Get user model
@@ -36,6 +37,7 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
+    reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
 
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
@@ -46,6 +48,7 @@ def restaurant_detail(request, id):
         "maps/restaurant_detail.html",
         {
             "restaurant": restaurant,
+            "reviews": reviews,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
         },
@@ -70,6 +73,84 @@ def admin_profile(request, username):
     admin = get_object_or_404(Moderator, username__iexact=username)
     context = {"admin": admin}
     return render(request, "admin_profile.html", context)
+
+
+@login_required(login_url="/login/")
+def messages_view(request, chat_user_id=None):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        return render(
+            request,
+            "inbox.html",
+            {
+                "conversations": [],
+                "active_chat": None,
+                "messages": [],
+                "error": "Your profile could not be found.",
+                "has_unread_messages": has_unread_messages(request.user),
+            },
+        )
+
+    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
+
+    participants = {}
+    for dm in all_dms:
+        other = dm.receiver if dm.sender == user else dm.sender
+        if other.id not in participants:
+            participants[other.id] = {
+                "id": other.id,
+                "name": other.first_name,
+                "email": other.email,
+                "avatar_url": "/static/images/avatar-placeholder.png",
+                "has_unread": False,  # Initialize unread flag
+            }
+
+    # Check for unread messages in each conversation
+    for participant_id in participants:
+        has_unread = DM.objects.filter(
+            sender_id=participant_id, receiver=user, read=False
+        ).exists()
+        participants[participant_id]["has_unread"] = has_unread
+
+    conversations = list(participants.values())
+
+    active_chat = None
+    if chat_user_id:
+        active_chat = get_object_or_404(Customer, id=chat_user_id)
+    elif conversations:
+        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
+
+    messages = []
+    if active_chat:
+        raw_messages = DM.objects.filter(
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
+        ).order_by("sent_at")
+
+        # Mark messages as read when viewed
+        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
+            read=True
+        )
+
+        for msg in raw_messages:
+            try:
+                byte_data = bytes(msg.message)
+                msg.decoded_message = byte_data.decode("utf-8")
+            except Exception as e:
+                msg.decoded_message = "[Could not decode message]"
+            messages.append(msg)
+
+    return render(
+        request,
+        "inbox.html",
+        {
+            "conversations": conversations,
+            "active_chat": active_chat,
+            "messages": messages,
+            "has_unread_messages": has_unread_messages(request.user),
+        },
+    )
 
 
 @login_required(login_url="/login/")
@@ -322,12 +403,12 @@ def update_restaurant_profile_view(request):
 
             restaurant.save()
             messages.success(request, "Restaurant profile updated successfully!")
-            return redirect("restaurant_detail", name=restaurant.name)
+            return redirect("restaurant_detail", name=restaurant.id)
         except Exception as e:
             messages.error(request, f"Error updating profile: {e}")
             return redirect("home")
 
-    return redirect("restaurant_detail", name=restaurant.name)
+    return redirect("restaurant_detail", name=restaurant.id)
 
 
 @login_required(login_url="/login/")
@@ -338,23 +419,31 @@ def profile_router(request, username):
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
+        reviews = Comment.objects.filter(restaurant=user_obj.id).order_by(
+            "-posted_at"
+        )  # adding reviews
         return render(
             request,
             "maps/restaurant_detail.html",
             {
                 "restaurant": user_obj,
                 "is_owner": is_owner,
+                "reviews": reviews,
                 "has_unread_messages": has_unread_messages(request.user),
             },
         )
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
+            reviews = Comment.objects.filter(commenter=user_obj.id).order_by(
+                "-posted_at"
+            )
             return render(
                 request,
                 "user_profile.html",
                 {
                     "customer": user_obj,
+                    "reviews": reviews,
                     "has_unread_messages": has_unread_messages(request.user),
                 },
             )
@@ -410,6 +499,30 @@ def debug_unread_messages(request):
                 "is_authenticated": request.user.is_authenticated,
             }
         )
+
+
+@login_required(login_url="/login/")
+def write_comment(request, id):
+    restaurant_obj = get_object_or_404(Restaurant, id=id)
+    author = get_object_or_404(Customer, username=request.user.username)
+
+    if request.method == "POST":
+        form = Review(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.commenter = author
+            review.restaurant = restaurant_obj
+            review.rating = request.POST.get("rating")
+            review.health_rating = request.POST.get("health_rating")
+            review.save()
+            return redirect("restaurant_detail", id=restaurant_obj.id)
+        else:
+            print(form.errors)  # helpful for debugging
+    else:
+        form = Review()
+
+    context = {"restaurant": restaurant_obj, "form": form}
+    return render(request, "addreview.html", context)
 
 
 @login_required(login_url="/login/")
@@ -601,7 +714,6 @@ def register_view(request):
             username=username, email=email, password=password1
         )
         customer = Customer.objects.create(email=email, username=username)
-
         # Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
 

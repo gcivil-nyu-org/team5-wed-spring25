@@ -36,6 +36,7 @@ urlpatterns = [
         name="delete_conversation",
     ),
     path("profile/", views.moderator_profile_view, name="moderator_profile"),
+    path("addreview/<int:id>/", views.write_comment, name="addreview"),
     path("profile/<str:username>/", views.profile_router, name="user_profile"),
     path(
         "debug/unread-messages/",

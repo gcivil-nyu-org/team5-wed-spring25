@@ -58,10 +58,47 @@
             color: #555;
             line-height: 1.5;
         }
+        .scrollable-reviews {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 20px;
+}
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.review {
+  border-bottom: 1px solid #ddd;
+  padding: 16px 0;
+}
+
+.review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.review-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #222;
+}
+
+.review-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+}
     </style>
 </head>
 <body>
-
 <div class="container">
     <div id = "wrapper"></div>
         <header id ="header">
@@ -70,21 +107,29 @@
         </header>
     <div id="main">
 
-        <!-- Content -->
-            <section id="content" class="main">
-
-                <!-- Text -->
-                    <section>
-                        <p>Nunc lacinia ante nunc ac lobortis. Interdum adipiscing gravida odio porttitor sem non mi integer non faucibus ornare mi ut ante amet placerat aliquet. Volutpat eu sed ante lacinia sapien lorem accumsan varius montes viverra nibh in adipiscing blandit tempus accumsan.</p>
-                        <hr />
-                        <h2>Recent User Review 1</h2>
-                        <p>User Review 1 Body</p>
-                        <h2>Recent User Review 2</h2>
-                        <p>User Review 2 Body</p>
-                        <h2>Recent User Review 3</h2>
-                        <p>User Review 3 Body</p>
-                        <hr />
-
+        <div class="reviews-section">
+            <h2>Recent Reviews for {{ user.username }}</h2>
+            {% if reviews %}
+            <div class="scrollable-reviews">
+                <ul class="review-list">
+                  {% for comment in reviews %}
+                    <li class="review">
+                      <div class="review-meta">
+                        <span class="review-restaurant"><a href="{% url 'restaurant_detail' comment.restaurant.id %}" class="restaurant-name">{{ comment.restaurant.name }}</a></span>
+                        <span class="review-rating">Rating: {{ comment.rating }}/5</span>
+                        <span class="review-health">Health Rating: {{ comment.health_rating }}/5</span>
+                        <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
+                      </div>
+                      <p class="review-title">{{ comment.title }}</p>
+                      <p class="review-text">{{ comment.comment }}</p>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% else %}
+              <p>No reviews yet for {{ user.username }}.</p>
+            {% endif %}
+          </div>
 </div>
 
 </body>

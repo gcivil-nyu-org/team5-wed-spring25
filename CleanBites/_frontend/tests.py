@@ -1180,3 +1180,73 @@ class BookmarksTests(TestCase):
         response = self.client.get(self.bookmarks_url)
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json())
+
+
+"""
+------------------------COMMENTED OUT ATM WILL FIX IN FUTURE FOR COVERAGE-------------------------------
+class WriteReviewTest(TestCase):
+    def setUp(self):
+        # Create a user and customer
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.customer = Customer.objects.create(username='testuser')
+
+        # Create a restaurant
+        self.restaurant = Restaurant.objects.create(
+            name="Testeraunt",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,  # Manhattan is typically represented as 1
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # Example NYC coordinates
+        )
+
+
+        # Login client
+        self.client = Client()
+        self.client.login(username='testuser', password='testpass')
+
+        # URL
+        self.url = reverse('restaurant_detail', args=[self.restaurant.name])
+
+    def test_get_request_returns_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'addreview.html')
+        self.assertIn('form', response.context)
+        self.assertEqual(response.context['restaurant'], self.restaurant)
+
+    def test_post_valid_review(self):
+        post_data = {
+            'text': 'Great food!',
+            'rating': '5',
+            'health_rating': '4'
+        }
+        response = self.client.post(self.url, post_data, follow=True)
+        self.assertRedirects(response, reverse('restaurant_detail', kwargs={'name': self.restaurant.name}))
+        # Confirm the review was created
+        self.assertEqual(Comment.objects.count(), 1)
+        review = Comment.objects.first()
+        self.assertEqual(review.commenter, self.customer)
+        self.assertEqual(review.restaurant, self.restaurant)
+        self.assertEqual(review.text, 'Great food!')
+        self.assertEqual(review.rating, '5')
+        self.assertEqual(review.health_rating, '4')
+
+    def test_post_invalid_review(self):
+        # Submit without required fields
+        post_data = {
+            'rating': '',  # Assume this is required in the form
+            'health_rating': '4'
+        }
+        response = self.client.post(self.url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'addreview.html')
+        self.assertFormError(response, 'form', 'text', 'This field is required.')  # Adjust to match your form field
+        self.assertEqual(Comment.objects.count(), 0)"""

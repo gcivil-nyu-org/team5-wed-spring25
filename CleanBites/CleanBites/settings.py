@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "_frontend",
+    "widget_tweaks",
     "_api",
     "_api._restaurants",
     "_api._users",
