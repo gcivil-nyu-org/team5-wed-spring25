@@ -272,7 +272,7 @@ def send_message_generic(request):
 
 
 @login_required(login_url="/login/")
-def delete_conversation(request, other_user_id):
+def delete_conversation(request, other_user_id, **kwargs):
     try:
         user = Customer.objects.get(email=request.user.email)
         other_user = Customer.objects.get(id=other_user_id)
