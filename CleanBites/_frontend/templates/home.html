@@ -116,10 +116,14 @@
         // ✅ Success
         document.getElementById('geocode-status').textContent = '✅';
       
-        if (window.map) {
-          map.setView([window.globalLAT, window.globalLNG], 12);
+        // Send location to iframe for marker + circle
+        const mapFrame = document.getElementById('map-frame');
+        if (mapFrame && mapFrame.contentWindow && typeof mapFrame.contentWindow.setCustomLocation === 'function') {
+          mapFrame.contentWindow.setCustomLocation(window.globalLAT, window.globalLNG);
+        } else {
+          console.warn("❌ setCustomLocation not available in iframe");
         }
-      
+    
         // Clear status after 3 seconds
         setTimeout(() => {
           document.getElementById('geocode-status').textContent = '';
