@@ -516,13 +516,15 @@ def deactivate_account(request, user_type, user_id):
         messages.error(request, "Invalid user type.")
         return redirect("moderator_profile")
 
-    # deactivate Django user instance
-    if hasattr(user_obj, "user"):
-        user_obj.user.is_active = False
-        user_obj.user.save()
-    else:
-        user_obj.is_activated = False
-        user_obj.save()
+    # # deactivate Django user instance
+    # if hasattr(user_obj, "user"):
+    #     user_obj.user.is_active = False
+    #     user_obj.user.save()
+    # else:
+    #     user_obj.is_activated = False
+    #     user_obj.save()
+    user_obj.is_activated = False
+    user_obj.save()
 
     messages.success(
         request, f"{user_type.capitalize()} account deactivated successfully."
