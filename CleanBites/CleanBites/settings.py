@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+# SETTINGS
 from pathlib import Path
 import os
 import environ
@@ -28,11 +28,6 @@ SECRET_KEY = "django-insecure-sv-x4mn5*eh6!r5=g@pk24v5=rc!_@8@^85rhyb*a9ho7miys^
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS
-SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
-SESSION_COOKIE_SAMESITE = "Lax"  # Helps prevent CSRF attacks
-CSRF_COOKIE_SECURE = True  # Only send CSRF cookie over HTTPS
-CSRF_COOKIE_HTTPONLY = True  # Recommended for CSRF cookies
 
 ALLOWED_HOSTS = [
     "ec2-54-190-192-108.us-west-2.compute.amazonaws.com",
@@ -174,7 +169,19 @@ CORS_ALLOWED_ORIGINS = [
     "https://accounts.google.com",
     "http://localhost:8000",
     "http://localhost",
+    "http://CleanBites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com:8000",
+    "http://cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com:8000",
+    "http://CleanBites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
+    "http://cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
 ]
+
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
+
+# For Elastic Beanstalk
+CSRF_TRUSTED_ORIGINS.extend([
+    "https://CleanBites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
+    "https://*.elasticbeanstalk.com"
+])
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"
 
@@ -197,7 +204,7 @@ AUTHENTICATION_BACKENDS = [
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {"access_type": "online"},
+        "AUTH_PARAMS": {"access_type": "online"}
     }
 }
 
