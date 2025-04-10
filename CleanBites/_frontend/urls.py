@@ -7,6 +7,7 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("register/", views.register_view, name="register"),
+    path("moderator-register/", views.moderator_register, name="moderator_register"),
     path("restaurant_register/", views.restaurant_register, name="restaurant_register"),
     path(
         "restaurant_verify/",
@@ -34,6 +35,7 @@ urlpatterns = [
         views.delete_conversation,
         name="delete_conversation",
     ),
+    path("profile/", views.moderator_profile_view, name="moderator_profile"),
     path("addreview/<int:id>/", views.write_comment, name="addreview"),
     path("profile/<str:username>/", views.profile_router, name="user_profile"),
     path(
@@ -42,4 +44,12 @@ urlpatterns = [
         name="debug_unread_messages",
     ),
     path("bookmarks/", views.bookmarks_view, name="bookmarks_view"),
+    path(
+        "deactivate/<str:user_type>/<int:user_id>/",
+        views.deactivate_account,
+        name="deactivate_account",
+    ),
+    path(
+        "delete_comment/<int:comment_id>/", views.delete_comment, name="delete_comment"
+    ),
 ]

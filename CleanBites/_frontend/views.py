@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer, DM, FavoriteRestaurant
+from _api._users.models import Customer, DM, FavoriteRestaurant, Moderator
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
@@ -66,6 +66,13 @@ def user_profile(request, username):
     user = get_object_or_404(Customer, username__iexact=username)
     context = {"user": user, "has_unread_messages": has_unread_messages(request.user)}
     return render(request, "user_profile.html", context)
+
+
+@login_required(login_url="/login/")
+def admin_profile(request, username):
+    admin = get_object_or_404(Moderator, username__iexact=username)
+    context = {"admin": admin}
+    return render(request, "admin_profile.html", context)
 
 
 @login_required(login_url="/login/")
@@ -346,7 +353,7 @@ def send_message_generic(request):
 
 
 @login_required(login_url="/login/")
-def delete_conversation(request, other_user_id):
+def delete_conversation(request, other_user_id, **kwargs):
     try:
         user = Customer.objects.get(email=request.user.email)
         other_user = Customer.objects.get(id=other_user_id)
@@ -441,7 +448,11 @@ def profile_router(request, username):
                 },
             )
         except Customer.DoesNotExist:
-            return redirect("home")  # or a 404 page
+            try:
+                admin_obj = Moderator.objects.get(username=username)
+                return redirect("moderator_profile")
+            except Moderator.DoesNotExist:
+                return redirect("home")  # or a 404 page
 
 
 @login_required(login_url="/login/")
@@ -574,6 +585,80 @@ def bookmarks_view(request):
         return JsonResponse({"error": str(e), "type": type(e).__name__}, status=500)
 
 
+@login_required(login_url="/login/")
+def moderator_profile_view(request):
+    # verify user is a moderator
+    try:
+        moderator = Moderator.objects.get(email=request.user.email)
+    except Moderator.DoesNotExist:
+        messages.error(request, "Unauthorized action.")
+        return redirect("home")
+    # query for flagged DMs and comments
+    flagged_dms = DM.objects.filter(flagged=True)
+    flagged_comments = Comment.objects.filter(flagged=True)
+
+    # decode DM messages
+    for dm in flagged_dms:
+        try:
+            dm.decoded_message = bytes(dm.message).decode("utf-8")
+        except Exception as e:
+            dm.decoded_message = "[Could not decode message]"
+
+    context = {
+        "moderator": moderator,
+        "flagged_dms": flagged_dms,
+        "flagged_comments": flagged_comments,
+    }
+    return render(request, "admin_profile.html", context)
+
+
+@login_required(login_url="/login/")
+def deactivate_account(request, user_type, user_id):
+    # verify user is a moderator
+    try:
+        moderator = Moderator.objects.get(email=request.user.email)
+    except Moderator.DoesNotExist:
+        messages.error(request, "Unauthorized action.")
+        return redirect("home")
+
+    if user_type == "customer":
+        user_obj = get_object_or_404(Customer, id=user_id)
+    elif user_type == "restaurant":
+        user_obj = get_object_or_404(Restaurant, id=user_id)
+    else:
+        messages.error(request, "Invalid user type.")
+        return redirect("moderator_profile")
+
+    # # deactivate Django user instance
+    # if hasattr(user_obj, "user"):
+    #     user_obj.user.is_active = False
+    #     user_obj.user.save()
+    # else:
+    #     user_obj.is_activated = False
+    #     user_obj.save()
+    user_obj.is_activated = False
+    user_obj.save()
+
+    messages.success(
+        request, f"{user_type.capitalize()} account deactivated successfully."
+    )
+    return redirect("moderator_profile")
+
+
+@login_required(login_url="/login/")
+def delete_comment(request, comment_id):
+    try:
+        moderator = Moderator.objects.get(email=request.user.email)
+    except Moderator.DoesNotExist:
+        messages.error(request, "Unauthorized action.")
+        return redirect("home")
+
+    comment = get_object_or_404(Comment, id=comment_id)
+    comment.delete()
+    messages.success(request, "Comment deleted successfully.")
+    return redirect("moderator_profile")
+
+
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
 # =====================================================================================
@@ -629,6 +714,46 @@ def register_view(request):
             username=username, email=email, password=password1
         )
         customer = Customer.objects.create(email=email, username=username)
+        # Explicitly set authentication backend to avoid 'backend' error
+        user.backend = "django.contrib.auth.backends.ModelBackend"
+
+        # Log in the user
+        login(request, user)
+
+        return redirect("home")  # Redirect to homepage after registration
+
+    return redirect("/")
+
+
+def moderator_register(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        email = request.POST.get("email")
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+
+        if password1 != password2:
+            messages.error(request, "Passwords do not match", extra_tags=AUTH_MESSAGE)
+            return redirect("register")
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already taken", extra_tags=AUTH_MESSAGE)
+            return redirect("register")
+
+        # Ensure email is unique in both User and Moderator tables
+        if (
+            User.objects.filter(email=email).exists()
+            or Moderator.objects.filter(email=email).exists()
+        ):
+            messages.error(request, "Email is already in use", extra_tags=AUTH_MESSAGE)
+            return redirect("register")
+
+        # Create the user & moderator
+        user = User.objects.create_user(
+            username=username, email=email, password=password1
+        )
+        moderator = Moderator.objects.create(email=email, username=username)
+
         # Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
 
