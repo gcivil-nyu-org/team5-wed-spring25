@@ -84,7 +84,11 @@
             <td>
               <form method="post" action="{% url 'deactivate_account' 'customer' comment.commenter.id %}">
                 {% csrf_token %}
-                <button type="submit">Deactivate</button>
+                <td>
+                  <button type="button" class="deactivateBtn" data-userid="{{ comment.commenter.id }}">
+                    Deactivate
+                  </button>
+                </td>
               </form>
             </td>
           </tr>
@@ -122,7 +126,11 @@
             <td>
               <form method="post" action="{% url 'deactivate_account' 'customer' dm.sender.id %}">
                 {% csrf_token %}
-                <button type="submit">Deactivate</button>
+                <td>
+                  <button type="button" class="deactivateBtn" data-userid="{{ comment.commenter.id }}">
+                    Deactivate
+                  </button>
+                </td>
               </form>
             </td>
           </tr>
@@ -134,5 +142,55 @@
       {% endif %}
     </section>
   </div>
+  <!-- Modal for deactivation reason -->
+  <div id="deactivateModal" class="modal" style="display:none; position: fixed; z-index: 1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color: rgba(0,0,0,0.4);">
+    <div class="modal-content" style="background-color: #fff; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px;">
+      <span class="close" style="float:right; font-size:28px; cursor:pointer;">&times;</span>
+      <h2>Deactivation Reason</h2>
+      <form id="deactivateForm" method="post" action="">
+        {% csrf_token %}
+        <!-- hidden field to hold the user ID -->
+        <input type="hidden" name="user_id" id="modalUserId" value="">
+        <textarea name="deactivation_reason" rows="4" cols="50" placeholder="Enter the reason for deactivation..." required></textarea>
+        <br>
+        <button type="submit" style="margin-top:10px;">Submit</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Get the modal
+      var modal = document.getElementById("deactivateModal");
+      var closeBtn = modal.querySelector(".close");
+      
+      // For all deactivate buttons
+      var deactivateButtons = document.querySelectorAll(".deactivateBtn");
+      deactivateButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          var userId = btn.getAttribute("data-userid");
+          // Set the user ID in the hidden input inside the modal
+          document.getElementById("modalUserId").value = userId;
+          // Set the form's action dynamically based on the user id
+          // Adjust the URL pattern if your URL schema differs (e.g., trailing slash, etc.)
+          document.getElementById("deactivateForm").action = "/deactivate_account/customer/" + userId + "/";
+          // Display the modal popup
+          modal.style.display = "block";
+        });
+      });
+  
+      // When the close button is clicked, hide the modal
+      closeBtn.onclick = function() {
+        modal.style.display = "none";
+      };
+  
+      // Hide modal when clicking outside of the modal content
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      };
+    });
+  </script>
+  
 </body>
 </html>

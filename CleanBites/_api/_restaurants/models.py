@@ -29,6 +29,7 @@ class Restaurant(models.Model):
         User, on_delete=models.CASCADE, related_name="restaurant", null=True, blank=True
     )
     is_activated = models.BooleanField(default=True, null=True, blank=True)
+    deactivation_reason = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"

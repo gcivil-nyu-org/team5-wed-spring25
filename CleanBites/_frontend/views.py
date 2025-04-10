@@ -67,13 +67,11 @@ def user_profile(request, username):
     context = {"user": user, "has_unread_messages": has_unread_messages(request.user)}
     return render(request, "user_profile.html", context)
 
-
 @login_required(login_url="/login/")
 def admin_profile(request, username):
     admin = get_object_or_404(Moderator, username__iexact=username)
     context = {"admin": admin}
     return render(request, "admin_profile.html", context)
-
 
 @login_required(login_url="/login/")
 def messages_view(request, chat_user_id=None):
@@ -629,20 +627,25 @@ def deactivate_account(request, user_type, user_id):
         messages.error(request, "Invalid user type.")
         return redirect("moderator_profile")
 
-    # # deactivate Django user instance
-    # if hasattr(user_obj, "user"):
-    #     user_obj.user.is_active = False
-    #     user_obj.user.save()
-    # else:
-    #     user_obj.is_activated = False
-    #     user_obj.save()
-    user_obj.is_activated = False
-    user_obj.save()
+    if request.method == "POST":
+        print("in here!")
+        deactivation_reason = request.POST.get("deactivation_reason", "")
+        user_obj.deactivation_reason = deactivation_reason
+        user_obj.is_activated = False
+        user_obj.save()
+        print("deactivation reason:", deactivation_reason)
+        messages.success(request, f"{user_type.capitalize()} account deactivated successfully.")
+        return redirect("moderator_profile")
+    else:
+        messages.error(request, "Invalid request method.")
+        return redirect("moderator_profile")
+    # user_obj.is_activated = False
+    # user_obj.save()
 
-    messages.success(
-        request, f"{user_type.capitalize()} account deactivated successfully."
-    )
-    return redirect("moderator_profile")
+    # messages.success(
+    #     request, f"{user_type.capitalize()} account deactivated successfully."
+    # )
+    # return redirect("moderator_profile")
 
 
 @login_required(login_url="/login/")

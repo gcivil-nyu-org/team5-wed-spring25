@@ -8,6 +8,7 @@ class Customer(models.Model):
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=255)
     is_activated = models.BooleanField(default=True, null=True, blank=True)
+    deactivation_reason = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
