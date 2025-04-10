@@ -8,197 +8,171 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
-    
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-
-    <!-- FontAwesome for custom icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
-
-    {% load static %}
     <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
     <link rel="stylesheet" href="{% static 'home/map.css' %}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 <body>
-    <div id="map" style="position: relative; top: 0; left: 0; height: 100%; width: 100%; padding-top: 300px;"></div>
+<div id="map" style="position: relative; top: 0; left: 0; height: 100%; width: 100%; padding-top: 300px;"></div>
 
-    <div id="side-modal" class="side-modal hidden">
-      <div class="modal-header">
+<div id="side-modal" class="side-modal hidden">
+    <div class="modal-header">
         <h2 id="modal-title">Restaurant Name</h2>
+        <button class="bookmark-btn" onclick="addBookmark()">★ Bookmark</button>
         <button onclick="closeModal()">×</button>
-      </div>
-      <div id="modal-content"></div>
     </div>
+    <div id="modal-content"></div>
+</div>
 
-    <script>
-        // Initialize the Leaflet Map
-        var map = L.map('map').setView([40.7128, -74.0060], 12);
-    
-        // Add OpenStreetMap tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-    
-        // Create a single GLOBAL layer for markers
-        window.markersLayer = L.layerGroup().addTo(map);
-    
-        // Function to create a custom FontAwesome dining icon
-        function getDiningIcon(color) {
-            return L.divIcon({
-                className: "custom-dining-marker",
-                html: `<div class="marker-icon" style="background-color: ${color};">
-                           <i class="fa-solid fa-utensils"></i>
-                       </div>`,
-                iconSize: [30, 30], // Adjust size for visibility
-                iconAnchor: [15, 30], // Align the marker properly
-                popupAnchor: [0, -30] // Adjusts popup positioning
-            });
-        }
-    
+<script>
+    const map = L.map('map').setView([40.7128, -74.0060], 12);
 
-        function closeModal() {
-          document.getElementById("side-modal").classList.remove("show");
-        }
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
+    window.markersLayer = L.layerGroup().addTo(map);
 
-        function showModal(feature) {
-          const name = feature.properties.name || "Unnamed Restaurant";
-          const cuisine = feature.properties.cuisine || "N/A";
-          const address = feature.properties.street || "N/A";
-          const rating = feature.properties.hygiene_rating || "N/A";
+    function getDiningIcon(color) {
+        return L.divIcon({
+            className: "custom-dining-marker",
+            html: `<div class="marker-icon" style="background-color: ${color};"><i class="fa-solid fa-utensils"></i></div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 30],
+            popupAnchor: [0, -30]
+        });
+    }
 
-          const modal = document.getElementById("side-modal");
-          document.getElementById("modal-title").innerHTML = `
+    function closeModal() {
+        document.getElementById("side-modal").classList.remove("show");
+    }
+
+    let currentRestaurantId = null;
+
+    function showModal(feature) {
+        currentRestaurantId = feature.properties.id;
+        const name = feature.properties.name || "Unnamed Restaurant";
+        const cuisine = feature.properties.cuisine || "N/A";
+        const address = feature.properties.street || "N/A";
+        const rating = feature.properties.hygiene_rating || "N/A";
+
+        const modal = document.getElementById("side-modal");
+        document.getElementById("modal-title").innerHTML = `
             ${name}
             <div style="font-size: 0.5em; margin-top: 4px;">
-              <a href="/restaurant/${encodeURIComponent(name)}/" style="color: #1a73e8; text-decoration: none;">
-                View Profile →
-              </a>
-            </div>
-          `;
-          document.getElementById("modal-content").innerHTML = `
+                <a href="/restaurant/${currentRestaurantId}/" style="color: #1a73e8; text-decoration: none;">View Profile →</a>
+            </div>`;
+        document.getElementById("modal-content").innerHTML = `
             <p><strong>Cuisine:</strong> ${cuisine}</p>
             <p><strong>Address:</strong> ${address}</p>
-            <p><strong>Hygiene Rating:</strong> ${getLetterGrade(feature.properties.hygiene_rating || 0, true)}</p>
-          `;
+            <p><strong>Hygiene Rating:</strong> ${getLetterGrade(rating, true)}</p>`;
+        modal.classList.add("show");
+    }
 
-          modal.classList.add("show");
-        }
+    async function addBookmark() {
+        if (!currentRestaurantId) return;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) return;
 
+        const formData = new FormData();
+        formData.append('restaurant_id', currentRestaurantId);
+        formData.append('csrfmiddlewaretoken', csrfToken);
 
-        // Function to determine marker color based on hygiene rating
-        function getColorByRating(rating) {
-            if (rating >= 28) return "#ff0000"; // Red for poor rating (8+)
-            else if (rating >= 14) return "#ffa500"; // Orange for average (5-7)
-            else return "#00cc00"; // Green for excellent (0-2)
-        }
-    
+        const res = await fetch('/bookmarks/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData,
+            credentials: 'include'
+        });
 
-        // Function to translate rating to letter grade
-        function getLetterGrade(rating, style = false) {
-          let grade = '';
-          let color = '';
+        const result = await res.json();
+        alert(result.success ? 'Bookmark added!' : (result.error || 'Failed to bookmark'));
+    }
 
-          if (rating <= 13) {
-            grade = 'A';
-            color = '#00cc00'; // Green
-          } else if (rating <= 27) {
-            grade = 'B';
-            color = '#ffa500'; // Orange/Yellow
-          } else {
-            grade = 'C';
-            color = '#ff0000'; // Red
-          }
-      
-          if (style) {
-            return `<span style="color: ${color}; font-weight: bold;">${grade}</span>`;
-          }
-      
-          return grade;
-        }
+    function getColorByRating(rating) {
+        if (rating >= 28) return "#ff0000";
+        else if (rating >= 14) return "#ffa500";
+        else return "#00cc00";
+    }
 
+    function getLetterGrade(rating, style = false) {
+        let grade = rating <= 13 ? 'A' : (rating <= 27 ? 'B' : 'C');
+        let color = rating <= 13 ? '#00cc00' : (rating <= 27 ? '#ffa500' : '#ff0000');
+        return style ? `<span style="color:${color};font-weight:bold;">${grade}</span>` : grade;
+    }
 
-        // Function to update markers dynamically without reloading the map GLOBAL
-        window.updateMarkers = function (data) {
-            console.log("🗺 Updating markers on the map...");
-    
-            // Clear old markers before adding new ones
-            window.markersLayer.clearLayers();
-    
-            if (!data.features || data.features.length === 0) {
-                console.warn("⚠️ No features found in response.");
-                return;
+    window.updateMarkers = function (data) {
+        window.markersLayer.clearLayers();
+        if (!data.features) return;
+        L.geoJSON(data, {
+            onEachFeature: function (feature, layer) {
+                layer.on('click', () => showModal(feature));
+                const name = feature.properties.name || 'UNKNOWN';
+                layer.bindTooltip(name, { direction: 'top', offset: L.point(0, -25) });
+            },
+            pointToLayer: function (feature, latlng) {
+                const rating = feature.properties.hygiene_rating || 0;
+                const color = getColorByRating(rating);
+                return L.marker(latlng, { icon: getDiningIcon(color) });
             }
-    
-            // Add new markers based on GeoJSON data
-            L.geoJSON(data, {
-                onEachFeature: function (feature, layer) {
-                  layer.on('click', () => {
-                    showModal(feature);
-                  });
-                  
-                  const name = feature.properties.name || 'UNKNOWN';
-                  layer.bindTooltip(name, {
-                    permanent: false,   
-                    direction: 'top',   
-                    className: 'marker-tooltip',
-                    offset: L.point(0, -25)
-                  });
-                },
-                pointToLayer: function (feature, latlng) {
-                  const rating = feature.properties.hygiene_rating || 0;
-                  const color = getColorByRating(rating);
-                                
-                  const marker = L.marker(latlng, {
-                    icon: getDiningIcon(color)
-                  });
-              
-                  // ⬇️ Apply fade-in class after marker is added
-                  setTimeout(() => {
-                    const icon = marker.getElement();
-                    if (icon) icon.classList.add('fade-in');
-                  }, 0);
-              
-                  return marker;
-                }
-            }).addTo(window.markersLayer);
-    
-            console.log("✅ Markers updated successfully!");
-        };
-    
+        }).addTo(window.markersLayer);
+    };
 
-        // Function to fetch data and update markers
-        function updateMapData() {
-            console.log("🔄 Fetching initial restaurant data...");
-            fetch('/api/restaurants/geojson/')
-                .then(response => response.json())
-                .then(data => {
-                    updateMarkers(data);
-                })
-                .catch(error => console.error('❌ Error loading GeoJSON:', error));
-        }
-    
+    function updateMapData() {
+        fetch('/api/restaurants/geojson/')
+            .then(r => r.json())
+            .then(updateMarkers)
+            .catch(console.error);
+    }
 
-        // Reset to init state
-        window.resetFilters = function () {
-            // Fetch all restaurant data without filters
-            fetch('/api/restaurants/geojson/')
-                .then(response => response.json())
-                .then(data => {
-                    console.log("✅ Reset GeoJSON data received:", data);
-                    window.updateMarkers(data);
+    window.resetFilters = function () {
+        fetch('/api/restaurants/geojson/')
+            .then(r => r.json())
+            .then(data => {
+                updateMarkers(data);
+                if (window.parent?.onMapResetComplete) window.parent.onMapResetComplete();
+            });
+    };
 
-                    if (window.parent && typeof window.parent.onMapResetComplete === "function") {
-                      window.parent.onMapResetComplete();
-                    }
-                })
-                .catch(error => console.error("❌ Error resetting map data:", error));
-        };
+    updateMapData();
 
+    // 🔵 Handle dynamic user location pin (initial + updated)
+    let customMarker = null;
+    let customCircle = null;
 
-        // Load initial data on page load
-        updateMapData();
-    </script>
-  
+    window.setCustomLocation = function(lat, lng) {
+        const latlng = L.latLng(lat, lng);
+        map.setView(latlng, 13);
+        if (customMarker) map.removeLayer(customMarker);
+        if (customCircle) map.removeLayer(customCircle);
+        customMarker = L.marker(latlng, {
+            icon: L.divIcon({
+                className: 'custom-dining-marker',
+                html: `<div class="marker-icon" style="background-color: #007bff;"><i class="fa-solid fa-location-dot"></i></div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            })
+        }).addTo(map);
+        customCircle = L.circle(latlng, {
+            radius: 1000,
+            color: '#007bff',
+            fillColor: '#cce5ff',
+            fillOpacity: 0.4
+        }).addTo(map);
+    };
+
+    // 🔵 On initial load, try setting to user's location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                const { latitude, longitude } = position.coords;
+                window.setCustomLocation(latitude, longitude);
+            },
+            () => console.warn("⚠️ Geolocation permission denied or unavailable.")
+        );
+    }
+</script>
 </body>
 </html>
