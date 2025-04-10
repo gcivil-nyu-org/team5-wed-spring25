@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+
 # SETTINGS
 from pathlib import Path
 import os
@@ -178,10 +179,12 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
 # For Elastic Beanstalk
-CSRF_TRUSTED_ORIGINS.extend([
-    "https://CleanBites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
-    "https://*.elasticbeanstalk.com"
-])
+CSRF_TRUSTED_ORIGINS.extend(
+    [
+        "https://CleanBites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
+        "https://*.elasticbeanstalk.com",
+    ]
+)
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"
 
@@ -202,10 +205,7 @@ AUTHENTICATION_BACKENDS = [
 
 # Google OAuth settings (replace with your client ID & secret)
 SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {"access_type": "online"}
-    }
+    "google": {"SCOPE": ["profile", "email"], "AUTH_PARAMS": {"access_type": "online"}}
 }
 
 LOGIN_URL = "/"
