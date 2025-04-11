@@ -178,76 +178,156 @@
           return grade;
         }
 
-    window.updateMarkers = function (data) {
-        window.markersLayer.clearLayers();
-        if (!data.features) return;
-        L.geoJSON(data, {
-            onEachFeature: function (feature, layer) {
-                layer.on('click', () => showModal(feature));
-                const name = feature.properties.name || 'UNKNOWN';
-                layer.bindTooltip(name, { direction: 'top', offset: L.point(0, -25) });
-            },
-            pointToLayer: function (feature, latlng) {
-                const rating = feature.properties.hygiene_rating || 0;
-                const color = getColorByRating(rating);
-                return L.marker(latlng, { icon: getDiningIcon(color) });
-            }
-        }).addTo(window.markersLayer);
-    };
+        const MIN_MARKER_ZOOM = 1;
 
-    function updateMapData() {
-        fetch('/api/restaurants/geojson/')
-            .then(r => r.json())
-            .then(updateMarkers)
-            .catch(console.error);
-    }
+        // Function to update markers dynamically without reloading the map GLOBAL
+        window.updateMarkers = function (data) {
+            console.log("🗺 Updating markers on the map...");
+    
+            // Clear old markers before adding new ones
+            window.markersLayer.clearLayers();
 
-    window.resetFilters = function () {
-        fetch('/api/restaurants/geojson/')
-            .then(r => r.json())
-            .then(data => {
-                updateMarkers(data);
-                if (window.parent?.onMapResetComplete) window.parent.onMapResetComplete();
+            const bounds = map.getBounds();
+
+            const visibleFeatures = data.features.filter(feature => {
+                const coords = feature.geometry.coordinates;
+                const latlng = L.latLng(coords[1], coords[0]);
+                return bounds.contains(latlng);
             });
-    };
 
-    updateMapData();
+            if (visibleFeatures.length === 0) {
+                console.warn("⚠️ No visible features within bounds.");
+                return;
+            }
+    
+            if (!data.features || data.features.length === 0) {
+                console.warn("⚠️ No features found in response.");
+                return;
+            }
+    
+            // Add new markers based on GeoJSON data
+            L.geoJSON({ ...data, features: visibleFeatures }, {
+                onEachFeature: function (feature, layer) {
+                  layer.on('click', () => {
+                    showModal(feature);
+                  });
+                  
+                  const name = feature.properties.name || 'UNKNOWN';
+                  layer.bindTooltip(name, {
+                    permanent: false,   
+                    direction: 'top',   
+                    className: 'marker-tooltip',
+                    offset: L.point(0, -25)
+                  });
+                },
+                pointToLayer: function (feature, latlng) {
+                  const rating = feature.properties.hygiene_rating || 0;
+                  const color = getColorByRating(rating);
+                                
+                  const marker = L.marker(latlng, {
+                    icon: getDiningIcon(color)
+                  });
+              
+                  // ⬇️ Apply fade-in class after marker is added
+                  setTimeout(() => {
+                    const icon = marker.getElement();
+                    if (icon) icon.classList.add('fade-in');
+                  }, 0);
+              
+                  return marker;
+                }
+            }).addTo(window.markersLayer);
+    
+            console.log("✅ Markers updated successfully!");
+        };
+    
 
-    // 🔵 Handle dynamic user location pin (initial + updated)
-    let customMarker = null;
-    let customCircle = null;
+        // Function to fetch data and update markers
+        function updateMapData() {
+            console.log("🔄 Fetching initial restaurant data...");
+            fetch('/api/restaurants/geojson/')
+                .then(response => response.json())
+                .then(data => {
+                    updateMarkers(data);
+                })
+                .catch(error => console.error('❌ Error loading GeoJSON:', error));
+        }
+    
 
-    window.setCustomLocation = function(lat, lng) {
-        const latlng = L.latLng(lat, lng);
-        map.setView(latlng, 13);
-        if (customMarker) map.removeLayer(customMarker);
-        if (customCircle) map.removeLayer(customCircle);
-        customMarker = L.marker(latlng, {
-            icon: L.divIcon({
-                className: 'custom-dining-marker',
-                html: `<div class="marker-icon" style="background-color: #007bff;"><i class="fa-solid fa-location-dot"></i></div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 30]
-            })
-        }).addTo(map);
-        customCircle = L.circle(latlng, {
-            radius: 1000,
-            color: '#007bff',
-            fillColor: '#cce5ff',
-            fillOpacity: 0.4
-        }).addTo(map);
-    };
+        // Reset to init state
+        window.resetFilters = function () {
+            // Fetch all restaurant data without filters
+            fetch('/api/restaurants/geojson/')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("✅ Reset GeoJSON data received:", data);
+                    window.updateMarkers(data);
 
-    // 🔵 On initial load, try setting to user's location
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            position => {
-                const { latitude, longitude } = position.coords;
-                window.setCustomLocation(latitude, longitude);
-            },
-            () => console.warn("⚠️ Geolocation permission denied or unavailable.")
-        );
-    }
-</script>
+                    if (window.parent && typeof window.parent.onMapResetComplete === "function") {
+                      window.parent.onMapResetComplete();
+                    }
+                })
+                .catch(error => console.error("❌ Error resetting map data:", error));
+        };
+
+
+        // Function to handle geocode search marker
+        window.dropGeocodeMarker = function (lat, lng) {
+            if (typeof lat === 'undefined' || typeof lng === 'undefined') {
+                console.warn("❌ globalLAT/globalLNG not set.");
+                return;
+            }
+        
+            const latlng = L.latLng(lat, lng);
+        
+            // Remove old geocode marker if it exists
+            if (window.geocodeMarker) {
+                map.removeLayer(window.geocodeMarker);
+            }
+        
+            // Create and add new geocode marker
+            window.geocodeMarker = L.marker(latlng, {
+                icon: L.divIcon({
+                    className: "custom-geocode-marker",
+                    html: `<div class="marker-icon" style="background-color: #1a73e8;">
+                               <i class="fa-solid fa-location-dot"></i>
+                           </div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                })
+            }).addTo(map);
+        
+            // Center and zoom the map
+            map.setView(latlng, 15);
+        
+            console.log("📍 Geocode marker placed at:", latlng);
+            updateMapData();
+        };
+
+        // Load initial data on page load
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const initLAT = position.coords.latitude;
+                    const initLNG = position.coords.longitude;
+                    dropGeocodeMarker(initLAT, initLNG);
+                },
+                (error) => {
+                    console.warn("⚠️ Geolocation failed, using fallback coordinates:", error);
+                    // Fallback to NYC
+                    const initLAT = 40.69455789521935;
+                    const initLNG = -73.9865872293045;
+                    dropGeocodeMarker(initLAT, initLNG);
+                },
+                { timeout: 5000 }
+            );
+        } else {
+            console.warn("⚠️ Geolocation not supported. Using fallback location.");
+            const initLAT = 40.69455789521935;
+            const initLNG = -73.9865872293045;
+            dropGeocodeMarker(initLAT, initLNG);
+        }
+    </script>
+  
 </body>
 </html>
