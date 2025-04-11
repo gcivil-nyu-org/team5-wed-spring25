@@ -189,6 +189,7 @@
           return grade;
         }
 
+        const MIN_MARKER_ZOOM = 1;
 
         // Function to update markers dynamically without reloading the map GLOBAL
         window.updateMarkers = function (data) {
@@ -196,6 +197,19 @@
     
             // Clear old markers before adding new ones
             window.markersLayer.clearLayers();
+
+            const bounds = map.getBounds();
+
+            const visibleFeatures = data.features.filter(feature => {
+                const coords = feature.geometry.coordinates;
+                const latlng = L.latLng(coords[1], coords[0]);
+                return bounds.contains(latlng);
+            });
+
+            if (visibleFeatures.length === 0) {
+                console.warn("⚠️ No visible features within bounds.");
+                return;
+            }
     
             if (!data.features || data.features.length === 0) {
                 console.warn("⚠️ No features found in response.");
@@ -203,7 +217,7 @@
             }
     
             // Add new markers based on GeoJSON data
-            L.geoJSON(data, {
+            L.geoJSON({ ...data, features: visibleFeatures }, {
                 onEachFeature: function (feature, layer) {
                   layer.on('click', () => {
                     showModal(feature);
@@ -268,8 +282,62 @@
         };
 
 
+        // Function to handle geocode search marker
+        window.dropGeocodeMarker = function (lat, lng) {
+            if (typeof lat === 'undefined' || typeof lng === 'undefined') {
+                console.warn("❌ globalLAT/globalLNG not set.");
+                return;
+            }
+        
+            const latlng = L.latLng(lat, lng);
+        
+            // Remove old geocode marker if it exists
+            if (window.geocodeMarker) {
+                map.removeLayer(window.geocodeMarker);
+            }
+        
+            // Create and add new geocode marker
+            window.geocodeMarker = L.marker(latlng, {
+                icon: L.divIcon({
+                    className: "custom-geocode-marker",
+                    html: `<div class="marker-icon" style="background-color: #1a73e8;">
+                               <i class="fa-solid fa-location-dot"></i>
+                           </div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                })
+            }).addTo(map);
+        
+            // Center and zoom the map
+            map.setView(latlng, 15);
+        
+            console.log("📍 Geocode marker placed at:", latlng);
+            updateMapData();
+        };
+
         // Load initial data on page load
-        updateMapData();
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const initLAT = position.coords.latitude;
+                    const initLNG = position.coords.longitude;
+                    dropGeocodeMarker(initLAT, initLNG);
+                },
+                (error) => {
+                    console.warn("⚠️ Geolocation failed, using fallback coordinates:", error);
+                    // Fallback to NYC
+                    const initLAT = 40.69455789521935;
+                    const initLNG = -73.9865872293045;
+                    dropGeocodeMarker(initLAT, initLNG);
+                },
+                { timeout: 5000 }
+            );
+        } else {
+            console.warn("⚠️ Geolocation not supported. Using fallback location.");
+            const initLAT = 40.69455789521935;
+            const initLNG = -73.9865872293045;
+            dropGeocodeMarker(initLAT, initLNG);
+        }
     </script>
   
 </body>
