@@ -572,17 +572,23 @@ def bookmarks_view(request):
             bookmark_id = data.get("id")  # or "bookmark_id", just keep consistent
 
             if not bookmark_id:
-                return JsonResponse({"success": False, "error": "Missing bookmark ID"}, status=400)
+                return JsonResponse(
+                    {"success": False, "error": "Missing bookmark ID"}, status=400
+                )
 
             customer = Customer.objects.get(username=request.user.username)
 
             # ✅ Delete by the bookmark's actual ID (primary key of FavoriteRestaurant)
-            deleted, _ = FavoriteRestaurant.objects.filter(id=bookmark_id, customer=customer).delete()
+            deleted, _ = FavoriteRestaurant.objects.filter(
+                id=bookmark_id, customer=customer
+            ).delete()
 
             if deleted:
                 return JsonResponse({"success": True, "message": "Bookmark deleted"})
             else:
-                return JsonResponse({"success": False, "error": "Bookmark not found"}, status=404)
+                return JsonResponse(
+                    {"success": False, "error": "Bookmark not found"}, status=404
+                )
 
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
@@ -606,15 +612,15 @@ def bookmarks_view(request):
         )
 
         # New bookmarks list: bookmark ID + restaurant ID
-        bookmarks = list(
-            favorite_qs.values("id", "restaurant_id")
-        )
+        bookmarks = list(favorite_qs.values("id", "restaurant_id"))
 
-        return JsonResponse({
-            "restaurants": restaurants,
-            "bookmarks": bookmarks,
-            "count": len(restaurants)
-        })
+        return JsonResponse(
+            {
+                "restaurants": restaurants,
+                "bookmarks": bookmarks,
+                "count": len(restaurants),
+            }
+        )
     except Exception as e:
         return JsonResponse({"error": str(e), "type": type(e).__name__}, status=500)
 
