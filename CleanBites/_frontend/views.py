@@ -12,7 +12,8 @@ from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
 from django.http import JsonResponse
-from django.db.models import Avg
+import json
+from django.views.decorators.csrf import csrf_exempt
 
 # Get user model
 User = get_user_model()
@@ -327,6 +328,122 @@ def debug_unread_messages(request):
                 "is_authenticated": request.user.is_authenticated,
             }
         )
+
+
+@login_required(login_url="/login/")
+def write_comment(request, id):
+    restaurant_obj = get_object_or_404(Restaurant, id=id)
+    author = get_object_or_404(Customer, username=request.user.username)
+
+    if request.method == "POST":
+        form = Review(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.commenter = author
+            review.restaurant = restaurant_obj
+            review.rating = request.POST.get("rating")
+            review.health_rating = request.POST.get("health_rating")
+            review.save()
+            return redirect("restaurant_detail", id=restaurant_obj.id)
+        else:
+            print(form.errors)  # helpful for debugging
+    else:
+        form = Review()
+
+    context = {"restaurant": restaurant_obj, "form": form}
+    return render(request, "addreview.html", context)
+
+
+@csrf_exempt
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    if request.method == "POST":
+        try:
+            restaurant_id = request.POST.get("restaurant_id")
+            if not restaurant_id:
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant ID required"}, status=400
+                )
+
+            restaurant = Restaurant.objects.get(id=restaurant_id)
+            customer = Customer.objects.get(username=request.user.username)
+
+            # Check if bookmark exists
+            if FavoriteRestaurant.objects.filter(
+                customer=customer, restaurant=restaurant
+            ).exists():
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant already bookmarked"},
+                    status=400,
+                )
+
+            FavoriteRestaurant.objects.create(customer=customer, restaurant=restaurant)
+            return JsonResponse(
+                {"success": True, "message": "Bookmark added successfully"}
+            )
+
+        except Restaurant.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "Restaurant not found"}, status=404
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "User not found"}, status=404
+            )
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    if request.method == "DELETE":
+        try:
+            data = json.loads(request.body)
+            bookmark_id = data.get("id")  # or "bookmark_id", just keep consistent
+
+            if not bookmark_id:
+                return JsonResponse({"success": False, "error": "Missing bookmark ID"}, status=400)
+
+            customer = Customer.objects.get(username=request.user.username)
+
+            # ✅ Delete by the bookmark's actual ID (primary key of FavoriteRestaurant)
+            deleted, _ = FavoriteRestaurant.objects.filter(id=bookmark_id, customer=customer).delete()
+
+            if deleted:
+                return JsonResponse({"success": True, "message": "Bookmark deleted"})
+            else:
+                return JsonResponse({"success": False, "error": "Bookmark not found"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    try:
+        if not hasattr(request.user, "username"):
+            return JsonResponse({"error": "Customer profile missing"}, status=400)
+
+        customer = Customer.objects.get(username=request.user.username)
+
+        # Get restaurant IDs from the user's bookmarks
+        favorite_qs = FavoriteRestaurant.objects.filter(customer=customer)
+
+        restaurant_ids = favorite_qs.values_list("restaurant_id", flat=True)
+
+        # Original restaurant list (unchanged)
+        restaurants = list(
+            Restaurant.objects.filter(id__in=restaurant_ids).values(
+                "id", "name", "phone", "cuisine_description"
+            )
+        )
+
+        # New bookmarks list: bookmark ID + restaurant ID
+        bookmarks = list(
+            favorite_qs.values("id", "restaurant_id")
+        )
+
+        return JsonResponse({
+            "restaurants": restaurants,
+            "bookmarks": bookmarks,
+            "count": len(restaurants)
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e), "type": type(e).__name__}, status=500)
 
 
 @login_required(login_url="/login/")
