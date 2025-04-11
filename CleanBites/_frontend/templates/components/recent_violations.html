@@ -148,7 +148,7 @@
   
       container.innerHTML = filtered.map(v => `
         <div class="violation-entry">
-          <a href="/restaurant/${v.id}/" style="text-decoration: none;">
+          <a href="/restaurant/${v.id}/" style="text-decoration: none; color: orange;">
             <strong>${v.name || "Unnamed Restaurant"}</strong><br/>
           </a>
           ${v.violation_description}<br/>

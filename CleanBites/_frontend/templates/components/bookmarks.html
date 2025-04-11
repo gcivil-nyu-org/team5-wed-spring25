@@ -148,8 +148,8 @@
           item.className = 'bookmark-item';
           item.innerHTML = `
             <div class="bookmark-item-header">
-              <a href="/restaurant/${restaurant.id}/" style="text-decoration: none;">
-                <div class="bookmark-name" style="color: #007bff">${restaurant.name}</div>
+              <a href="/restaurant/${restaurant.id}/" style="text-decoration: none; color: orange;">
+                <div class="bookmark-name" style="color: orange;">${restaurant.name}</div>
               </a>
               <button class="bookmark-delete" onclick="deleteBookmark(${bookmarkId}, this)">✕</button>
             </div>
