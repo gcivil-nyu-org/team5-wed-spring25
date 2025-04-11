@@ -194,10 +194,11 @@
                 <hr>
                 <div class="row">
                   <div class="col-sm-3">
-                    <h6 class="mb-0">Address</h6>
+                    <h6 class="mb-0">About me</h6>
                   </div>
                   <div class="col-sm-9 text-secondary">
-                    New York, NY
+                    <span id="field-aboutme">{{ customer.aboutme }}</span>
+                    <input type="aboutme" id="input-aboutme" class="form-control d-none mt-1" />
                   </div>
                 </div>
                 <hr>
@@ -255,15 +256,20 @@
   function enableEditing() {
     const nameText = document.getElementById('field-name').innerText.trim();
     const emailText = document.getElementById('field-email').innerText.trim();
+    const aboutmeText = document.getElementById('field-aboutme').innerText.trim();
 
     document.getElementById('input-name').value = nameText;
     document.getElementById('input-email').value = emailText;
+    document.getElementById('input-aboutme').value = aboutmeText;
 
     document.getElementById('field-name').classList.add('d-none');
     document.getElementById('input-name').classList.remove('d-none');
 
     document.getElementById('field-email').classList.add('d-none');
     document.getElementById('input-email').classList.remove('d-none');
+
+    document.getElementById('field-aboutme').classList.add('d-none');
+    document.getElementById('input-aboutme').classList.remove('d-none');
 
     document.getElementById('saveBtn').classList.remove('d-none');
   }
@@ -275,24 +281,51 @@
   function saveProfile() {
     const name = document.getElementById('input-name').value;
     const email = document.getElementById('input-email').value;
+    const aboutme = document.getElementById('input-aboutme').value;
+    const currentUsername = "{{ user.username }}";
     const csrfToken = getCSRFToken();
   
-    fetch('/profile/update/', {
+    fetch('/profileedit/', {
       method: 'POST',
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
+        'X-CSRFToken': csrfToken 
       },
-      body: JSON.stringify({ name, email })
+      body: JSON.stringify({ name, email, aboutme, currentUsername })
     })
     .then(async res => {
+      const contentType = res.headers.get("content-type");
       const text = await res.text();
-      if (!res.ok) throw new Error("Save failed. Response:\n\n" + text);
+    
+      if (!res.ok) throw new Error("Save failed:\n\n" + text);
+    
+      // Detect if we got HTML instead of JSON
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Unexpected HTML response:\n\n" + text);
+      }
+    
       return JSON.parse(text);
     })
     .then(data => {
       console.log("✅ Profile updated:", data);
+
+      // Collapse back to view mode
+      document.getElementById('field-name').classList.remove('d-none');
+      document.getElementById('input-name').classList.add('d-none');
+    
+      document.getElementById('field-email').classList.remove('d-none');
+      document.getElementById('input-email').classList.add('d-none');
+
+      document.getElementById('field-aboutme').classList.remove('d-none');
+      document.getElementById('input-aboutme').classList.add('d-none');
+    
+      document.getElementById('saveBtn').classList.add('d-none');
+    
+      // Update visible text
+      document.getElementById('field-name').textContent = data.name;
+      document.getElementById('field-email').textContent = data.email;
+      document.getElementById('field-aboutme').textContent = data.aboutme;
     })
     .catch(err => {
       alert(err.message);

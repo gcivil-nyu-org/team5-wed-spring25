@@ -50,5 +50,6 @@ urlpatterns = [
     path(
         "delete_comment/<int:comment_id>/", views.delete_comment, name="delete_comment"
     ),
+    path("profileedit/", views.update_profile, name="update_profile"),
     path("bookmarks/", views.bookmarks_view, name="bookmarks_view"),
 ]
