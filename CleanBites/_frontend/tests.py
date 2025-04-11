@@ -4,9 +4,10 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.contrib.messages import get_messages
+from django.utils import timezone
 
-from _api._users.models import Customer, DM
-from _api._restaurants.models import Restaurant
+from _api._users.models import Moderator, Customer, DM, FavoriteRestaurant
+from _api._restaurants.models import Restaurant, Comment
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
 from django.test import RequestFactory
@@ -697,6 +698,145 @@ class RestaurantViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
+class ModeratorViewTests(TestCase):
+    def setUp(self):
+        # Create a moderator user and associated Moderator record.
+        self.mod_user = User.objects.create_user(
+            username="mod1", email="mod1@test.com", password="modpass"
+        )
+        self.moderator = Moderator.objects.create(
+            username="mod1", email="mod1@test.com", first_name="Mod", last_name="One"
+        )
+        self.restaurant = Restaurant.objects.create(
+            username="res1",
+            email="res1@test.com",
+            name="Res",
+            phone="555-555-5555",
+            building=123,
+            street="Main St",
+            zipcode="12345",
+            hygiene_rating=5,
+            inspection_date="2023-01-01",
+            borough=1,
+            cuisine_description="Italian",
+            violation_description="None",
+            geo_coords=Point(-73.966, 40.78),
+        )
+        # Create two customer records.
+        self.cust_user1 = User.objects.create_user(
+            username="cust1", email="cust1@test.com", password="custpass"
+        )
+        self.customer1 = Customer.objects.create(
+            username="cust1", email="cust1@test.com", first_name="Cust", last_name="One"
+        )
+
+        self.cust_user2 = User.objects.create_user(
+            username="cust2", email="cust2@test.com", password="custpass"
+        )
+        self.customer2 = Customer.objects.create(
+            username="cust2", email="cust2@test.com", first_name="Cust", last_name="Two"
+        )
+
+        # Create a flagged DM:
+        # For example, a DM from customer1 to customer2 flagged by customer2.
+        self.flagged_dm = DM.objects.create(
+            sender=self.customer1,
+            receiver=self.customer2,
+            message=b"Flagged DM",  # Stored as bytes
+            flagged=True,
+            flagged_by=self.moderator,
+            read=False,
+        )
+
+        # Create a flagged Comment:
+        # For example, a comment by customer1 flagged by customer2.
+        self.flagged_comment = Comment.objects.create(
+            commenter=self.customer1,
+            comment=b"Flagged Comment",
+            posted_at=timezone.now(),
+            flagged=True,
+            flagged_by=self.moderator,
+            karma=0,
+            restaurant=self.restaurant,
+        )
+
+    def test_moderator_profile_view_context(self):
+        """
+        Test that moderator_profile_view returns the flagged DMs and flagged Comments
+        in the context and decodes DM messages.
+        """
+        self.client.login(username="mod1", password="modpass")
+        response = self.client.get(reverse("moderator_profile"))
+        self.assertEqual(response.status_code, 200)
+
+        # Check that context contains flagged_dms and flagged_comments.
+        self.assertIn("flagged_dms", response.context)
+        self.assertIn("flagged_comments", response.context)
+        flagged_dms = response.context["flagged_dms"]
+        flagged_comments = response.context["flagged_comments"]
+
+        # Verify that our flagged DM is among those in context.
+        self.assertIn(self.flagged_dm, list(flagged_dms))
+        # Verify the DM message is decoded properly (should be "Flagged DM").
+        for dm in flagged_dms:
+            self.assertEqual(dm.decoded_message, "Flagged DM")
+
+        # Verify that our flagged comment is among those in context.
+        self.assertIn(self.flagged_comment, list(flagged_comments))
+        self.assertEqual(self.flagged_comment.comment, b"Flagged Comment")
+
+    def test_deactivate_account_customer(self):
+        """
+        Test that a POST to the deactivate_account endpoint for a customer properly deactivates
+        the associated user account.
+        """
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("deactivate_account", args=["customer", self.customer1.id])
+        response = self.client.post(url)
+        self.customer1.refresh_from_db()
+        self.assertFalse(self.customer1.is_activated)
+
+    def test_deactivate_account_restaurant(self):
+        """
+        Test that a POST to deactivate_account for a restaurant properly deactivates that account.
+        """
+        # Create a restaurant user and record.
+        rest_user = User.objects.create_user(
+            username="rest1", email="rest1@test.com", password="restpass"
+        )
+        restaurant = Restaurant.objects.create(
+            username="rest1",
+            name="Test Restaurant",
+            email="rest1@test.com",
+            phone="111-222-3333",
+            building=100,
+            street="Test Rd",
+            zipcode="12345",
+            borough=1,
+            cuisine_description="Test Cuisine",
+            hygiene_rating=1,
+            violation_description="None",
+            inspection_date="2023-01-01",
+            geo_coords=Point(0, 0),
+        )
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("deactivate_account", args=["restaurant", restaurant.id])
+        response = self.client.post(url)
+
+        restaurant.refresh_from_db()
+        self.assertFalse(restaurant.is_activated)
+
+    def test_delete_comment(self):
+        """
+        Test that a POST to delete_comment removes the comment from the database.
+        """
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("delete_comment", args=[self.flagged_comment.id])
+        response = self.client.post(url)
+        with self.assertRaises(Comment.DoesNotExist):
+            Comment.objects.get(id=self.flagged_comment.id)
+
+
 class AuthenticationTests(TestCase):
     """Tests for user authentication views (login, logout, register)"""
 
@@ -943,3 +1083,166 @@ class RestaurantVerificationTests(TestCase):
             follow=True,
         )
         self.assertContains(response, "Selected restaurant does not exist.")
+
+
+class BookmarksTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="user1", password="testpass123", email="user1@test.com"
+        )
+        self.customer = Customer.objects.create(
+            username="user1", email="user1@test.com", first_name="User", last_name="One"
+        )
+        self.restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,  # Manhattan
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+        self.bookmarks_url = reverse("bookmarks_view")
+
+    def test_bookmark_view_requires_login(self):
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 302)  # Should redirect to login
+
+    def test_add_bookmark_success(self):
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            self.bookmarks_url, {"restaurant_id": self.restaurant.id}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.assertTrue(
+            FavoriteRestaurant.objects.filter(
+                customer=self.customer, restaurant=self.restaurant
+            ).exists()
+        )
+
+    def test_add_duplicate_bookmark(self):
+        FavoriteRestaurant.objects.create(
+            customer=self.customer, restaurant=self.restaurant
+        )
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            self.bookmarks_url, {"restaurant_id": self.restaurant.id}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["success"])
+
+    def test_add_bookmark_invalid_restaurant(self):
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            self.bookmarks_url, {"restaurant_id": 9999}  # Non-existent ID
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()["success"])
+
+    def test_get_bookmarks_empty(self):
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["restaurants"]), 0)
+        self.assertEqual(data["count"], 0)
+
+    def test_get_bookmarks_with_data(self):
+        FavoriteRestaurant.objects.create(
+            customer=self.customer, restaurant=self.restaurant
+        )
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["restaurants"]), 1)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["restaurants"][0]["name"], "Test Restaurant")
+
+    def test_missing_customer_profile(self):
+        # Create user without customer profile
+        user2 = User.objects.create_user(
+            username="user2", password="testpass123", email="testuser2@test.com"
+        )
+        self.client.login(username="user2", password="testpass123")
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("error", response.json())
+
+
+"""
+------------------------COMMENTED OUT ATM WILL FIX IN FUTURE FOR COVERAGE-------------------------------
+class WriteReviewTest(TestCase):
+    def setUp(self):
+        # Create a user and customer
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.customer = Customer.objects.create(username='testuser')
+
+        # Create a restaurant
+        self.restaurant = Restaurant.objects.create(
+            name="Testeraunt",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,  # Manhattan is typically represented as 1
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),  # Example NYC coordinates
+        )
+
+
+        # Login client
+        self.client = Client()
+        self.client.login(username='testuser', password='testpass')
+
+        # URL
+        self.url = reverse('restaurant_detail', args=[self.restaurant.name])
+
+    def test_get_request_returns_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'addreview.html')
+        self.assertIn('form', response.context)
+        self.assertEqual(response.context['restaurant'], self.restaurant)
+
+    def test_post_valid_review(self):
+        post_data = {
+            'text': 'Great food!',
+            'rating': '5',
+            'health_rating': '4'
+        }
+        response = self.client.post(self.url, post_data, follow=True)
+        self.assertRedirects(response, reverse('restaurant_detail', kwargs={'name': self.restaurant.name}))
+        # Confirm the review was created
+        self.assertEqual(Comment.objects.count(), 1)
+        review = Comment.objects.first()
+        self.assertEqual(review.commenter, self.customer)
+        self.assertEqual(review.restaurant, self.restaurant)
+        self.assertEqual(review.text, 'Great food!')
+        self.assertEqual(review.rating, '5')
+        self.assertEqual(review.health_rating, '4')
+
+    def test_post_invalid_review(self):
+        # Submit without required fields
+        post_data = {
+            'rating': '',  # Assume this is required in the form
+            'health_rating': '4'
+        }
+        response = self.client.post(self.url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'addreview.html')
+        self.assertFormError(response, 'form', 'text', 'This field is required.')  # Adjust to match your form field
+        self.assertEqual(Comment.objects.count(), 0)"""

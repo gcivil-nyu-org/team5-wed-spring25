@@ -18,6 +18,7 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
     <link rel="stylesheet" href="{% static 'home/map.css' %}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 <body>
     <div id="map" style="position: relative; top: 0; left: 0; height: 100%; width: 100%; padding-top: 300px;"></div>
@@ -25,6 +26,7 @@
     <div id="side-modal" class="side-modal hidden">
       <div class="modal-header">
         <h2 id="modal-title">Restaurant Name</h2>
+        <button class="bookmark-btn" onclick="addBookmark()">★ Bookmark</button>
         <button onclick="closeModal()">×</button>
       </div>
       <div id="modal-content"></div>
@@ -61,28 +63,98 @@
         }
 
 
+        let currentRestaurantId = null;
+
         function showModal(feature) {
-          const name = feature.properties.name || "Unnamed Restaurant";
-          const cuisine = feature.properties.cuisine || "N/A";
-          const address = feature.properties.street || "N/A";
-          const rating = feature.properties.hygiene_rating || "N/A";
+            currentRestaurantId = feature.properties.id;
+            const name = feature.properties.name || "Unnamed Restaurant";
+            const cuisine = feature.properties.cuisine || "N/A";
+            const address = feature.properties.street || "N/A";
+            const rating = feature.properties.hygiene_rating || "N/A";
 
-          const modal = document.getElementById("side-modal");
-          document.getElementById("modal-title").innerHTML = `
-            ${name}
-            <div style="font-size: 0.5em; margin-top: 4px;">
-              <a href="/restaurant/${feature.properties.id}/" style="color: #1a73e8; text-decoration: none;">
-                View Profile →
-              </a>
-            </div>
-          `;
-          document.getElementById("modal-content").innerHTML = `
-            <p><strong>Cuisine:</strong> ${cuisine}</p>
-            <p><strong>Address:</strong> ${address}</p>
-            <p><strong>Hygiene Rating:</strong> ${getLetterGrade(feature.properties.hygiene_rating || 0, true)}</p>
-          `;
+            const modal = document.getElementById("side-modal");
+            document.getElementById("modal-title").innerHTML = `
+                ${name}
+                <div style="font-size: 0.5em; margin-top: 4px;">
+                    <a href="/restaurant/${currentRestaurantId}/" style="color: #1a73e8; text-decoration: none;">
+                        View Profile →
+                    </a>
+                </div>
+            `;
+            document.getElementById("modal-content").innerHTML = `
+                <p><strong>Cuisine:</strong> ${cuisine}</p>
+                <p><strong>Address:</strong> ${address}</p>
+                <p><strong>Hygiene Rating:</strong> ${getLetterGrade(rating, true)}</p>
+            `;
 
-          modal.classList.add("show");
+            modal.classList.add("show");
+        }
+
+        async function addBookmark() {
+            if (!currentRestaurantId) return;
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!csrfToken) {
+                    showToast('Session expired - please refresh the page');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('restaurant_id', currentRestaurantId);
+                formData.append('csrfmiddlewaretoken', csrfToken);
+
+                const response = await fetch('/bookmarks/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+
+                const result = await response.json();
+                showToast(result.success ? 'Bookmark added!' : (result.error || 'Failed to bookmark'));
+                
+                if (result.success) {
+                    const btn = document.querySelector('.bookmark-btn');
+                    if (btn) btn.classList.add('bookmarked');
+                }
+            } catch (error) {
+                console.error('Bookmark error:', error);
+                showToast('Error: Please try again');
+            }
+        }
+
+        function getCSRFToken() {
+            // Try to get from meta tag
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) return metaTag.content;
+            
+            // Fallback to cookie
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            return cookieValue || '';
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
         }
 
 
