@@ -33,6 +33,18 @@
       object-fit: cover;
       border-radius: 12px;
     }
+    .average-ratings {
+    margin: 10px 0 20px;
+    font-size: 1rem;
+    color: #444;
+  }
+  .average-ratings i {
+    margin-right: 2px;
+  }
+  .avg-number {
+    margin-left: 8px;
+    font-weight: bold;
+  }    
     h1 {
       color: #1a73e8;
       margin: 15px 0 10px;
@@ -108,6 +120,14 @@
       border-radius: 6px;
       cursor: pointer;
     }
+
+    .text-yellow {
+  color: #f5b301;
+}
+.text-green {
+  color: #28a745;
+}
+
   </style>
 </head>
 <body>
@@ -129,6 +149,23 @@
   </div>
   <div class="info"><i class="fa-solid fa-file"></i><strong>Violation Description:</strong> {{ restaurant.violation_description }}</div>
   <div class="info"><i class="fa-solid fa-calendar-days"></i><strong>Inspection Date:</strong> {{ restaurant.inspection_date }}</div>
+  <div class="average-ratings">
+    <p>
+      <strong>Average Rating:</strong>
+      {% for i in "12345" %}
+      <i class="fa-star {% if avg_rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
+      {% endfor %}
+      <span class="avg-number">({{ avg_rating|floatformat:1 }}/5)</span>
+    </p>
+    <p>
+      <strong>Average Health Rating:</strong>
+      {% for i in "12345" %}
+      <i class="fa-star {% if avg_health|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
+      {% endfor %}
+      <span class="avg-number">({{ avg_health|floatformat:1 }}/5)</span>
+    </p>
+  </div>
+  
   {% if is_owner %}
     <button id="edit-profile-btn">Edit Profile</button>
   {% endif %}
@@ -154,7 +191,7 @@
 
       <label>Cuisine:</label>
       <input type="text" name="cuisine_description" value="{{ restaurant.cuisine_description }}">
-
+      
       <!-- <label>Description:</label>
       <textarea name="violation_description">{{ restaurant.violation_description }}</textarea> -->
 

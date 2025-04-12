@@ -96,6 +96,13 @@
   line-height: 1.6;
   color: #333;
 }
+
+.text-yellow {
+    color: #f5b301; /* Gold star */
+}
+.text-green {
+    color: #28a745; /* Health rating */
+}
     </style>
 </head>
 <body>
@@ -116,9 +123,20 @@
                     <li class="review">
                       <div class="review-meta">
                         <span class="review-restaurant"><a href="{% url 'restaurant_detail' comment.restaurant.id %}" class="restaurant-name">{{ comment.restaurant.name }}</a></span>
-                        <span class="review-rating">Rating: {{ comment.rating }}/5</span>
-                        <span class="review-health">Health Rating: {{ comment.health_rating }}/5</span>
-                        <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
+                        
+                        <span class="review-rating">
+                            Rating:
+                            {% for i in "12345" %}
+                              <i class="fa-star {% if comment.rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
+                            {% endfor %}
+                          </span>
+                          
+                          <span class="review-health">
+                            Health:
+                            {% for i in "12345" %}
+                              <i class="fa-star {% if comment.health_rating|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
+                            {% endfor %}
+                          </span>                        <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
                       </div>
                       <p class="review-title">{{ comment.title }}</p>
                       <p class="review-text">{{ comment.comment }}</p>
