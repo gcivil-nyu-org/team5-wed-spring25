@@ -41,7 +41,7 @@
             const bookmarkId = bookmarkMap[restaurant.id];
   
             const li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-start';
+            li.className = 'bookmark-item list-group-item d-flex justify-content-between align-items-start';
             li.innerHTML = `
               <div class="ms-2 me-auto">
                 <div class="fw-bold">
@@ -51,6 +51,9 @@
                 </div>
                 <small class="text-muted">${restaurant.address || ''}</small>
               </div>
+              <button class="btn btn-sm btn-outline-danger bookmark-delete" onclick="deleteBookmark(${bookmarkId}, this)">
+                ✕
+              </button>
             `;
             list.appendChild(li);
           });
@@ -63,5 +66,25 @@
             '<p class="text-muted">Error loading bookmarks.</p>';
         });
     });
+
+    function deleteBookmark(bookmarkId, buttonElement) {
+      fetch('/bookmarks/', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: bookmarkId }),
+        credentials: 'include'  // still include cookies/session
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to delete");
+        const item = buttonElement.closest('.bookmark-item');
+        if (item) item.remove();
+      })
+      .catch(err => {
+        console.error("Delete failed:", err);
+        alert("Failed to remove bookmark.");
+      });
+    }
   </script>
   
