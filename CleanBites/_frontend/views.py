@@ -610,6 +610,32 @@ def delete_comment(request, comment_id):
     return redirect("moderator_profile")
 
 
+@login_required(login_url="/login/")
+def global_search(request):
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return JsonResponse({"results": []})
+
+    customers = Customer.objects.filter(username__icontains=query).values("username")[:5]
+    restaurants = Restaurant.objects.filter(name__icontains=query).values("id", "name", "username")[:5]
+
+    results = []
+
+    for c in customers:
+        results.append({
+            "label": f"👤 {c['username']}",
+            "url": f"/profile/{c['username']}/"
+        })
+
+    for r in restaurants:
+        results.append({
+            "label": f"🍽️ {r['name']}",
+            "url": f"/restaurant/{r['id']}/"
+        })
+
+    return JsonResponse({"results": results})
+
+
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
 # =====================================================================================
