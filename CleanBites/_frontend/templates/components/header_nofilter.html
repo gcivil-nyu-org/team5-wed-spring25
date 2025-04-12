@@ -45,6 +45,28 @@
       <h2><a href="{% url 'home' %}" style="text-decoration: none; color: inherit;">CleanBites</a></h2>
     </div>
 
+    <div class="navbar-center position-relative" style="flex-grow: 1; max-width: 500px; margin: 0 auto;">
+      <form id="global-search-form" action="/search/" method="get" class="d-flex position-relative">
+        <input
+          type="text"
+          name="q"
+          id="global-search-input"
+          class="form-control me-2"
+          placeholder="Search customers or restaurants..."
+          aria-label="Global Search"
+          autocomplete="off"
+        >
+        <button class="btn btn-outline-primary" type="submit">Search</button>
+      </form>
+    
+      <!-- 🔍 Suggestions dropdown -->
+      <div
+        id="search-suggestions"
+        class="list-group position-absolute w-100 mt-1 shadow-sm"
+        style="z-index: 1000; display: none;"
+      ></div>
+    </div>
+
     <div class="navbar-right">
       <span class="username" style="color: rgb(231, 142, 0);">{{ user.username }}</span>
       <div class="profile-dropdown">
@@ -67,3 +89,58 @@
       </div>
     </div>    
 </header>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('global-search-input');
+    const suggestions = document.getElementById('search-suggestions');
+  
+    let timeout = null;
+  
+    input.addEventListener('input', () => {
+      clearTimeout(timeout);
+      const query = input.value.trim();
+  
+      if (!query) {
+        suggestions.style.display = 'none';
+        suggestions.innerHTML = '';
+        return;
+      }
+  
+      timeout = setTimeout(() => {
+        fetch(`/global-search/?q=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => {
+            suggestions.innerHTML = '';
+            suggestions.style.display = 'block';
+  
+            if (!data.results || data.results.length === 0) {
+              suggestions.innerHTML = '<div class="list-group-item text-muted">No matches found</div>';
+              return;
+            }
+  
+            data.results.forEach(item => {
+              const link = document.createElement('a');
+              link.href = item.url;
+              link.className = 'list-group-item list-group-item-action';
+              link.textContent = item.label;
+              suggestions.appendChild(link);
+            });
+          })
+          .catch(err => {
+            console.error('Search error:', err);
+            suggestions.innerHTML = '<div class="list-group-item text-danger">Error loading results</div>';
+            suggestions.style.display = 'block';
+          });
+      }, 300); // debounce to reduce server load
+    });
+  
+    // Hide dropdown on outside click
+    document.addEventListener('click', (e) => {
+      if (!suggestions.contains(e.target) && e.target !== input) {
+        suggestions.style.display = 'none';
+      }
+    });
+  });
+</script>
+  
