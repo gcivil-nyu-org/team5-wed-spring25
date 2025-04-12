@@ -65,16 +65,22 @@ def dynamic_map_view(request):
 
 @login_required(login_url="/login/")
 def user_profile(request, username):
-    user = get_object_or_404(Customer, username__iexact=username)
+    user = get_object_or_404(User, username=username)
     customer = None
     try:
         Customer.objects.get(username=username)
     except Customer.DoesNotExist:
         customer = None
+
+    is_owner = False
+    if request.user.is_authenticated and request.user.username == user.username:
+        is_owner = True
+
     context = {
-        "user": user,
+        "profile_user": user,
         "has_unread_messages": has_unread_messages(request.user),
         "customer": customer,
+        "is_owner": is_owner,
     }
     return render(request, "user_profile.html", context)
 
@@ -446,6 +452,15 @@ def profile_router(request, username):
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
+            profile_user = get_object_or_404(User, username=username)
+            is_owner = False
+
+            if (
+                request.user.is_authenticated
+                and request.user.username == user_obj.username
+            ):
+                is_owner = True
+
             reviews = Comment.objects.filter(commenter=user_obj.id).order_by(
                 "-posted_at"
             )
@@ -454,6 +469,8 @@ def profile_router(request, username):
                 "user_profile.html",
                 {
                     "customer": user_obj,
+                    "profile_user": profile_user,
+                    "is_owner": is_owner,
                     "reviews": reviews,
                     "has_unread_messages": has_unread_messages(request.user),
                 },
