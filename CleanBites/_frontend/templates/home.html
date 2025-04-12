@@ -48,6 +48,13 @@
   </style>
 </head>
 <body>
+  <script>
+    window.goToProfilePage = function (restaurantId) {
+      if (!restaurantId) return;
+      const url = `/restaurant/${restaurantId}/`;
+      window.location.href = url; // full-page redirect
+    };
+  </script>
   {% include 'components/header_nofilter.html' %}
   
   <main>
@@ -206,7 +213,7 @@
     document.getElementById('search-form').addEventListener('submit', function (e) {
       e.preventDefault(); 
       performSearch();    
-    });
+    }); 
   </script>
 
 </body>
