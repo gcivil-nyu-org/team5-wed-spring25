@@ -76,7 +76,10 @@ def user_profile(request, username):
     if request.user.is_authenticated and request.user.username == user.username:
         is_owner = True
 
-    reviews = Comment.objects.filter(commenter=customer.id).order_by("-posted_at")
+    if customer:
+        reviews = Comment.objects.filter(commenter=customer.id).order_by("-posted_at")
+    else:
+        reviews = []
 
     context = {
         "profile_user": user,
