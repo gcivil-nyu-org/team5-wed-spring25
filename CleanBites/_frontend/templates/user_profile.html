@@ -208,12 +208,14 @@
                   </div>
                 </div>
                 <hr>
+                {% if is_owner %}
                 <div class="row">
                   <div class="col-sm-12">
                     <button class="btn btn-outline-primary" onclick="enableEditing()">Edit</button>
                     <button class="btn btn-success d-none" id="saveBtn" onclick="saveProfile()">Save</button>
                   </div>
                 </div>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -252,7 +254,9 @@
           </div>
        </div> 
        <div class="reviews-section" style="padding-top: 35px;">
+        {% if is_owner %}
         {% include 'components/bookmarks_card.html' %}
+        {% endif %}
        </div> 
     </div>
   </div>
