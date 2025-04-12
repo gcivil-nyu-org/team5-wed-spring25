@@ -60,42 +60,25 @@ body {
     color: #333;
 }
 
-.rating-section, .health-rating-section, .fieldWrapper {
-    margin-bottom: 20px;
+.radio-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
 }
 
-/* Star Rating */
-.star-rating label {
-    margin-right: 10px;
+.radio-group label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     cursor: pointer;
 }
 
-.star-rating input {
-    display: none;
-}
-
-.star-rating i {
-    font-size: 24px;
-    color: #ddd;
-}
-
-.star-rating input:checked ~ i {
-    color: #ffcc00;
-}
-
-/* Health Rating */
-.price-rating label {
-    margin-right: 20px;
-}
-
-.price-rating .price {
-    font-size: 20px;
+.rating-number {
+    margin-top: 5px;
+    font-size: 14px;
     color: #333;
-}
-
-.price-rating i {
-    color: #28a745;
-    margin-right: 5px;
 }
 
 /* Input Fields */
@@ -153,6 +136,52 @@ body {
     max-width: 600px;
 }
 
+.star-rating {
+    direction: rtl;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 28px;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #ffcc00;
+}
+.health-rating {
+    direction: rtl;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.health-rating input {
+    display: none;
+}
+
+.health-rating label {
+    font-size: 28px;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.health-rating input:checked ~ label,
+.health-rating label:hover,
+.health-rating label:hover ~ label{
+    color: #28a745; /* Health rating */
+}
 </style>
 <div id="outer" class="outer-container">
     <div id="wrapper" class="wrapper-container">
@@ -170,44 +199,22 @@ body {
             <!-- Rating Section -->
             <div class="rating-section">
                 <h6 class="section-title">Your overall rating of the restaurant</h6>
-                    <label class="rating">
-                        <input type="radio" name="rating" value="1" checked>
-                    </label>
-                    <label class="rating">
-                        <input type="radio" name="rating" value="2">
-                    </label>
-                    <label class="rating">
-                        <input type="radio" name="rating" value="3">
-                    </label>
-                    <label class="rating">
-                        <input type="radio" name="rating" value="4">
-                    </label>
-                    <label class="rating">
-                        <input type="radio" name="rating" value="5">
-                    </label>
+                <div class="star-rating">
+                    {% for i in "54321" %}
+                    <input type="radio" id="rating{{ i }}" name="rating" value="{{ i }}">
+                    <label for="rating{{ i }}" title="{{ i }} stars">&#9733;</label>
+                    {% endfor %}
                 </div>
             </div>
-
-            <hr class="divider">
-
+            
             <!-- Health Rating Section -->
             <div class="health-rating-section">
                 <h6 class="section-title">How clean is this restaurant?</h6>
-                    <label>
-                        <input type="radio" name="health_rating" value="1" checked>
-                    </label>
-                    <label>
-                        <input type="radio" name="health_rating" value="2">
-                    </label>
-                    <label>
-                        <input type="radio" name="health_rating" value="3">
-                    </label>
-                    <label>
-                        <input type="radio" name="health_rating" value="4">
-                    </label>
-                    <label>
-                        <input type="radio" name="health_rating" value="5">
-                    </label>
+                <div class="health-rating">
+                    {% for i in "54321" %}
+                    <input type="radio" id="health_rating{{ i }}" name="health_rating" value="{{ i }}">
+                    <label for="health_rating{{ i }}" title="{{ i }} stars">&#9733;</label>
+                    {% endfor %}
                 </div>
             </div>
 

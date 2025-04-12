@@ -1,5 +1,6 @@
-# env
+1# env
 .env
+Dockerfile
 __pycache__/
 # Elastic Beanstalk Files
 .elasticbeanstalk/*

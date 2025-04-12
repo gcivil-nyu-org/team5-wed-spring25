@@ -12,6 +12,7 @@ from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
 from django.http import JsonResponse
+from django.db.models import Avg
 
 # Get user model
 User = get_user_model()
@@ -37,7 +38,9 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
-
+    reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
+    avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+    avg_health = reviews.aggregate(Avg('health_rating'))['health_rating__avg']
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -48,6 +51,8 @@ def restaurant_detail(request, id):
         {
             "restaurant": restaurant,
             "reviews": reviews,
+            'avg_rating': avg_rating or 0,
+            'avg_health': avg_health or 0,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
         },
