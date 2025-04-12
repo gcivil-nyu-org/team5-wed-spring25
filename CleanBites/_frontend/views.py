@@ -627,7 +627,7 @@ def global_search(request):
 
     for c in customers:
         results.append(
-            {"label": f"👤 {c['username']}", "url": f"/profile/{c['username']}/"}
+            {"label": f"👤 {c['username']}", "url": f"/user/{c['username']}/"}
         )
 
     for r in restaurants:
