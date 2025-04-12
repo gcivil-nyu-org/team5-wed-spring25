@@ -76,7 +76,7 @@
             document.getElementById("modal-title").innerHTML = `
                 ${name}
                 <div style="font-size: 0.5em; margin-top: 4px;">
-                    <a href="/restaurant/${currentRestaurantId}/" target="_blank" style="color: #1a73e8; text-decoration: none;">
+                    <a href="#" onclick="window.parent.goToProfilePage(currentRestaurantId); return false;" style="color: #1a73e8; text-decoration: none;">
                         View Profile →
                     </a>
                 </div>
