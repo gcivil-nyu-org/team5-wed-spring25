@@ -1425,7 +1425,10 @@ class SearchTests(TestCase):
             username="searchuser", email="search@test.com", password="searchpass"
         )
         self.customer = Customer.objects.create(
-            username="CoolCustomer", email="cool@test.com", first_name="Cool", last_name="Customer"
+            username="CoolCustomer",
+            email="cool@test.com",
+            first_name="Cool",
+            last_name="Customer",
         )
         self.restaurant_user = User.objects.create_user(
             username="restuser", email="rest@test.com", password="restpass"
@@ -1464,15 +1467,19 @@ class SearchTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()["results"]
         self.assertTrue(any("🍽️ Pizza Palace" in r["label"] for r in data))
-        self.assertTrue(any(f"/restaurant/{self.restaurant.id}/" in r["url"] for r in data))
+        self.assertTrue(
+            any(f"/restaurant/{self.restaurant.id}/" in r["url"] for r in data)
+        )
 
     def test_search_returns_both_customer_and_restaurant(self):
         # Query that hits both "CoolCustomer" and "Pizza Palace"
         response = self.client.get(reverse("global_search"), {"q": "a"})
         self.assertEqual(response.status_code, 200)
         data = response.json()["results"]
-        self.assertTrue(any("👤 CoolCustomer" in r["label"] for r in data) or
-                        any("🍽️ Pizza Palace" in r["label"] for r in data))
+        self.assertTrue(
+            any("👤 CoolCustomer" in r["label"] for r in data)
+            or any("🍽️ Pizza Palace" in r["label"] for r in data)
+        )
 
     def test_search_no_results(self):
         response = self.client.get(reverse("global_search"), {"q": "Zebra"})
@@ -1488,7 +1495,10 @@ class BookmarksDeleteTests(TestCase):
             username="testuser", password="testpass123", email="test@example.com"
         )
         self.customer = Customer.objects.create(
-            username="testuser", email="test@example.com", first_name="Test", last_name="User"
+            username="testuser",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
         )
 
         self.restaurant = Restaurant.objects.create(
@@ -1523,7 +1533,9 @@ class BookmarksDeleteTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["success"])
-        self.assertFalse(FavoriteRestaurant.objects.filter(id=self.bookmark.id).exists())
+        self.assertFalse(
+            FavoriteRestaurant.objects.filter(id=self.bookmark.id).exists()
+        )
 
     def test_delete_bookmark_missing_id(self):
         response = self.client.delete(
@@ -1571,7 +1583,9 @@ class BookmarksDeleteTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 500)
-        self.assertIn("Customer matching query does not exist.", response.json()["error"])
+        self.assertIn(
+            "Customer matching query does not exist.", response.json()["error"]
+        )
 
 
 class EditProfileTests(TestCase):
@@ -1583,7 +1597,9 @@ class EditProfileTests(TestCase):
         self.customer = Customer.objects.create(
             username="testuser", email="test@example.com"
         )
-        self.url = reverse("update_profile")  # Update this if your url name is different
+        self.url = reverse(
+            "update_profile"
+        )  # Update this if your url name is different
 
     def test_successful_profile_update(self):
         self.client.login(username="testuser", password="testpass123")
@@ -1703,11 +1719,13 @@ class WriteCommentTests(TestCase):
             "title": "Loved It",
             "comment": "Amazing spot!",
             "rating": "5",
-            "health_rating": "4"
+            "health_rating": "4",
         }
         response = self.client.post(self.url, post_data)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("restaurant_detail", args=[self.restaurant.id]))
+        self.assertRedirects(
+            response, reverse("restaurant_detail", args=[self.restaurant.id])
+        )
 
         # Confirm the review was created
         self.assertEqual(Comment.objects.count(), 1)
@@ -1720,10 +1738,7 @@ class WriteCommentTests(TestCase):
         self.assertEqual(comment.comment, "Amazing spot!")
 
     def test_post_invalid_comment_missing_fields(self):
-        post_data = {
-            "rating": "5",  # Missing title and comment
-            "health_rating": "3"
-        }
+        post_data = {"rating": "5", "health_rating": "3"}  # Missing title and comment
         response = self.client.post(self.url, post_data)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "addreview.html")
@@ -1742,7 +1757,7 @@ class WriteCommentTests(TestCase):
             "title": "Solid place",
             "comment": "Great experience!",
             "rating": "4",
-            "health_rating": "4"
+            "health_rating": "4",
         }
         self.client.post(self.url, post_data)
         comment = Comment.objects.first()
@@ -1759,7 +1774,10 @@ class ProfileTests(TestCase):
             username="testuser", email="test@example.com", password="testpass123"
         )
         self.customer = Customer.objects.create(
-            username="testuser", email="test@example.com", first_name="Test", last_name="User"
+            username="testuser",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
         )
 
         self.other_user = User.objects.create_user(
@@ -1820,7 +1838,7 @@ class ProfileTests(TestCase):
             title="Good",
             comment="Food was good",
             rating=4,
-            health_rating=3
+            health_rating=3,
         )
 
         self.client.login(username="testuser", password="testpass123")
