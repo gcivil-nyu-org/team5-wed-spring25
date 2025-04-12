@@ -68,7 +68,7 @@ def user_profile(request, username):
     user = get_object_or_404(User, username=username)
     customer = None
     try:
-        Customer.objects.get(username=username)
+        customer = Customer.objects.get(username=username)
     except Customer.DoesNotExist:
         customer = None
 
@@ -76,11 +76,14 @@ def user_profile(request, username):
     if request.user.is_authenticated and request.user.username == user.username:
         is_owner = True
 
+    reviews = Comment.objects.filter(commenter=customer.id).order_by("-posted_at")
+
     context = {
         "profile_user": user,
         "has_unread_messages": has_unread_messages(request.user),
         "customer": customer,
         "is_owner": is_owner,
+        "reviews": reviews,
     }
     return render(request, "user_profile.html", context)
 
