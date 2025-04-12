@@ -616,22 +616,22 @@ def global_search(request):
     if not query:
         return JsonResponse({"results": []})
 
-    customers = Customer.objects.filter(username__icontains=query).values("username")[:5]
-    restaurants = Restaurant.objects.filter(name__icontains=query).values("id", "name", "username")[:5]
+    customers = Customer.objects.filter(username__icontains=query).values("username")[
+        :5
+    ]
+    restaurants = Restaurant.objects.filter(name__icontains=query).values(
+        "id", "name", "username"
+    )[:5]
 
     results = []
 
     for c in customers:
-        results.append({
-            "label": f"👤 {c['username']}",
-            "url": f"/profile/{c['username']}/"
-        })
+        results.append(
+            {"label": f"👤 {c['username']}", "url": f"/profile/{c['username']}/"}
+        )
 
     for r in restaurants:
-        results.append({
-            "label": f"🍽️ {r['name']}",
-            "url": f"/restaurant/{r['id']}/"
-        })
+        results.append({"label": f"🍽️ {r['name']}", "url": f"/restaurant/{r['id']}/"})
 
     return JsonResponse({"results": results})
 
