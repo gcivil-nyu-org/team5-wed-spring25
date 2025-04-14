@@ -16,11 +16,6 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
-from utils import (
-    get_restaurants,
-    restaurant_to_feature,
-    create_nyc_map,
-)
 from django.db.models import Q
 
 
