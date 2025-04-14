@@ -221,6 +221,11 @@ async function submitSidebarGeocode() {
       window.globalLNG = parseFloat(lon);
       status.textContent = '✅ Location updated successfully';
       status.style.color = 'green';
+
+      const mapFrame = document.getElementById("map-frame");
+      if (mapFrame && mapFrame.contentWindow && typeof mapFrame.contentWindow.dropGeocodeMarker === "function") {
+          mapFrame.contentWindow.dropGeocodeMarker(parseFloat(lat), parseFloat(lon));
+      }
     } else {
       status.textContent = '❌ Location not found';
       status.style.color = 'red';

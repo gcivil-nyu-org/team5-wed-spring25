@@ -10,19 +10,20 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
   <style>
     body {
+      padding-top: 60px; /* Adds a gap between the header and the content */
       font-family: 'Arial', sans-serif;
       margin: 0;
-      padding: 0;
       background-color: #f9f9f9;
     }
     .container {
+      margin-top: 60px; /* Adjust this value to increase or decrease the gap */
       max-width: 700px;
-      margin: 30px auto;
+      margin: 60px auto; /* Keep the horizontal centering */
       padding: 60px;
       background: white;
       border-radius: 12px;
       box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
+      overflow: visible; /* Allow content to expand */
     }
     .restaurant-header {
       text-align: center;
@@ -85,6 +86,9 @@
     #edit-profile-form {
       margin-top: 20px;
       display: none;
+      max-height: 400px; /* Limit the height of the form */
+      overflow-y: auto; /* Add vertical scrolling for the form */
+      padding-right: 10px; /* Add padding for better usability */
     }
     #edit-profile-form input,
     #edit-profile-form textarea {
@@ -111,107 +115,168 @@
       margin-left: 10px;
     }
     #add-review-btn {
-      margin: 10px 0;
-      margin-left: 10px;
-      padding: 5px 5px;
+      margin: 15px 0;
+      padding: 10px 20px;
       background-color: #1a73e8;
       color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
-
     .text-yellow {
   color: #f5b301;
 }
 .text-green {
   color: #28a745;
 }
+        /* Shared button style */
+    .btn {
+      margin: 10px 5px; /* Add some spacing between buttons */
+      padding: 0; /* Remove extra padding */
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: none; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      width: 160px; 
+      height: 50px; 
+    }
 
+    .btn:hover {
+      background-color: #1558b0; /* Darker shade for hover effect */
+    }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+        margin: 20px;
+      }
+
+      #edit-profile-form {
+        max-height: 300px; /* Adjust form height for smaller screens */
+      }
+    }
   </style>
 </head>
 <body>
-<div class="container" style="margin-top: 40px;">
-  <div class="restaurant-header">
-    {% if restaurant.profile_image %}
-      <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img" />
-    {% endif %}
-  </div>
+  {% include 'components/header_nofilter.html' %}
+  <main class="content" style="padding-top: 50px;">
+    <div class="container">
+        <div class="restaurant-header">
+            {% if restaurant.profile_image %}
+                <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img" />
+            {% endif %}
+        </div>
 
-  <h1>{{ restaurant.name }}</h1>
+        <h1 class="h3 mb-3">{{ restaurant.name }}</h1>
 
-  <div class="info"><i class="fas fa-map-marker-alt"></i><strong>Address:</strong> {{ restaurant.building }}, {{ restaurant.street }}, {{ restaurant.zipcode }}</div>
-  <div class="info"><i class="fas fa-utensils"></i><strong>Cuisine:</strong> {{ restaurant.cuisine_description }}</div>
-  <div class="info"><i class="fa fa-phone"></i><strong>Phone:</strong> {{ restaurant.phone }}</div>
-  <div class="info rating">
-    <i class="fas fa-star"></i>
-    <strong>Hygiene Rating:</strong> <span id="hygiene-grade" data-rating="{{ restaurant.hygiene_rating }}"></span>
-  </div>
-  <div class="info"><i class="fa-solid fa-file"></i><strong>Violation Description:</strong> {{ restaurant.violation_description }}</div>
-  <div class="info"><i class="fa-solid fa-calendar-days"></i><strong>Inspection Date:</strong> {{ restaurant.inspection_date }}</div>
-  <div class="average-ratings">
-    <p>
-      <strong>Average Rating:</strong>
-      {% for i in "12345" %}
-      <i class="fa-star {% if avg_rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
-      {% endfor %}
-      <span class="avg-number">({{ avg_rating|floatformat:1 }}/5)</span>
-    </p>
-    <p>
-      <strong>Average Health Rating:</strong>
-      {% for i in "12345" %}
-      <i class="fa-star {% if avg_health|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
-      {% endfor %}
-      <span class="avg-number">({{ avg_health|floatformat:1 }}/5)</span>
-    </p>
-  </div>
-  
-  {% if is_owner %}
-    <button id="edit-profile-btn">Edit Profile</button>
-  {% endif %}
+        <div class="info">
+            <i class="fas fa-map-marker-alt"></i>
+            <strong>Address:</strong> {{ restaurant.building }}, {{ restaurant.street }}, {{ restaurant.zipcode }}
+        </div>
+        <div class="info">
+            <i class="fas fa-utensils"></i>
+            <strong>Cuisine:</strong> {{ restaurant.cuisine_description }}
+        </div>
+        <div class="info">
+            <i class="fa fa-phone"></i>
+            <strong>Phone:</strong> {{ restaurant.phone }}
+        </div>
+        <div class="info rating">
+            <i class="fas fa-star"></i>
+            <strong>Hygiene Rating:</strong> <span id="hygiene-grade" data-rating="{{ restaurant.hygiene_rating }}"></span>
+        </div>
+        <div class="info">
+            <i class="fa-solid fa-file"></i>
+            <strong>Violation Description:</strong> {{ restaurant.violation_description }}
+        </div>
+        <div class="info">
+            <i class="fa-solid fa-calendar-days"></i>
+            <strong>Inspection Date:</strong> {{ restaurant.inspection_date }}
+        </div>
+        <div class="average-ratings">
+        <p>
+          <strong>Average Rating:</strong>
+          {% for i in "12345" %}
+          <i class="fa-star {% if avg_rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
+          {% endfor %}
+          <span class="avg-number">({{ avg_rating|floatformat:1 }}/5)</span>
+        </p>
+        <p>
+          <strong>Average Health Rating:</strong>
+          {% for i in "12345" %}
+          <i class="fa-star {% if avg_health|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
+          {% endfor %}
+          <span class="avg-number">({{ avg_health|floatformat:1 }}/5)</span>
+        </p>
 
-  <!-- Edit Form -->
-  <div id="edit-profile-form">
-    <form id="profileForm" enctype="multipart/form-data" method="POST" action="/update-profile/">
-      {% csrf_token %}
-      <label>Restaurant Name:</label>
-      <input type="text" name="name" value="{{ restaurant.name }}">
+        {% if is_owner %}
+            <button id="edit-profile-btn" class="btn">Edit Profile</button>
+        {% endif %}
 
-      <label>Building:</label>
-      <input type="text" name="building" value="{{ restaurant.building }}">
+        <div id="edit-profile-form" style="display: none;">
+            <form id="profileForm" enctype="multipart/form-data" method="POST" action="/update-profile/">
+                {% csrf_token %}
+                <label>Restaurant Name:</label>
+                <input type="text" name="name" value="{{ restaurant.name }}">
 
-      <label>Street:</label>
-      <input type="text" name="street" value="{{ restaurant.street }}">
+                <label>Building:</label>
+                <input type="text" name="building" value="{{ restaurant.building }}">
 
-      <label>Zipcode:</label>
-      <input type="text" name="zipcode" value="{{ restaurant.zipcode }}">
+                <label>Street:</label>
+                <input type="text" name="street" value="{{ restaurant.street }}">
 
-      <label>Phone:</label>
-      <input type="text" name="phone" value="{{ restaurant.phone }}">
+                <label>Zipcode:</label>
+                <input type="text" name="zipcode" value="{{ restaurant.zipcode }}">
 
-      <label>Cuisine:</label>
-      <input type="text" name="cuisine_description" value="{{ restaurant.cuisine_description }}">
-      
-      <!-- <label>Description:</label>
-      <textarea name="violation_description">{{ restaurant.violation_description }}</textarea> -->
+                <label>Phone:</label>
+                <input type="text" name="phone" value="{{ restaurant.phone }}">
 
-      <!-- Restaurant owner should not have permission to edit hygieen rating   -->
-      <!-- <label>Hygiene Rating:</label> -->
-      <!-- <input type="number" name="hygiene_rating" value="{{ restaurant.hygiene_rating }}" min="0" max="100"> -->
+                <label>Cuisine:</label>
+                <input type="text" name="cuisine_description" value="{{ restaurant.cuisine_description }}">
 
-      <label>Profile Image:</label>
-      <input type="file" name="profile_image">
+                <label>Profile Image:</label>
+                <input type="file" name="profile_image">
 
-      <button type="submit">Save Changes</button>
-      <button type="button" id="cancel-edit">Cancel</button>
-    </form>
-  </div>
-  <a href="{% url 'addreview' restaurant.id %}" id="add-review-btn">
-    <strong>Write a review</strong>
-  </a>
-  {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
+                <button type="submit" class="btn">Save Changes</button>
+                <button type="button" id="cancel-edit" class="btn">Cancel</button>
+            </form>
+        </div>
 
-</div>
+        <a href="{% url 'addreview' restaurant.id %}" id="add-review-btn" class="btn">
+            Write a review
+        </a>
+
+        <div class="reviews-section">
+            <h2>Recent Reviews for {{ restaurant.name }}</h2>
+            {% if reviews %}
+            <div class="scrollable-reviews">
+                <ul class="review-list">
+                    {% for comment in reviews %}
+                    <li class="review">
+                        <div class="review-meta">
+                            <span class="review-title">{{ comment.title }}</span>
+                            <span class="review-rating">Rating: {{ comment.rating }}/5</span>
+                            <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
+                        </div>
+                        <p class="review-text">{{ comment.comment }}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <p class="text-muted">No reviews yet for {{ restaurant.name }}.</p>
+            {% endif %}
+        </div>
+    </div>
+</main>
 
 <script>
   function getLetterGrade(rating, style = false) {
