@@ -35,7 +35,7 @@ urlpatterns = [
         views.delete_conversation,
         name="delete_conversation",
     ),
-    path("profile/", views.moderator_profile_view, name="moderator_profile"),
+    path("moderator_profile/", views.moderator_profile_view, name="moderator_profile"),
     path("addreview/<int:id>/", views.write_comment, name="addreview"),
     path("profile/<str:username>/", views.profile_router, name="user_profile"),
     path(
@@ -45,7 +45,7 @@ urlpatterns = [
     ),
     path("bookmarks/", views.bookmarks_view, name="bookmarks_view"),
     path(
-        "deactivate/<str:user_type>/<int:user_id>/",
+        "deactivate_account/<str:user_type>/<int:user_id>/",
         views.deactivate_account,
         name="deactivate_account",
     ),

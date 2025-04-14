@@ -28,12 +28,11 @@ class Restaurant(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="restaurant", null=True, blank=True
     )
-    is_activated = models.BooleanField(default=True, null=True, blank=True)
+    is_activated = models.BooleanField(default=True)
     deactivation_reason = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"
-
 
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)

@@ -69,14 +69,16 @@
             <th>Comment</th>
             <th>Posted at</th>
             <th>Flagged by</th>
-            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {% for comment in flagged_comments %}
           <tr>
-            <!-- Assuming "comment.commenter" is the user object for the commenter -->
-            <td>{{ comment.commenter.username }}</td>
+            <td>
+              <a href="{% url 'user_profile' comment.commenter.username %}">
+                {{ comment.commenter.username }}
+              </a>
+            </td>
             <td>{{ comment.comment|safe }}</td>
             <td>{{ comment.posted_at }}</td>
             <!-- Assuming "comment.flagged_by" is a user object with a "username" attribute -->
@@ -111,14 +113,16 @@
             <th>Message</th>
             <th>Sent at</th>
             <th>Flagged by</th>
-            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {% for dm in flagged_dms %}
           <tr>
-            <!-- Assuming "dm.sender" is the user object for the message sender -->
-            <td>{{ dm.sender.username }}</td>
+            <td>
+              <a href="{% url 'user_profile' dm.sender.username %}">
+                {{ comment.commenter.username }}
+              </a>
+            </td>
             <td>{{ dm.decoded_message }}</td>
             <td>{{ dm.sent_at }}</td>
             <!-- For flagged DMs, the flagged_by field represents the receiver (the one who flagged) -->

@@ -36,8 +36,12 @@ def home_view(request):
 
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
+    # DO SOMETHING HERE
     restaurant = get_object_or_404(Restaurant, id=id)
-    reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
+    reviews = Comment.objects.filter(
+        restaurant=restaurant,
+        commenter__is_activated=True  # only include comments from active customers
+    ).order_by("-posted_at")
 
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
@@ -90,7 +94,12 @@ def messages_view(request, chat_user_id=None):
             },
         )
 
-    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
+    # remove DMs from deactivated users
+    all_dms = DM.objects.filter(
+        (Q(sender=user) & Q(receiver__is_activated=True)) |
+        (Q(sender__is_activated=True) & Q(receiver=user))
+    )
+
 
     participants = {}
     for dm in all_dms:
@@ -247,8 +256,25 @@ def send_message(request, chat_user_id):
                     extra_tags=INBOX_MESSAGE,
                 )
                 return HttpResponse("Sender not found", status=404)
-
-        recipient = get_object_or_404(Customer, id=chat_user_id)
+        try:
+            recipient = Customer.objects.get(id=chat_user_id)
+        except Customer.DoesNotExist:
+            messages.error(
+                request,
+                "The user you're trying to message could not be found.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+        message_text = request.POST.get("message")
+        # only able to send messages to activated users
+        if not recipient.is_activated:
+            messages.error(
+                request,
+                "Sorry, that user has been deactivated. You can't DM them.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+        
         message_text = request.POST.get("message")
 
         if recipient == sender:
@@ -628,25 +654,15 @@ def deactivate_account(request, user_type, user_id):
         return redirect("moderator_profile")
 
     if request.method == "POST":
-        print("in here!")
         deactivation_reason = request.POST.get("deactivation_reason", "")
         user_obj.deactivation_reason = deactivation_reason
         user_obj.is_activated = False
         user_obj.save()
-        print("deactivation reason:", deactivation_reason)
         messages.success(request, f"{user_type.capitalize()} account deactivated successfully.")
         return redirect("moderator_profile")
     else:
         messages.error(request, "Invalid request method.")
         return redirect("moderator_profile")
-    # user_obj.is_activated = False
-    # user_obj.save()
-
-    # messages.success(
-    #     request, f"{user_type.capitalize()} account deactivated successfully."
-    # )
-    # return redirect("moderator_profile")
-
 
 @login_required(login_url="/login/")
 def delete_comment(request, comment_id):
@@ -673,8 +689,32 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            login(request, user)
-            return redirect("home")  # Redirect to homepage after login
+            try:
+                profile = Restaurant.objects.get(username=username)
+            except Restaurant.DoesNotExist:
+                try:
+                    profile = Customer.objects.get(username=username)
+                except Customer.DoesNotExist:
+                    try:
+                        profile = Moderator.objects.get(username=username)
+                    except Moderator.DoesNotExist:
+                        profile = None
+
+            if profile is None:
+                messages.error(
+                    request, "Invalid username or password", extra_tags=AUTH_MESSAGE
+                )
+                return redirect("/")
+            elif not profile.is_activated:
+                print("in here")
+                messages.error(
+                    request,
+                    f"Your account has been deactivated. Reason: {profile.deactivation_reason or 'No reason provided.'}"
+                )
+                return redirect("landing")
+            else:
+                login(request, user)
+                return redirect("home")
         else:
             messages.error(
                 request, "Invalid username or password", extra_tags=AUTH_MESSAGE
