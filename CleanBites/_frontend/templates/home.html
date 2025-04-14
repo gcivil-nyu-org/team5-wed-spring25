@@ -61,15 +61,6 @@
     {% include 'components/sidebar.html' %}
     {% include 'components/bookmarks.html' %}
     
-    <div class="geocode-wrapper">
-      <button class="geocode-toggle" onclick="toggleGeocodeBar()">➤</button>
-    
-      <div class="geocode-bar hidden" id="geocode-bar">
-        <input type="text" id="geocode-address" placeholder="Enter address to set map center" />
-        <button type="button" onclick="submitGeocode()">Update Location</button>
-        <span id="geocode-status" class="geocode-status"></span>
-      </div>
-    </div>
 
     {% include 'components/recent_violations.html' %}
     
@@ -86,10 +77,6 @@
     window.globalLAT = 40.69455789521935;
     window.globalLNG = -73.9865872293045;
     
-    function toggleGeocodeBar() {
-      const bar = document.getElementById('geocode-bar');
-      bar.classList.toggle('hidden');
-    }
 
 
     async function getCurrentGeocode(address) {
