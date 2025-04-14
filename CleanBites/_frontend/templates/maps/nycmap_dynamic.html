@@ -171,15 +171,15 @@
           let grade = '';
           let color = '';
 
-          if (rating <= 13) {
-            grade = 'A';
-            color = '#00cc00'; // Green
-          } else if (rating <= 27) {
+          if (rating >= 28) {
+            grade = 'C';
+            color = '#ff0000'; // Green
+          } else if (rating >= 14) {
             grade = 'B';
             color = '#ffa500'; // Orange/Yellow
           } else {
-            grade = 'C';
-            color = '#ff0000'; // Red
+            grade = 'A';
+            color = '#00cc00'; // Green
           }
       
           if (style) {
