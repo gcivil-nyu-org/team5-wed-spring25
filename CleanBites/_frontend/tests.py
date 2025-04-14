@@ -104,6 +104,8 @@ class ViewTests(TestCase):
         self.client.login(username="user1", password="testpass123")
         response = self.client.get(reverse("messages inbox"))
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "inbox.html")
+        self.assertIn("conversations", response.context)
         self.assertEqual(len(response.context["conversations"]), 0)
         self.assertIsNone(response.context["active_chat"])
         self.assertEqual(len(response.context["messages"]), 0)
@@ -1607,3 +1609,50 @@ class ProfileTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["reviews"]), 1)
         self.assertEqual(response.context["reviews"][0].title, "Good")
+    
+class UserProfileViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="testuser", password="pass123")
+        self.customer = Customer.objects.create(
+            username="testuser", email="test@example.com", first_name="Test", last_name="User"
+        )
+
+    def test_profile_view_owner(self):
+        self.client.login(username="testuser", password="pass123")
+        response = self.client.get(reverse("user_profile", args=["testuser"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "user_profile.html")
+        self.assertTrue(response.context["is_owner"])
+
+    def test_profile_view_not_owner(self):
+        other_user = User.objects.create_user(username="other", password="pass123")
+        self.client.login(username="other", password="pass123")
+        response = self.client.get(reverse("user_profile", args=["testuser"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["is_owner"])
+
+    def test_profile_view_user_not_found(self):
+        self.client.login(username="testuser", password="pass123")
+        response = self.client.get(reverse("user_profile", args=["nonexistent"]))
+        self.assertEqual(response.status_code, 302 or 404)
+
+class AdminProfileViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="adminuser", password="pass123", email="admin@example.com")
+        self.moderator = Moderator.objects.create(username="adminuser", email="admin@example.com")
+        self.client.login(username="adminuser", password="pass123")
+
+    def test_admin_profile_view(self):
+        response = self.client.get(reverse("moderator_profile"))  
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "admin_profile.html")
+
+    def test_admin_profile_not_moderator(self):
+        # Login as a user who is not a moderator
+        User.objects.create_user(username="user2", password="pass123", email="user2@example.com")
+        self.client.login(username="user2", password="pass123")
+
+        response = self.client.get(reverse("moderator_profile"))
+        self.assertEqual(response.status_code, 302)  
