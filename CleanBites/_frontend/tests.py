@@ -1610,6 +1610,7 @@ class ProfileTests(TestCase):
         self.assertEqual(len(response.context["reviews"]), 1)
         self.assertEqual(response.context["reviews"][0].title, "Good")
 
+
 class UserProfileViewTests(TestCase):
     def setUp(self):
         self.client = Client()
