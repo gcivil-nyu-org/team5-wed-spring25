@@ -14,4 +14,3 @@ NYC_GEOJSON_URL = (
 )
 nyc_geojson = requests.get(NYC_GEOJSON_URL).json()
 nyc_polygons = [shape(feature["geometry"]) for feature in nyc_geojson["features"]]
-
