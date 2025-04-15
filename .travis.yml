@@ -28,4 +28,4 @@ script:
 
 after_script:
   - cd ..
-  - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN coveralls --finish
+  - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN coveralls
