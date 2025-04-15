@@ -54,4 +54,5 @@ urlpatterns = [
     ),
     path("profileedit/", views.update_profile, name="update_profile"),
     path("global-search/", views.global_search, name="global_search"),
+    path("websocket-test/", views.websocket_test, name="websocket_test"),
 ]

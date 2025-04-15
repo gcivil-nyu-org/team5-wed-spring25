@@ -38,6 +38,7 @@ ALLOWED_HOSTS = [
     "cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
     "172.31.38.6",
     "api",
+    "192.168.31.1"
 ]
 
 
@@ -64,6 +65,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "bootstrap5",
+    "channels",
 ]
 
 SITE_ID = env.int("DJANGO_SITE_ID", default=3)
@@ -98,8 +100,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "CleanBites.wsgi.application"
+# WSGI_APPLICATION = "CleanBites.wsgi.application"
+ASGI_APPLICATION = "CleanBites.asgi.application"
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
@@ -212,3 +220,23 @@ LOGIN_URL = "/"
 LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/"
 BASE_URL = "http://cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com/"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+        "channels": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+    },
+}

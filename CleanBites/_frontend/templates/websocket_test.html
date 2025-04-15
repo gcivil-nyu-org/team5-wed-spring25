@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket DM Test</title>
+</head>
+<body>
+    <h1>WebSocket Direct Messaging Test</h1>
+    <div>
+        <label for="receiverId">Receiver ID:</label>
+        <input id="receiverId" type="number" placeholder="Enter receiver ID">
+        <button id="connectButton">Connect</button>
+    </div>
+    <div>
+        <label for="messageInput">Message:</label>
+        <input id="messageInput" type="text" placeholder="Enter a message">
+        <button id="sendButton" disabled>Send</button>
+    </div>
+    <div id="messages">
+        <h2>Messages:</h2>
+    </div>
+
+    <script>
+        let ws = null;
+
+        document.getElementById("connectButton").onclick = () => {
+            const receiverId = document.getElementById("receiverId").value;
+            if (!receiverId) {
+                alert("Please enter a valid receiver ID.");
+                return;
+            }
+
+            // Create a new WebSocket connection
+            ws = new WebSocket(`ws://${window.location.host}/ws/chat/${receiverId}/`);
+
+            ws.onopen = () => {
+                console.log("WebSocket connection established.");
+                document.getElementById("sendButton").disabled = false;
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                const messagesDiv = document.getElementById("messages");
+                const newMessage = document.createElement("p");
+
+                if (data.type === "chat_message") {
+                    newMessage.textContent = `From ${data.sender_id} to ${data.receiver_id}: ${data.message} (Sent at: ${data.sent_at})`;
+                } else if (data.type === "error") {
+                    newMessage.textContent = `Error: ${data.message}`;
+                }
+
+                messagesDiv.appendChild(newMessage);
+            };
+
+            ws.onclose = () => {
+                console.log("WebSocket connection closed.");
+                document.getElementById("sendButton").disabled = true;
+            };
+
+            ws.onerror = (error) => {
+                console.error("WebSocket error:", error);
+            };
+        };
+
+        document.getElementById("sendButton").onclick = () => {
+            const messageInput = document.getElementById("messageInput");
+            const message = messageInput.value;
+
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ message }));
+                messageInput.value = "";
+            } else {
+                alert("WebSocket is not connected or message is empty.");
+            }
+        };
+    </script>
+</body>
+</html>
