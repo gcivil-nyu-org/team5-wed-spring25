@@ -1,7 +1,7 @@
 dist: focal
 language: python
 python:
-  - 3.9
+  - 3.11
  
 before_install:
   - sudo apt-get update
@@ -12,7 +12,6 @@ before_install:
   - sudo apt-get -y install libgdal-dev
   - sudo apt-get -y install libgeos-dev
   - sudo apt-get -y install libpq-dev
-  - pip install coveralls
 
 install:
   - pip install -r CleanBites/requirements.txt
@@ -30,4 +29,6 @@ script:
   - coverage run manage.py test --noinput
 
 after_script:
-  - coveralls
+  - ls
+  - coveralls report
+  - coveralls --service=travis-pro
