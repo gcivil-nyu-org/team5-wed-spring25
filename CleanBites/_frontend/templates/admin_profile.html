@@ -1,200 +1,168 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Moderator Profile - {{ moderator.first_name }} {{ moderator.last_name }}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    }
-    h1, h2 {
-      color: #1a73e8;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-    }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 10px;
-      text-align: left;
-      font-size: 14px;
-    }
-    form {
-      display: inline;
-    }
-    button {
-      padding: 5px 10px;
-      border: none;
-      background-color: #1a73e8;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #1558b0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    {% csrf_token %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator Profile - {{ moderator.first_name }} {{ moderator.last_name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+    <style>
+      html, body {
+         margin: 0;
+         padding: 0;
+         height: 100%;
+         overflow-y: auto;
+         background-color: #ffedd3;
+      }
+      h1, h2 {
+         color: #000;
+         margin-bottom: 20px;
+      }
+      .main-body {
+         padding: 15px;
+      }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>{{ moderator.username }}</h1>
-    </header>
+    {% include 'components/header_nofilter.html' %}
+    <div class="container" style="padding-top: 150px; background-color: #ffedd3;">
+      <div class="main-body">
+        <header class="mb-4">
+          <h1>{{ moderator.username }}</h1>
+        </header>
+        
+        <!-- Flagged Comments Card -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">Flagged Comments</h2>
+            {% if flagged_comments %}
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Commenter</th>
+                  <th>Comment</th>
+                  <th>Posted at</th>
+                  <th>Flagged by</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for comment in flagged_comments %}
+                <tr>
+                  <td>
+                    <a href="{% url 'user_profile' comment.commenter.username %}">
+                      {{ comment.commenter.username }}
+                    </a>
+                  </td>
+                  <td>{{ comment.decoded_comment }}</td>
+                  <td>{{ comment.posted_at }}</td>
+                  <td>{{ comment.flagged_by.username }}</td>
+                  <td>
+                    <button type="button" class="btn btn-outline-danger deactivateBtn" data-userid="{{ comment.commenter.id }}">
+                      Deactivate
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <p>No flagged comments.</p>
+            {% endif %}
+          </div>
+        </div>
 
-    <!-- Table #1: Flagged Comments -->
-    <section>
-      <h2>Flagged Comments</h2>
-      {% if flagged_comments %}
-      <table>
-        <thead>
-          <tr>
-            <th>Commenter</th>
-            <th>Comment</th>
-            <th>Posted at</th>
-            <th>Flagged by</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for comment in flagged_comments %}
-          <tr>
-            <td>
-              <a href="{% url 'user_profile' comment.commenter.username %}">
-                {{ comment.commenter.username }}
-              </a>
-            </td>
-            <td>{{ comment.comment|safe }}</td>
-            <td>{{ comment.posted_at }}</td>
-            <!-- Assuming "comment.flagged_by" is a user object with a "username" attribute -->
-            <td>{{ comment.flagged_by.username }}</td>
-            <td>
-              <form method="post" action="{% url 'deactivate_account' 'customer' comment.commenter.id %}">
-                {% csrf_token %}
-                <td>
-                  <button type="button" class="deactivateBtn" data-userid="{{ comment.commenter.id }}">
-                    Deactivate
-                  </button>
-                </td>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p>No flagged comments.</p>
-      {% endif %}
-    </section>
-
-    <!-- Table #2: Flagged Direct Messages -->
-    <section>
-      <h2>Flagged Direct Messages</h2>
-      {% if flagged_dms %}
-      <table>
-        <thead>
-          <tr>
-            <th>Sender</th>
-            <th>Message</th>
-            <th>Sent at</th>
-            <th>Flagged by</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for dm in flagged_dms %}
-          <tr>
-            <td>
-              <a href="{% url 'user_profile' dm.sender.username %}">
-                {{ comment.commenter.username }}
-              </a>
-            </td>
-            <td>{{ dm.decoded_message }}</td>
-            <td>{{ dm.sent_at }}</td>
-            <!-- For flagged DMs, the flagged_by field represents the receiver (the one who flagged) -->
-            <td>{{ dm.flagged_by.username }}</td>
-            <td>
-              <form method="post" action="{% url 'deactivate_account' 'customer' dm.sender.id %}">
-                {% csrf_token %}
-                <td>
-                  <button type="button" class="deactivateBtn" data-userid="{{ comment.commenter.id }}">
-                    Deactivate
-                  </button>
-                </td>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p>No flagged direct messages.</p>
-      {% endif %}
-    </section>
-  </div>
-  <!-- Modal for deactivation reason -->
-  <div id="deactivateModal" class="modal" style="display:none; position: fixed; z-index: 1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color: rgba(0,0,0,0.4);">
-    <div class="modal-content" style="background-color: #fff; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px;">
-      <span class="close" style="float:right; font-size:28px; cursor:pointer;">&times;</span>
-      <h2>Deactivation Reason</h2>
-      <form id="deactivateForm" method="post" action="">
-        {% csrf_token %}
-        <!-- hidden field to hold the user ID -->
-        <input type="hidden" name="user_id" id="modalUserId" value="">
-        <textarea name="deactivation_reason" rows="4" cols="50" placeholder="Enter the reason for deactivation..." required></textarea>
-        <br>
-        <button type="submit" style="margin-top:10px;">Submit</button>
-      </form>
+        <!-- Flagged Direct Messages Card -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">Flagged Direct Messages</h2>
+            {% if flagged_dms %}
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Sender</th>
+                  <th>Message</th>
+                  <th>Sent at</th>
+                  <th>Flagged by</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for dm in flagged_dms %}
+                <tr>
+                  <td>
+                    <a href="{% url 'user_profile' dm.sender.username %}">
+                      {{ dm.sender.username }}
+                    </a>
+                  </td>
+                  <td>{{ dm.decoded_message }}</td>
+                  <td>{{ dm.sent_at }}</td>
+                  <td>{{ dm.flagged_by.username }}</td>
+                  <td>
+                    <button type="button" class="btn btn-outline-danger deactivateBtn" data-userid="{{ dm.sender.id }}">
+                      Deactivate
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <p>No flagged direct messages.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // Get the modal
-      var modal = document.getElementById("deactivateModal");
-      var closeBtn = modal.querySelector(".close");
-      
-      // For all deactivate buttons
-      var deactivateButtons = document.querySelectorAll(".deactivateBtn");
-      deactivateButtons.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-          var userId = btn.getAttribute("data-userid");
-          // Set the user ID in the hidden input inside the modal
-          document.getElementById("modalUserId").value = userId;
-          // Set the form's action dynamically based on the user id
-          // Adjust the URL pattern if your URL schema differs (e.g., trailing slash, etc.)
-          document.getElementById("deactivateForm").action = "/deactivate_account/customer/" + userId + "/";
-          // Display the modal popup
-          modal.style.display = "block";
+
+    <!-- Bootstrap Modal for deactivation reason -->
+    <div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deactivateModalLabel">Deactivation Reason</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="deactivateForm" method="post" action="">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" id="modalUserId" value="">
+              <div class="mb-3">
+                <textarea name="deactivation_reason" class="form-control" rows="4" placeholder="Enter the reason for deactivation..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6zN8+zU5XbEVIe4IhZ9x2e3zZuX1po2lELKW/8XGSKhsXJp4cmM" crossorigin="anonymous"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        var deactivateModalEl = document.getElementById('deactivateModal');
+        var deactivateModal = new bootstrap.Modal(deactivateModalEl);
+        
+        var deactivateButtons = document.querySelectorAll(".deactivateBtn");
+        deactivateButtons.forEach(function(btn) {
+          btn.addEventListener("click", function() {
+            var userId = btn.getAttribute("data-userid");
+            // Set the user ID in the hidden input inside the modal
+            document.getElementById("modalUserId").value = userId;
+            // Set the form's action dynamically based on the user id
+            document.getElementById("deactivateForm").action = "/deactivate_account/customer/" + userId + "/";
+            // Show the modal
+            deactivateModal.show();
+          });
         });
       });
-  
-      // When the close button is clicked, hide the modal
-      closeBtn.onclick = function() {
-        modal.style.display = "none";
-      };
-  
-      // Hide modal when clicking outside of the modal content
-      window.onclick = function(event) {
-        if (event.target == modal) {
-          modal.style.display = "none";
-        }
-      };
-    });
-  </script>
-  
+      function toggleDropdown() {
+        const dropdown = document.getElementById('profileDropdown');
+        dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+      } 
+    </script>
 </body>
 </html>
