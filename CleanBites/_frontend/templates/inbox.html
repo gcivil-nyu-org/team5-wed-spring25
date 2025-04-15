@@ -40,17 +40,17 @@
     }
   </style>
 </head>
-<body>
+<body style="background-color: #ffedd3;">
 
   {% include 'components/header_nofilter.html' %}
 
-  <main class="content" style="padding-top: 50px;">
+  <main class="content" style="padding-top: 75px;">
     <div class="container p-0">
   
       <h1 class="h3 mb-3">Inbox</h1>
-  
-      <div class="card">
-        <div class="row g-0">
+      <div id="chat-container" style="height: 80vh; display: flex; flex-direction: column;">
+      <div class="card" style="height: 80vh; display: flex; flex-direction: column;">
+        <div class="row g-0" style="height: 80vh;">
   
           <!-- Left Panel: Conversations -->
           <div class="col-12 col-lg-5 col-xl-3 border-end" style="border-right: 1px solid #dee2e6;">
@@ -66,9 +66,9 @@
             <!-- Conversation List -->
             <div class="conversation-list">
                 {% for convo in conversations %}
-                  <div class="d-flex justify-content-between align-items-center">
-                    <a href="{% url 'chat' convo.id %}" class="list-group-item list-group-item-action border-0 {% if active_chat and convo.id == active_chat.id %}active{% endif %} {% if convo.has_unread %}unread-conversation{% endif %}" style="margin-top: 10px;">
-                      <div class="d-flex align-items-start" style="padding-left: 5px;">
+                  <div class="d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #dedede; padding-bottom: 15px;">
+                    <a href="{% url 'chat' convo.id %}" class="list-group-item list-group-item-action border-0 {% if active_chat and convo.id == active_chat.id %}active{% endif %} {% if convo.has_unread %}unread-conversation{% endif %}" style="margin-top: 15px;">
+                      <div class="d-flex align-items-start" style="padding-left: 10px;">
                         <img src="{{ convo.avatar_url }}" class="rounded-circle mr-1" width="40" height="40" alt="{{ convo.name }}">
                         <div class="flex-grow-1 ml-3" style="padding-left: 5px;">
                           {{ convo.email }}
@@ -132,15 +132,26 @@
             <!-- Messages Thread -->
             <div class="flex-grow-1 overflow-auto chat-messages p-4" style="height: 500px;">
               {% for message in messages %}
-              <div class="chat-message {% if message.sender == user %}right{% endif %} mb-4">
-                <div class="d-flex">
-                  <img src="/static/images/avatar-placeholder.png" class="rounded-circle mr-1" width="40" height="40">
-                  <div class="flex-shrink-1 bg-light rounded py-2 px-3 ml-3">
-                    <div class="font-weight-bold mb-1">{{ message.sender.first_name }}</div>
+              <div class="chat-message mb-4 d-flex {% if active_chat.id == message.sender_id %}justify-content-start{% else %}justify-content-end{% endif %}">
+                {% if active_chat.id == message.sender_id %}
+                <!-- Avatar on the left for active chat messages -->
+                <img src="/static/images/avatar-placeholder.png" class="rounded-circle mr-1" width="40" height="40">
+                {% else %}
+                {% endif %}
+                <div style="padding-left: 5px; padding-right: 5px;">
+                  <!-- Message bubble -->
+                  <div class="flex-shrink-1 rounded py-2 px-3 {% if active_chat.id == message.sender_id %}bg-light{% else %}bg-primary text-white{% endif %}" style="padding: 5px;">
                     {{ message.decoded_message }}
                   </div>
+                  <!-- Timestamp -->
+                  <div class="text-muted small mt-1 {% if active_chat.id == message.sender_id %}text-left{% else %}text-right{% endif %}">
+                    {{ message.sent_at }}
+                  </div>
                 </div>
-                <div class="text-muted small mt-1">{{ message.sent_at }}</div>
+                {% if active_chat.id != message.sender_id %}
+                <!-- Avatar on the right for other messages -->
+                <img src="/static/images/avatar-placeholder.png" class="rounded-circle ml-1" width="40" height="40">
+                {% endif %}
               </div>
               {% empty %}
               <p class="text-muted text-center">No messages yet.</p>
@@ -162,6 +173,7 @@
   
           </div>
         </div>
+      </div>
       </div>
   
     </div>
