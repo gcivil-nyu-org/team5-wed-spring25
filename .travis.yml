@@ -12,6 +12,7 @@ before_install:
   - sudo apt-get -y install libgdal-dev
   - sudo apt-get -y install libgeos-dev
   - sudo apt-get -y install libpq-dev
+  - pip install coveralls
 
 install:
   - pip install -r CleanBites/requirements.txt
@@ -27,5 +28,4 @@ script:
   - coverage run manage.py test --noinput
 
 after_script:
-  - cd ..
-  - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN coveralls
+  - coveralls
