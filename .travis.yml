@@ -24,11 +24,7 @@ script:
   - black --check .
   - flake8 .
   - cd CleanBites
-  - pwd
-  - ls
   - coverage run manage.py test --noinput
 
 after_script:
-  - ls
-  - coveralls report
   - coveralls --service=travis-pro
