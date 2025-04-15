@@ -27,4 +27,4 @@ script:
   - coverage run manage.py test --noinput
 
 after_script:
-  - coveralls
+  - coveralls --service=travis-pro

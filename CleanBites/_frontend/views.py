@@ -12,6 +12,7 @@ from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
 from .forms import Review
 from django.http import JsonResponse
+from django.db.models import Avg
 import json
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.contrib.contenttypes.models import ContentType
@@ -43,9 +44,10 @@ def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
     reviews = Comment.objects.filter(
         restaurant=restaurant,
-        commenter__is_activated=True  # only include comments from active customers
+        commenter__is_activated=True,  # only include comments from active customers
     ).order_by("-posted_at")
-
+    avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
+    avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -56,6 +58,8 @@ def restaurant_detail(request, id):
         {
             "restaurant": restaurant,
             "reviews": reviews,
+            "avg_rating": avg_rating or 0,
+            "avg_health": avg_health or 0,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
         },
@@ -95,11 +99,13 @@ def user_profile(request, username):
     }
     return render(request, "user_profile.html", context)
 
+
 @login_required(login_url="/login/")
 def admin_profile(request, username):
     admin = get_object_or_404(Moderator, username__iexact=username)
     context = {"admin": admin}
     return render(request, "admin_profile.html", context)
+
 
 @login_required(login_url="/login/")
 def messages_view(request, chat_user_id=None):
@@ -120,10 +126,9 @@ def messages_view(request, chat_user_id=None):
 
     # remove DMs from deactivated users
     all_dms = DM.objects.filter(
-        (Q(sender=user) & Q(receiver__is_activated=True)) |
-        (Q(sender__is_activated=True) & Q(receiver=user))
+        (Q(sender=user) & Q(receiver__is_activated=True))
+        | (Q(sender__is_activated=True) & Q(receiver=user))
     )
-
 
     participants = {}
     for dm in all_dms:
@@ -298,7 +303,7 @@ def send_message(request, chat_user_id):
                 extra_tags=INBOX_MESSAGE,
             )
             return redirect("messages inbox")
-        
+
         message_text = request.POST.get("message")
 
         if recipient == sender:
@@ -469,8 +474,10 @@ def profile_router(request, username):
             is_owner = True
         reviews = Comment.objects.filter(
             restaurant=user_obj.id,
-            commenter__is_activated=True  # only include comments from active customers
-        ).order_by("-posted_at")  # adding reviews
+            commenter__is_activated=True,  # only include comments from active customers
+        ).order_by(
+            "-posted_at"
+        )  # adding reviews
         return render(
             request,
             "maps/restaurant_detail.html",
@@ -595,7 +602,9 @@ def moderator_profile_view(request):
         return redirect("home")
     # query for flagged DMs and comments
     flagged_dms = DM.objects.filter(flagged=True, sender__is_activated=True)
-    flagged_comments = Comment.objects.filter(flagged=True, commenter__is_activated=True)
+    flagged_comments = Comment.objects.filter(
+        flagged=True, commenter__is_activated=True
+    )
 
     # decode DM messages
     for dm in flagged_dms:
@@ -634,11 +643,14 @@ def deactivate_account(request, user_type, user_id):
         user_obj.deactivation_reason = deactivation_reason
         user_obj.is_activated = False
         user_obj.save()
-        messages.success(request, f"{user_type.capitalize()} account deactivated successfully.")
+        messages.success(
+            request, f"{user_type.capitalize()} account deactivated successfully."
+        )
         return redirect("moderator_profile")
     else:
         messages.error(request, "Invalid request method.")
         return redirect("moderator_profile")
+
 
 @login_required(login_url="/login/")
 def delete_comment(request, comment_id):
@@ -653,6 +665,7 @@ def delete_comment(request, comment_id):
     messages.success(request, "Comment deleted successfully.")
     return redirect("moderator_profile")
 
+
 @login_required(login_url="/login/")
 def report_comment(request):
     if request.method == "POST":
@@ -660,7 +673,9 @@ def report_comment(request):
             data = json.loads(request.body)
             comment_id = data.get("comment_id")
             if not comment_id:
-                return JsonResponse({"success": False, "error": "Missing comment ID"}, status=400)
+                return JsonResponse(
+                    {"success": False, "error": "Missing comment ID"}, status=400
+                )
             comment = get_object_or_404(Comment, id=comment_id)
             comment.flagged = True
             # identify the flagger (can be a Customer, Restaurant, or Moderator)
@@ -676,7 +691,9 @@ def report_comment(request):
                     except Moderator.DoesNotExist:
                         flagger = None
             if not flagger:
-                return JsonResponse({"success": False, "error": "Flagger not found"}, status=404)
+                return JsonResponse(
+                    {"success": False, "error": "Flagger not found"}, status=404
+                )
 
             # Use generic foreign key fields to store the flagger
             comment.flagged_by_content_type = ContentType.objects.get_for_model(flagger)
@@ -686,7 +703,10 @@ def report_comment(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
     else:
-        return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
 
 @login_required(login_url="/login/")
 def report_dm(request):
@@ -695,18 +715,29 @@ def report_dm(request):
             data = json.loads(request.body)
             partner_id = data.get("partner_id")
             if not partner_id:
-                return JsonResponse({"success": False, "error": "Missing partner_id"}, status=400)
+                return JsonResponse(
+                    {"success": False, "error": "Missing partner_id"}, status=400
+                )
             try:
                 reporter = Customer.objects.get(email=request.user.email)
             except Customer.DoesNotExist:
-                return JsonResponse({"success": False, "error": "Reporter not found"}, status=404)
+                return JsonResponse(
+                    {"success": False, "error": "Reporter not found"}, status=404
+                )
             partner = get_object_or_404(Customer, id=partner_id)
-            
+
             # flag the most recent DM from the partner to the reporter
-            dm = DM.objects.filter(sender=partner, receiver=reporter).order_by("-sent_at").first()
+            dm = (
+                DM.objects.filter(sender=partner, receiver=reporter)
+                .order_by("-sent_at")
+                .first()
+            )
             if not dm:
-                return JsonResponse({"success": False, "error": "No DM from the partner found"}, status=404)
-            
+                return JsonResponse(
+                    {"success": False, "error": "No DM from the partner found"},
+                    status=404,
+                )
+
             dm.flagged = True
             dm.flagged_by_content_type = ContentType.objects.get_for_model(reporter)
             dm.flagged_by_object_id = reporter.id
@@ -715,20 +746,23 @@ def report_dm(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
     else:
-        return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
-    
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
+
 @login_required(login_url="/login/")
 def global_search(request):
     query = request.GET.get("q", "").strip()
     if not query:
         return JsonResponse({"results": []})
 
-    customers = Customer.objects.filter(username__icontains=query, is_activated=True).values("username")[
-        :5
-    ]
-    restaurants = Restaurant.objects.filter(name__icontains=query, is_activated=True).values(
-        "id", "name", "username"
-    )[:5]
+    customers = Customer.objects.filter(
+        username__icontains=query, is_activated=True
+    ).values("username")[:5]
+    restaurants = Restaurant.objects.filter(
+        name__icontains=query, is_activated=True
+    ).values("id", "name", "username")[:5]
 
     results = []
 
@@ -773,7 +807,7 @@ def login_view(request):
             elif not profile.is_activated:
                 messages.error(
                     request,
-                    f"Your account has been deactivated. Reason: {profile.deactivation_reason or 'No reason provided.'}"
+                    f"Your account has been deactivated. Reason: {profile.deactivation_reason}",
                 )
                 return redirect("landing")
             else:

@@ -11,9 +11,10 @@ class Customer(models.Model):
     username = models.CharField(max_length=255)
     is_activated = models.BooleanField(default=True)
     deactivation_reason = models.TextField(null=True, blank=True)
-    
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
 
 class Moderator(models.Model):
     id = models.AutoField(primary_key=True)
@@ -23,7 +24,7 @@ class Moderator(models.Model):
     username = models.CharField(max_length=255)
     is_activated = models.BooleanField(default=True)
     deactivation_reason = models.TextField(null=True, blank=True)
-    
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
@@ -42,14 +43,11 @@ class DM(models.Model):
     #     Moderator, null=True, blank=True, on_delete=models.SET_NULL
     # )
     flagged_by_content_type = models.ForeignKey(
-        ContentType,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        ContentType, on_delete=models.SET_NULL, null=True, blank=True
     )
     flagged_by_object_id = models.PositiveIntegerField(null=True, blank=True)
-    flagged_by = GenericForeignKey('flagged_by_content_type', 'flagged_by_object_id')
-    
+    flagged_by = GenericForeignKey("flagged_by_content_type", "flagged_by_object_id")
+
     sent_at = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)  # Track if message has been read
 
@@ -70,6 +68,7 @@ class DM(models.Model):
             self.message = self.message.encode("utf-8")
 
         super().save(*args, **kwargs)
+
     def __str__(self):
         return f"DM from {self.sender} to {self.receiver} at {self.sent_at}"
 

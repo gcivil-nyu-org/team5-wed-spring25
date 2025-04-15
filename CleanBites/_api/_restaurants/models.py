@@ -36,6 +36,7 @@ class Restaurant(models.Model):
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"
 
+
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     commenter = models.ForeignKey("_users.Customer", on_delete=models.CASCADE)
@@ -50,16 +51,13 @@ class Comment(models.Model):
     #     "_users.Moderator", null=True, blank=True, on_delete=models.SET_NULL
     # )
     flagged_by_content_type = models.ForeignKey(
-        ContentType,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        ContentType, on_delete=models.SET_NULL, null=True, blank=True
     )
     flagged_by_object_id = models.PositiveIntegerField(null=True, blank=True)
-    flagged_by = GenericForeignKey('flagged_by_content_type', 'flagged_by_object_id')
+    flagged_by = GenericForeignKey("flagged_by_content_type", "flagged_by_object_id")
 
     posted_at = models.DateTimeField(auto_now_add=True)
-    
+
     def save(self, *args, **kwargs):
         # Ensure the comment and title are stored as proper strings
         if isinstance(self.comment, memoryview):
@@ -67,8 +65,10 @@ class Comment(models.Model):
         if isinstance(self.title, memoryview):
             self.title = self.title.tobytes().decode("utf-8")
         super().save(*args, **kwargs)
+
     def __str__(self):
         return f"Comment {self.id} by {self.commenter}"
+
     @property
     def decoded_comment(self):
         """
@@ -78,6 +78,7 @@ class Comment(models.Model):
         if isinstance(self.comment, memoryview):
             return self.comment.tobytes().decode("utf-8")
         return self.comment
+
     @property
     def decoded_title(self):
         """
