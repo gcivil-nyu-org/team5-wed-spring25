@@ -532,6 +532,11 @@ def delete_comment(request, comment_id):
     return redirect("moderator_profile")
 
 
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    return JsonResponse({"message": "Bookmarks feature placeholder"})
+
+
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
 # =====================================================================================

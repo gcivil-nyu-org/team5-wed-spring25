@@ -183,6 +183,32 @@
             <i class="fa-solid fa-calendar-days"></i>
             <strong>Inspection Date:</strong> {{ restaurant.inspection_date }}
         </div>
+        {% if user.is_authenticated and is_owner %}
+        <div class="info" style="margin-top: 20px;">
+            <form method="post" action="{% url 'update_broadcast' restaurant.id %}">
+                {% csrf_token %}
+                <label for="broadcast_message"><strong>Broadcast Message:</strong></label><br>
+                <textarea id="broadcast_message" name="broadcast_message" rows="4" cols="50" placeholder="Enter update for customers...">{{ restaurant.broadcast_message }}</textarea><br>
+                <button type="submit" class="btn">Update Broadcast</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="average-ratings">
+        <p>
+          <strong>Average Rating:</strong>
+          {% for i in "12345" %}
+          <i class="fa-star {% if avg_rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
+          {% endfor %}
+          <span class="avg-number">({{ avg_rating|floatformat:1 }}/5)</span>
+        </p>
+        <p>
+          <strong>Average Health Rating:</strong>
+          {% for i in "12345" %}
+          <i class="fa-star {% if avg_health|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
+          {% endfor %}
+          <span class="avg-number">({{ avg_health|floatformat:1 }}/5)</span>
+        </p>
 
         {% if is_owner %}
             <button id="edit-profile-btn" class="btn">Edit Profile</button>
@@ -242,6 +268,20 @@
             <p class="text-muted">No reviews yet for {{ restaurant.name }}.</p>
             {% endif %}
         </div>
+        {% if is_owner %}
+        <form method="POST" action="{% url 'update_broadcast' restaurant.id %}" style="margin-top: 30px;">
+          {% csrf_token %}
+          <label for="broadcast_message"><strong>Broadcast Message:</strong></label>
+          <textarea name="broadcast_message" rows="3" style="width: 100%; padding: 10px; margin: 10px 0; border-radius: 6px;">{{ restaurant.broadcast_message }}</textarea>
+          <button type="submit" class="btn">Update Broadcast</button>
+        </form>
+      {% elif restaurant.broadcast_message %}
+        <div style="margin-top: 30px; background-color: #f0f8ff; padding: 15px; border-left: 4px solid #1a73e8;">
+          <strong>Restaurant Update:</strong>
+          <p>{{ restaurant.broadcast_message }}</p>
+        </div>
+      {% endif %}
+
     </div>
 </main>
 

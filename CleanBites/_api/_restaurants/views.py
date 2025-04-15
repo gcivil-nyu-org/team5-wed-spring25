@@ -17,9 +17,31 @@ from django.http import JsonResponse
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
 from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.shortcuts import redirect, get_object_or_404
 
 
 # Create your views here.
+@method_decorator(csrf_exempt, name="dispatch")
+class UpdateBroadcastView(View):
+    def post(self, request, restaurant_id):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Unauthorized"}, status=401)
+
+        restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+
+        # Ensure only the owner can update their restaurant's message
+        if restaurant.user != request.user:
+            return JsonResponse({"error": "Forbidden"}, status=403)
+
+        new_msg = request.POST.get("broadcast_message", "").strip()
+        restaurant.broadcast_message = new_msg
+        restaurant.save()
+
+        return redirect(f"/restaurant/{restaurant_id}/")  # Redirect to the profile page
+
+
 class RestaurantViewSet(viewsets.ModelViewSet):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
@@ -28,7 +50,6 @@ class RestaurantViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-
     # Filters: allow ?borough=1 or ?cuisine_description=Pizza
     filterset_fields = ["borough", "cuisine_description", "hygiene_rating"]
 
@@ -113,7 +134,6 @@ class RestaurantGeoJSONView(APIView):
                     "cuisine": restaurant.cuisine_description,
                     "street": restaurant.street,
                     "zipcode": restaurant.zipcode,
-                    "id": restaurant.id,
                 },
             }
             for restaurant in queryset
