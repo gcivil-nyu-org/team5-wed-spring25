@@ -8,6 +8,7 @@ from .views import (
     DynamicNYCMapView,
     CommentViewSet,
     ReplyViewSet,
+    UpdateBroadcastView,
 )
 
 router = DefaultRouter()
@@ -23,4 +24,9 @@ urlpatterns = [
     ),
     path("geojson/", RestaurantGeoJSONView.as_view(), name="restaurant-geojson"),
     path("dynamic/", DynamicNYCMapView.as_view(), name="restaurant-dynamic-map"),
+    path(
+        "restaurant/<int:restaurant_id>/broadcast/",
+        UpdateBroadcastView.as_view(),
+        name="update_broadcast",
+    ),
 ]

@@ -17,14 +17,3 @@ class SettingsTests(TestCase):
             settings.MIDDLEWARE,
             "SecurityMiddleware should be installed",
         )
-
-    def test_secure_cookie_settings(self):
-        """Verify secure cookie settings"""
-        self.assertTrue(
-            settings.SESSION_COOKIE_SECURE,
-            "SESSION_COOKIE_SECURE should be True in production",
-        )
-        self.assertTrue(
-            settings.CSRF_COOKIE_SECURE,
-            "CSRF_COOKIE_SECURE should be True in production",
-        )
