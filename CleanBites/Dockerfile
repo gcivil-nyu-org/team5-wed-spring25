@@ -73,6 +73,5 @@ EXPOSE 8000
 # Set PYTHONPATH
 ENV PYTHONPATH="/app"
 
-# Run Gunicorn
-CMD ["gunicorn", "CleanBites.wsgi", "--bind", "0.0.0.0:8000"]
-
+# Run daphne
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "CleanBites.asgi:application"]

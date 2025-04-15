@@ -1265,26 +1265,34 @@ def update_profile(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+    
+
+# =====================================================================================
+# WEBSOCKET TESTS
+# =====================================================================================
 
 
-@csrf_protect
-@login_required
-def ensure_customer_exists(request):
-    try:
-        if not request.user.email:
-            return JsonResponse(
-                {"success": False, "error": "User has no email"}, status=400
-            )
+@login_required(login_url="/login/")
+def websocket_test(request):
+    return render(request, "websocket_test.html")
 
-        customer, created = Customer.objects.get_or_create(
-            email=request.user.email,
-            defaults={
-                "username": request.user.username,
-                "first_name": request.user.first_name,
-                "last_name": request.user.last_name,
-            },
-        )
 
-        return JsonResponse({"success": True, "created": created})
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+@login_required(login_url="/login/")
+def get_conversation_messages(request, receiver_id):
+    sender_id = request.user.id  # Assuming the user is authenticated
+    messages = DM.objects.filter(
+        sender_id__in=[sender_id, receiver_id],
+        receiver_id__in=[sender_id, receiver_id]
+    ).order_by("sent_at")
+
+    return JsonResponse({
+        "messages": [
+            {
+                "decoded_message": message.message.decode("utf-8"),
+                "sender_id": message.sender_id,
+                "receiver_id": message.receiver_id,
+                "sent_at": message.sent_at.isoformat(),
+            }
+            for message in messages
+        ]
+    })
