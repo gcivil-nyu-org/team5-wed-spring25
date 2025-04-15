@@ -15,6 +15,7 @@ from django.http import JsonResponse
 from django.db.models import Avg
 import json
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.contrib.contenttypes.models import ContentType
 
 # Get user model
 User = get_user_model()
@@ -39,8 +40,12 @@ def home_view(request):
 
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
+    # DO SOMETHING HERE
     restaurant = get_object_or_404(Restaurant, id=id)
-    reviews = Comment.objects.filter(restaurant=restaurant).order_by("-posted_at")
+    reviews = Comment.objects.filter(
+        restaurant=restaurant,
+        commenter__is_activated=True,  # only include comments from active customers
+    ).order_by("-posted_at")
     avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
     avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
     is_owner = False
@@ -119,7 +124,11 @@ def messages_view(request, chat_user_id=None):
             },
         )
 
-    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
+    # remove DMs from deactivated users
+    all_dms = DM.objects.filter(
+        (Q(sender=user) & Q(receiver__is_activated=True))
+        | (Q(sender__is_activated=True) & Q(receiver=user))
+    )
 
     participants = {}
     for dm in all_dms:
@@ -276,8 +285,25 @@ def send_message(request, chat_user_id):
                     extra_tags=INBOX_MESSAGE,
                 )
                 return HttpResponse("Sender not found", status=404)
+        try:
+            recipient = Customer.objects.get(id=chat_user_id)
+        except Customer.DoesNotExist:
+            messages.error(
+                request,
+                "The user you're trying to message could not be found.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+        message_text = request.POST.get("message")
+        # only able to send messages to activated users
+        if not recipient.is_activated:
+            messages.error(
+                request,
+                "Sorry, that user has been deactivated. You can't DM them.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
 
-        recipient = get_object_or_404(Customer, id=chat_user_id)
         message_text = request.POST.get("message")
 
         if recipient == sender:
@@ -446,7 +472,10 @@ def profile_router(request, username):
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
-        reviews = Comment.objects.filter(restaurant=user_obj.id).order_by(
+        reviews = Comment.objects.filter(
+            restaurant=user_obj.id,
+            commenter__is_activated=True,  # only include comments from active customers
+        ).order_by(
             "-posted_at"
         )  # adding reviews
         return render(
@@ -572,8 +601,10 @@ def moderator_profile_view(request):
         messages.error(request, "Unauthorized action.")
         return redirect("home")
     # query for flagged DMs and comments
-    flagged_dms = DM.objects.filter(flagged=True)
-    flagged_comments = Comment.objects.filter(flagged=True)
+    flagged_dms = DM.objects.filter(flagged=True, sender__is_activated=True)
+    flagged_comments = Comment.objects.filter(
+        flagged=True, commenter__is_activated=True
+    )
 
     # decode DM messages
     for dm in flagged_dms:
@@ -607,20 +638,18 @@ def deactivate_account(request, user_type, user_id):
         messages.error(request, "Invalid user type.")
         return redirect("moderator_profile")
 
-    # # deactivate Django user instance
-    # if hasattr(user_obj, "user"):
-    #     user_obj.user.is_active = False
-    #     user_obj.user.save()
-    # else:
-    #     user_obj.is_activated = False
-    #     user_obj.save()
-    user_obj.is_activated = False
-    user_obj.save()
-
-    messages.success(
-        request, f"{user_type.capitalize()} account deactivated successfully."
-    )
-    return redirect("moderator_profile")
+    if request.method == "POST":
+        deactivation_reason = request.POST.get("deactivation_reason", "")
+        user_obj.deactivation_reason = deactivation_reason
+        user_obj.is_activated = False
+        user_obj.save()
+        messages.success(
+            request, f"{user_type.capitalize()} account deactivated successfully."
+        )
+        return redirect("moderator_profile")
+    else:
+        messages.error(request, "Invalid request method.")
+        return redirect("moderator_profile")
 
 
 @login_required(login_url="/login/")
@@ -638,17 +667,102 @@ def delete_comment(request, comment_id):
 
 
 @login_required(login_url="/login/")
+def report_comment(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            comment_id = data.get("comment_id")
+            if not comment_id:
+                return JsonResponse(
+                    {"success": False, "error": "Missing comment ID"}, status=400
+                )
+            comment = get_object_or_404(Comment, id=comment_id)
+            comment.flagged = True
+            # identify the flagger (can be a Customer, Restaurant, or Moderator)
+            flagger = None
+            try:
+                flagger = Customer.objects.get(email=request.user.email)
+            except Customer.DoesNotExist:
+                try:
+                    flagger = Restaurant.objects.get(email=request.user.email)
+                except Restaurant.DoesNotExist:
+                    try:
+                        flagger = Moderator.objects.get(email=request.user.email)
+                    except Moderator.DoesNotExist:
+                        flagger = None
+            if not flagger:
+                return JsonResponse(
+                    {"success": False, "error": "Flagger not found"}, status=404
+                )
+
+            # Use generic foreign key fields to store the flagger
+            comment.flagged_by_content_type = ContentType.objects.get_for_model(flagger)
+            comment.flagged_by_object_id = flagger.id
+            comment.save()
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+    else:
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
+
+@login_required(login_url="/login/")
+def report_dm(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            partner_id = data.get("partner_id")
+            if not partner_id:
+                return JsonResponse(
+                    {"success": False, "error": "Missing partner_id"}, status=400
+                )
+            try:
+                reporter = Customer.objects.get(email=request.user.email)
+            except Customer.DoesNotExist:
+                return JsonResponse(
+                    {"success": False, "error": "Reporter not found"}, status=404
+                )
+            partner = get_object_or_404(Customer, id=partner_id)
+
+            # flag the most recent DM from the partner to the reporter
+            dm = (
+                DM.objects.filter(sender=partner, receiver=reporter)
+                .order_by("-sent_at")
+                .first()
+            )
+            if not dm:
+                return JsonResponse(
+                    {"success": False, "error": "No DM from the partner found"},
+                    status=404,
+                )
+
+            dm.flagged = True
+            dm.flagged_by_content_type = ContentType.objects.get_for_model(reporter)
+            dm.flagged_by_object_id = reporter.id
+            dm.save()
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+    else:
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
+
+@login_required(login_url="/login/")
 def global_search(request):
     query = request.GET.get("q", "").strip()
     if not query:
         return JsonResponse({"results": []})
 
-    customers = Customer.objects.filter(username__icontains=query).values("username")[
-        :5
-    ]
-    restaurants = Restaurant.objects.filter(name__icontains=query).values(
-        "id", "name", "username"
-    )[:5]
+    customers = Customer.objects.filter(
+        username__icontains=query, is_activated=True
+    ).values("username")[:5]
+    restaurants = Restaurant.objects.filter(
+        name__icontains=query, is_activated=True
+    ).values("id", "name", "username")[:5]
 
     results = []
 
@@ -674,8 +788,31 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            login(request, user)
-            return redirect("home")  # Redirect to homepage after login
+            try:
+                profile = Restaurant.objects.get(username=username)
+            except Restaurant.DoesNotExist:
+                try:
+                    profile = Customer.objects.get(username=username)
+                except Customer.DoesNotExist:
+                    try:
+                        profile = Moderator.objects.get(username=username)
+                    except Moderator.DoesNotExist:
+                        profile = None
+
+            if profile is None:
+                messages.error(
+                    request, "Invalid username or password", extra_tags=AUTH_MESSAGE
+                )
+                return redirect("/")
+            elif not profile.is_activated:
+                messages.error(
+                    request,
+                    f"Your account has been deactivated. Reason: {profile.deactivation_reason}",
+                )
+                return redirect("landing")
+            else:
+                login(request, user)
+                return redirect("home")
         else:
             messages.error(
                 request, "Invalid username or password", extra_tags=AUTH_MESSAGE

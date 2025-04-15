@@ -278,7 +278,9 @@
               <div class="scrollable-reviews">
                   <ul class="review-list">
                     {% for comment in reviews %}
-                      <li class="review">
+
+                    <li class="review" style="display: flex; justify-content: space-between; align-items: center;">
+                      <div class="review-content">
                         <div class="review-meta">
                           <span class="review-restaurant"><a href="{% url 'restaurant_detail' comment.restaurant.id %}" class="restaurant-name" style="color: orange; text-decoration: none;">{{ comment.restaurant.name }}</a></span>
                           <span class="review-rating">
@@ -295,9 +297,19 @@
                           </span>
                           <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
                         </div>
-                        <p class="review-title">{{ comment.title }}</p>
-                        <p class="review-text">{{ comment.comment }}</p>
-                      </li>
+                        <p class="review-text">{{ comment.decoded_comment }}</p>
+                      </div>
+                      <!-- Report button styled as a Bootstrap button and aligned to the right -->
+                      <div class="review-actions" style="margin-left: 20px;">
+                        {% if comment.flagged %}
+                          <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+                        {% else %}
+                          <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
+                            Report
+                          </button>
+                        {% endif %}
+                      </div>
+                    </li>
                     {% endfor %}
                   </ul>
                 </div> 
@@ -315,7 +327,6 @@
     </div>
   </div>
 </div>
-  
 
 <script>
   function toggleDropdown() {
@@ -403,5 +414,49 @@
     });
   }
 </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      // Attach event listener to each Report button
+      const reportButtons = document.querySelectorAll(".report-comment-btn");
+      reportButtons.forEach(function(button) {
+          button.addEventListener("click", function() {
+              // Ask for confirmation before reporting
+              if (!confirm("Are you sure you want to report this comment?")) {
+                  return;
+              }
+              const commentId = button.getAttribute("data-comment-id");
+              const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+              
+              // Send AJAX POST request to report the comment
+              fetch("/report_comment/", {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json",
+                      "X-CSRFToken": csrfToken
+                  },
+                  body: JSON.stringify({ comment_id: commentId }),
+                  credentials: "include"
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert("Comment reported successfully.");
+                      // Disable the button or change its label
+                      button.disabled = true;
+                      button.textContent = "Reported";
+                  } else {
+                      alert("Error reporting comment: " + (data.error || "Unknown error"));
+                  }
+              })
+              .catch(err => {
+                  console.error(err);
+                  alert("An error occurred. Please try again.");
+              });
+          });
+      });
+  });
+</script>
+  
 </body>
 </html>

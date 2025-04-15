@@ -5,8 +5,10 @@
     <div class="scrollable-reviews">
         <ul class="review-list">
           {% for comment in reviews %}
-            <li class="review">
+          <li class="review" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="review-content">
               <div class="review-meta">
+                <span class="review-title">{{ comment.decoded_title }}</span>
                 <div class="review-restaurant">
                   <a href="{% url 'user_profile' comment.commenter.username %}" class="restaurant-name">{{ comment.commenter.username }}</a>
                 </div>
@@ -23,12 +25,22 @@
                     <i class="fa-star {% if comment.health_rating|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
                   {% endfor %}
                 </span>
-              
+            
                 <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
               </div>
-              <p class="review-title">{{ comment.title }}</p>
-              <p class="review-text">{{ comment.comment }}</p>
-            </li>
+              <p class="review-text">{{ comment.decoded_comment }}</p>
+            </div>
+            <!-- Report button styled as a Bootstrap button and aligned to the right -->
+            <div class="review-actions" style="margin-left: 20px;">
+              {% if comment.flagged %}
+                <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+              {% else %}
+                <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
+                  Report
+                </button>
+              {% endif %}
+            </div>
+          </li>
           {% endfor %}
         </ul>
       </div>
