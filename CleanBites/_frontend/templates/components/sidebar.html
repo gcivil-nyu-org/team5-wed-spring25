@@ -151,6 +151,16 @@ document.getElementById('sidebar-search-form').addEventListener('submit', functi
   performSidebarSearch();    
 });
 
+document.addEventListener('click', function(e) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.querySelector('.sidebar-toggle');
+    
+    if (!sidebar.contains(e.target) && e.target !== toggleBtn && !sidebar.classList.contains('collapsed')) {
+      sidebar.classList.add('collapsed');
+      toggleBtn.textContent = '☰';
+    }
+});
+
 function performSidebarSearch() {
   const name = document.getElementById('sidebar-search-name').value;
   const checkedRatings = Array.from(document.querySelectorAll('#sidebar-search-form input[name="ratings"]:checked'))
@@ -211,6 +221,11 @@ async function submitSidebarGeocode() {
       window.globalLNG = parseFloat(lon);
       status.textContent = '✅ Location updated successfully';
       status.style.color = 'green';
+
+      const mapFrame = document.getElementById("map-frame");
+      if (mapFrame && mapFrame.contentWindow && typeof mapFrame.contentWindow.dropGeocodeMarker === "function") {
+          mapFrame.contentWindow.dropGeocodeMarker(parseFloat(lat), parseFloat(lon));
+      }
     } else {
       status.textContent = '❌ Location not found';
       status.style.color = 'red';

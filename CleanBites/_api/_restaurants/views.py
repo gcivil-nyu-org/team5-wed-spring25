@@ -16,11 +16,6 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
-from utils import (
-    get_restaurants,
-    restaurant_to_feature,
-    create_nyc_map,
-)
 from django.db.models import Q
 
 
@@ -65,7 +60,7 @@ class RestaurantGeoJSONView(APIView):
         lng = request.GET.get("lng", "").strip()
 
         # Start with all restaurants
-        queryset = Restaurant.objects.all()
+        queryset = Restaurant.objects.filter(is_activated=True)
 
         # Filter by name
         if name:
@@ -112,6 +107,7 @@ class RestaurantGeoJSONView(APIView):
                     "coordinates": [restaurant.geo_coords.x, restaurant.geo_coords.y],
                 },
                 "properties": {
+                    "id": restaurant.id,
                     "name": restaurant.name,
                     "hygiene_rating": restaurant.hygiene_rating,
                     "cuisine": restaurant.cuisine_description,

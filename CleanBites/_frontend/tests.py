@@ -4,12 +4,14 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.contrib.messages import get_messages
+from django.utils import timezone
 
-from _api._users.models import Customer, DM
-from _api._restaurants.models import Restaurant
+from _api._users.models import Moderator, Customer, DM, FavoriteRestaurant
+from _api._restaurants.models import Restaurant, Comment
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
 from django.test import RequestFactory
+import json
 
 User = get_user_model()
 
@@ -102,6 +104,8 @@ class ViewTests(TestCase):
         self.client.login(username="user1", password="testpass123")
         response = self.client.get(reverse("messages inbox"))
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "inbox.html")
+        self.assertIn("conversations", response.context)
         self.assertEqual(len(response.context["conversations"]), 0)
         self.assertIsNone(response.context["active_chat"])
         self.assertEqual(len(response.context["messages"]), 0)
@@ -569,7 +573,7 @@ class RestaurantViewTests(TestCase):
         # Test as non-owner
         self.client.login(username="user1", password="testpass123")
         response = self.client.get(
-            reverse("restaurant_detail", args=[self.restaurant.name])
+            reverse("restaurant_detail", args=[self.restaurant.id])
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["is_owner"])
@@ -581,18 +585,19 @@ class RestaurantViewTests(TestCase):
         )
         self.client.login(username="restaurant1", password="testpass123")
         response = self.client.get(
-            reverse("restaurant_detail", args=[self.restaurant.name])
+            reverse("restaurant_detail", args=[self.restaurant.id])
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["is_owner"])
 
-    def test_restaurant_detail_case_insensitive(self):
-        """Test restaurant name matching is case insensitive"""
-        self.client.login(username="user1", password="testpass123")
-        response = self.client.get(
-            reverse("restaurant_detail", args=["test restaurant"])
-        )
-        self.assertEqual(response.status_code, 200)
+    # using the restaurant id for detail view and this test is no longer needed
+    # def test_restaurant_detail_case_insensitive(self):
+    #     """Test restaurant name matching is case insensitive"""
+    #     self.client.login(username="user1", password="testpass123")
+    #     response = self.client.get(
+    #         reverse("restaurant_detail", args=["test restaurant"])
+    #     )
+    #     self.assertEqual(response.status_code, 200)
 
     def test_restaurant_register_view(self):
         """Test restaurant registration page shows unverified restaurants"""
@@ -694,6 +699,145 @@ class RestaurantViewTests(TestCase):
         }
         response = self.client.post(reverse("restaurant_verify"), data)
         self.assertEqual(response.status_code, 302)
+
+
+class ModeratorViewTests(TestCase):
+    def setUp(self):
+        # Create a moderator user and associated Moderator record.
+        self.mod_user = User.objects.create_user(
+            username="mod1", email="mod1@test.com", password="modpass"
+        )
+        self.moderator = Moderator.objects.create(
+            username="mod1", email="mod1@test.com", first_name="Mod", last_name="One"
+        )
+        self.restaurant = Restaurant.objects.create(
+            username="res1",
+            email="res1@test.com",
+            name="Res",
+            phone="555-555-5555",
+            building=123,
+            street="Main St",
+            zipcode="12345",
+            hygiene_rating=5,
+            inspection_date="2023-01-01",
+            borough=1,
+            cuisine_description="Italian",
+            violation_description="None",
+            geo_coords=Point(-73.966, 40.78),
+        )
+        # Create two customer records.
+        self.cust_user1 = User.objects.create_user(
+            username="cust1", email="cust1@test.com", password="custpass"
+        )
+        self.customer1 = Customer.objects.create(
+            username="cust1", email="cust1@test.com", first_name="Cust", last_name="One"
+        )
+
+        self.cust_user2 = User.objects.create_user(
+            username="cust2", email="cust2@test.com", password="custpass"
+        )
+        self.customer2 = Customer.objects.create(
+            username="cust2", email="cust2@test.com", first_name="Cust", last_name="Two"
+        )
+
+        # Create a flagged DM:
+        # For example, a DM from customer1 to customer2 flagged by customer2.
+        self.flagged_dm = DM.objects.create(
+            sender=self.customer1,
+            receiver=self.customer2,
+            message=b"Flagged DM",  # Stored as bytes
+            flagged=True,
+            flagged_by=self.moderator,
+            read=False,
+        )
+
+        # Create a flagged Comment:
+        # For example, a comment by customer1 flagged by customer2.
+        self.flagged_comment = Comment.objects.create(
+            commenter=self.customer1,
+            comment=b"Flagged Comment",
+            posted_at=timezone.now(),
+            flagged=True,
+            flagged_by=self.moderator,
+            karma=0,
+            restaurant=self.restaurant,
+        )
+
+    def test_moderator_profile_view_context(self):
+        """
+        Test that moderator_profile_view returns the flagged DMs and flagged Comments
+        in the context and decodes DM messages.
+        """
+        self.client.login(username="mod1", password="modpass")
+        response = self.client.get(reverse("moderator_profile"))
+        self.assertEqual(response.status_code, 200)
+
+        # Check that context contains flagged_dms and flagged_comments.
+        self.assertIn("flagged_dms", response.context)
+        self.assertIn("flagged_comments", response.context)
+        flagged_dms = response.context["flagged_dms"]
+        flagged_comments = response.context["flagged_comments"]
+
+        # Verify that our flagged DM is among those in context.
+        self.assertIn(self.flagged_dm, list(flagged_dms))
+        # Verify the DM message is decoded properly (should be "Flagged DM").
+        for dm in flagged_dms:
+            self.assertEqual(dm.decoded_message, "Flagged DM")
+
+        # Verify that our flagged comment is among those in context.
+        self.assertIn(self.flagged_comment, list(flagged_comments))
+        self.assertEqual(self.flagged_comment.comment, b"Flagged Comment")
+
+    def test_deactivate_account_customer(self):
+        """
+        Test that a POST to the deactivate_account endpoint for a customer properly deactivates
+        the associated user account.
+        """
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("deactivate_account", args=["customer", self.customer1.id])
+        response = self.client.post(url)
+        self.customer1.refresh_from_db()
+        self.assertFalse(self.customer1.is_activated)
+
+    def test_deactivate_account_restaurant(self):
+        """
+        Test that a POST to deactivate_account for a restaurant properly deactivates that account.
+        """
+        # Create a restaurant user and record.
+        rest_user = User.objects.create_user(
+            username="rest1", email="rest1@test.com", password="restpass"
+        )
+        restaurant = Restaurant.objects.create(
+            username="rest1",
+            name="Test Restaurant",
+            email="rest1@test.com",
+            phone="111-222-3333",
+            building=100,
+            street="Test Rd",
+            zipcode="12345",
+            borough=1,
+            cuisine_description="Test Cuisine",
+            hygiene_rating=1,
+            violation_description="None",
+            inspection_date="2023-01-01",
+            geo_coords=Point(0, 0),
+        )
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("deactivate_account", args=["restaurant", restaurant.id])
+        response = self.client.post(url)
+
+        restaurant.refresh_from_db()
+        self.assertFalse(restaurant.is_activated)
+
+    def test_delete_comment(self):
+        """
+        Test that a POST to delete_comment removes the comment from the database.
+        """
+        self.client.login(username="mod1", password="modpass")
+        url = reverse("delete_comment", args=[self.flagged_comment.id])
+        response = self.client.post(url)
+        with self.assertRaises(Comment.DoesNotExist):
+            Comment.objects.get(id=self.flagged_comment.id)
 
 
 class AuthenticationTests(TestCase):
@@ -942,3 +1086,584 @@ class RestaurantVerificationTests(TestCase):
             follow=True,
         )
         self.assertContains(response, "Selected restaurant does not exist.")
+
+
+class BookmarksTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="user1", password="testpass123", email="user1@test.com"
+        )
+        self.customer = Customer.objects.create(
+            username="user1", email="user1@test.com", first_name="User", last_name="One"
+        )
+        self.restaurant = Restaurant.objects.create(
+            name="Test Restaurant",
+            username="restaurant1",
+            email="restaurant@test.com",
+            borough=1,  # Manhattan
+            building=123,
+            street="Test St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="American",
+            hygiene_rating=1,
+            violation_description="No violations",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+        self.bookmarks_url = reverse("bookmarks_view")
+
+    def test_bookmark_view_requires_login(self):
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 302)  # Should redirect to login
+
+    def test_add_bookmark_success(self):
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            self.bookmarks_url, {"restaurant_id": self.restaurant.id}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.assertTrue(
+            FavoriteRestaurant.objects.filter(
+                customer=self.customer, restaurant=self.restaurant
+            ).exists()
+        )
+
+    def test_add_duplicate_bookmark(self):
+        FavoriteRestaurant.objects.create(
+            customer=self.customer, restaurant=self.restaurant
+        )
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            self.bookmarks_url, {"restaurant_id": self.restaurant.id}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["success"])
+
+    def test_add_bookmark_invalid_restaurant(self):
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.post(
+            self.bookmarks_url, {"restaurant_id": 9999}  # Non-existent ID
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()["success"])
+
+    def test_get_bookmarks_empty(self):
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["restaurants"]), 0)
+        self.assertEqual(data["count"], 0)
+
+    def test_get_bookmarks_with_data(self):
+        FavoriteRestaurant.objects.create(
+            customer=self.customer, restaurant=self.restaurant
+        )
+        self.client.login(username="user1", password="testpass123")
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["restaurants"]), 1)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["restaurants"][0]["name"], "Test Restaurant")
+
+    def test_missing_customer_profile(self):
+        # Create user without customer profile
+        user2 = User.objects.create_user(
+            username="user2", password="testpass123", email="testuser2@test.com"
+        )
+        self.client.login(username="user2", password="testpass123")
+        response = self.client.get(self.bookmarks_url)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("error", response.json())
+
+
+class SearchTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="searchuser", email="search@test.com", password="searchpass"
+        )
+        self.customer = Customer.objects.create(
+            username="CoolCustomer",
+            email="cool@test.com",
+            first_name="Cool",
+            last_name="Customer",
+        )
+        self.restaurant_user = User.objects.create_user(
+            username="restuser", email="rest@test.com", password="restpass"
+        )
+        self.restaurant = Restaurant.objects.create(
+            name="Pizza Palace",
+            username="PizzaPalace",
+            email="rest@test.com",
+            phone="123-456-7890",
+            building=123,
+            street="Main St",
+            zipcode="10001",
+            borough=1,
+            cuisine_description="Pizza",
+            hygiene_rating=1,
+            violation_description="None",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+        self.client.login(username="searchuser", password="searchpass")
+
+    def test_empty_query_returns_empty_results(self):
+        response = self.client.get(reverse("global_search"), {"q": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"results": []})
+
+    def test_search_customer_username(self):
+        response = self.client.get(reverse("global_search"), {"q": "Cool"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()["results"]
+        self.assertTrue(any("👤 CoolCustomer" in r["label"] for r in data))
+        self.assertTrue(any("/user/CoolCustomer/" in r["url"] for r in data))
+
+    def test_search_restaurant_name(self):
+        response = self.client.get(reverse("global_search"), {"q": "Pizza"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()["results"]
+        self.assertTrue(any("🍽️ Pizza Palace" in r["label"] for r in data))
+        self.assertTrue(
+            any(f"/restaurant/{self.restaurant.id}/" in r["url"] for r in data)
+        )
+
+    def test_search_returns_both_customer_and_restaurant(self):
+        # Query that hits both "CoolCustomer" and "Pizza Palace"
+        response = self.client.get(reverse("global_search"), {"q": "a"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()["results"]
+        self.assertTrue(
+            any("👤 CoolCustomer" in r["label"] for r in data)
+            or any("🍽️ Pizza Palace" in r["label"] for r in data)
+        )
+
+    def test_search_no_results(self):
+        response = self.client.get(reverse("global_search"), {"q": "Zebra"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"results": []})
+
+
+class BookmarksDeleteTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123", email="test@example.com"
+        )
+        self.customer = Customer.objects.create(
+            username="testuser",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+        )
+
+        self.restaurant = Restaurant.objects.create(
+            name="Delete Me Diner",
+            username="deleteme",
+            email="rest@test.com",
+            borough=1,
+            building=123,
+            street="Main St",
+            zipcode="10001",
+            phone="555-555-5555",
+            cuisine_description="BBQ",
+            hygiene_rating=1,
+            violation_description="None",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+
+        self.bookmark = FavoriteRestaurant.objects.create(
+            customer=self.customer,
+            restaurant=self.restaurant,
+        )
+
+        self.url = reverse("bookmarks_view")  # Ensure this matches your urls.py name
+        self.client.login(username="testuser", password="testpass123")
+
+    def test_delete_bookmark_success(self):
+        response = self.client.delete(
+            self.url,
+            data=json.dumps({"id": self.bookmark.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.assertFalse(
+            FavoriteRestaurant.objects.filter(id=self.bookmark.id).exists()
+        )
+
+    def test_delete_bookmark_missing_id(self):
+        response = self.client.delete(
+            self.url,
+            data=json.dumps({}),  # No "id" field
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Missing bookmark ID", response.json()["error"])
+
+    def test_delete_bookmark_invalid_id(self):
+        response = self.client.delete(
+            self.url,
+            data=json.dumps({"id": 9999}),  # Non-existent
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Bookmark not found", response.json()["error"])
+
+    def test_delete_bookmark_unauthorized(self):
+        other_user = User.objects.create_user(
+            username="intruder", password="pass123", email="intruder@test.com"
+        )
+        Customer.objects.create(username="intruder", email="intruder@test.com")
+
+        self.client.login(username="intruder", password="pass123")
+        response = self.client.delete(
+            self.url,
+            data=json.dumps({"id": self.bookmark.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Bookmark not found", response.json()["error"])
+        self.assertTrue(FavoriteRestaurant.objects.filter(id=self.bookmark.id).exists())
+
+    def test_delete_bookmark_missing_customer_profile(self):
+        # Create user without Customer profile
+        orphan = User.objects.create_user(
+            username="orphan", password="pass123", email="orphan@test.com"
+        )
+        self.client.login(username="orphan", password="pass123")
+        response = self.client.delete(
+            self.url,
+            data=json.dumps({"id": self.bookmark.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertIn(
+            "Customer matching query does not exist.", response.json()["error"]
+        )
+
+
+class EditProfileTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123", email="test@example.com"
+        )
+        self.customer = Customer.objects.create(
+            username="testuser", email="test@example.com"
+        )
+        self.url = reverse(
+            "update_profile"
+        )  # Update this if your url name is different
+
+    def test_successful_profile_update(self):
+        self.client.login(username="testuser", password="testpass123")
+        data = {
+            "name": "New Name",
+            "email": "newemail@example.com",
+            "currentUsername": "testuser",
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["name"], "New Name")
+        self.assertEqual(response.json()["email"], "newemail@example.com")
+
+        # Check DB values were updated
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "New")
+        self.assertEqual(self.user.last_name, "Name")
+        self.assertEqual(self.user.email, "newemail@example.com")
+
+    def test_unauthenticated_user(self):
+        response = self.client.post(self.url, content_type="application/json")
+        self.assertEqual(response.status_code, 302)  # Redirect to login
+
+    def test_invalid_method_get(self):
+        self.client.login(username="testuser", password="testpass123")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.json()["error"], "Invalid method")
+
+    def test_customer_not_found(self):
+        self.client.login(username="testuser", password="testpass123")
+        self.customer.delete()
+        data = {
+            "name": "John Smith",
+            "email": "john@example.com",
+            "currentUsername": "testuser",
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["error"], "Customer profile not found.")
+
+    def test_partial_name(self):
+        self.client.login(username="testuser", password="testpass123")
+        data = {
+            "name": "John",  # No last name
+            "email": "john@example.com",
+            "currentUsername": "testuser",
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "John")
+        self.assertEqual(self.user.last_name, "")  # Handles single-name input
+
+    def test_malformed_json(self):
+        self.client.login(username="testuser", password="testpass123")
+        response = self.client.post(
+            self.url,
+            data="{bad json}",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+
+
+class WriteCommentTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.user = User.objects.create_user(
+            username="testuser", email="test@example.com", password="testpass123"
+        )
+        self.customer = Customer.objects.create(
+            username="testuser", email="test@example.com"
+        )
+
+        self.restaurant = Restaurant.objects.create(
+            name="Food Place",
+            username="foodplace",
+            email="place@example.com",
+            borough=1,
+            building=123,
+            street="Main St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="Deli",
+            hygiene_rating=3,
+            violation_description="None",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+
+        self.url = reverse("addreview", args=[self.restaurant.id])
+        self.client.login(username="testuser", password="testpass123")
+
+    def test_get_review_form_view(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "addreview.html")
+        self.assertIn("form", response.context)
+        self.assertEqual(response.context["restaurant"], self.restaurant)
+
+    def test_post_valid_comment(self):
+        post_data = {
+            "title": "Loved It",
+            "comment": "Amazing spot!",
+            "rating": "5",
+            "health_rating": "4",
+        }
+        response = self.client.post(self.url, post_data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response, reverse("restaurant_detail", args=[self.restaurant.id])
+        )
+
+        # Confirm the review was created
+        self.assertEqual(Comment.objects.count(), 1)
+        comment = Comment.objects.first()
+        self.assertEqual(comment.commenter, self.customer)
+        self.assertEqual(comment.restaurant, self.restaurant)
+        self.assertEqual(comment.rating, 5)
+        self.assertEqual(comment.health_rating, 4)
+        self.assertEqual(comment.title, "Loved It")
+        self.assertEqual(comment.comment, "Amazing spot!")
+
+    def test_post_invalid_comment_missing_fields(self):
+        post_data = {"rating": "5", "health_rating": "3"}  # Missing title and comment
+        response = self.client.post(self.url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "addreview.html")
+        self.assertFormError(response, "form", "title", "This field is required.")
+        self.assertFormError(response, "form", "comment", "This field is required.")
+        self.assertEqual(Comment.objects.count(), 0)
+
+    def test_redirects_if_not_logged_in(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse("login")))
+
+    def test_comment_belongs_to_correct_user_and_restaurant(self):
+        post_data = {
+            "title": "Solid place",
+            "comment": "Great experience!",
+            "rating": "4",
+            "health_rating": "4",
+        }
+        self.client.post(self.url, post_data)
+        comment = Comment.objects.first()
+        self.assertIsNotNone(comment)
+        self.assertEqual(comment.commenter.username, "testuser")
+        self.assertEqual(comment.restaurant.name, "Food Place")
+
+
+class ProfileTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.user = User.objects.create_user(
+            username="testuser", email="test@example.com", password="testpass123"
+        )
+        self.customer = Customer.objects.create(
+            username="testuser",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+        )
+
+        self.other_user = User.objects.create_user(
+            username="visitor", email="visitor@example.com", password="visitorpass"
+        )
+        self.other_customer = Customer.objects.create(
+            username="visitor", email="visitor@example.com"
+        )
+
+        self.restaurant = Restaurant.objects.create(
+            name="Review Spot",
+            username="reviewspot",
+            email="spot@example.com",
+            borough=1,
+            building=123,
+            street="Main St",
+            zipcode="10001",
+            phone="123-456-7890",
+            cuisine_description="Fusion",
+            hygiene_rating=3,
+            violation_description="None",
+            inspection_date="2023-01-01",
+            geo_coords=Point(-73.966, 40.78),
+        )
+
+        self.profile_url = lambda username: reverse("user_profile", args=[username])
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.profile_url("testuser"))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse("login")))
+
+    def test_profile_view_as_owner(self):
+        self.client.login(username="testuser", password="testpass123")
+        response = self.client.get(self.profile_url("testuser"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "user_profile.html")
+        self.assertTrue(response.context["is_owner"])
+        self.assertEqual(response.context["profile_user"], self.user)
+        self.assertEqual(response.context["customer"], self.customer)
+        self.assertEqual(list(response.context["reviews"]), [])
+
+    def test_profile_view_as_non_owner(self):
+        self.client.login(username="visitor", password="visitorpass")
+        response = self.client.get(self.profile_url("testuser"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "user_profile.html")
+        self.assertFalse(response.context["is_owner"])
+        self.assertEqual(response.context["profile_user"], self.user)
+        self.assertEqual(response.context["customer"], self.customer)
+
+    def test_profile_with_reviews(self):
+        Comment.objects.create(
+            commenter=self.customer,
+            restaurant=self.restaurant,
+            title="Good",
+            comment="Food was good",
+            rating=4,
+            health_rating=3,
+        )
+
+        self.client.login(username="testuser", password="testpass123")
+        response = self.client.get(self.profile_url("testuser"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["reviews"]), 1)
+        self.assertEqual(response.context["reviews"][0].title, "Good")
+
+
+class UserProfileViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="testuser", password="pass123")
+        self.customer = Customer.objects.create(
+            username="testuser",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+        )
+
+    def test_profile_view_owner(self):
+        self.client.login(username="testuser", password="pass123")
+        response = self.client.get(reverse("user_profile", args=["testuser"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "user_profile.html")
+        self.assertTrue(response.context["is_owner"])
+
+    def test_profile_view_not_owner(self):
+        other_user = User.objects.create_user(username="other", password="pass123")
+        self.client.login(username="other", password="pass123")
+        response = self.client.get(reverse("user_profile", args=["testuser"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["is_owner"])
+
+    def test_profile_view_user_not_found(self):
+        self.client.login(username="testuser", password="pass123")
+        response = self.client.get(reverse("user_profile", args=["nonexistent"]))
+        self.assertEqual(response.status_code, 302 or 404)
+
+
+class AdminProfileViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="adminuser", password="pass123", email="admin@example.com"
+        )
+        self.moderator = Moderator.objects.create(
+            username="adminuser", email="admin@example.com"
+        )
+        self.client.login(username="adminuser", password="pass123")
+
+    def test_admin_profile_view(self):
+        response = self.client.get(reverse("moderator_profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "admin_profile.html")
+
+    def test_admin_profile_not_moderator(self):
+        # Login as a user who is not a moderator
+        User.objects.create_user(
+            username="user2", password="pass123", email="user2@example.com"
+        )
+        self.client.login(username="user2", password="pass123")
+
+        response = self.client.get(reverse("moderator_profile"))
+        self.assertEqual(response.status_code, 302)

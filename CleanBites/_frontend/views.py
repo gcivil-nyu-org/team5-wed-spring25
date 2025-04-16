@@ -1,15 +1,21 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from _api._restaurants.models import Restaurant
+from _api._restaurants.models import Restaurant, Comment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from _api._users.models import Customer, DM
+from _api._users.models import Customer, DM, FavoriteRestaurant, Moderator
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
+from .forms import Review
+from django.http import JsonResponse
+from django.db.models import Avg
+import json
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.contrib.contenttypes.models import ContentType
 
 # Get user model
 User = get_user_model()
@@ -33,9 +39,15 @@ def home_view(request):
 
 
 @login_required(login_url="/login/")
-def restaurant_detail(request, name):
-    restaurant = get_object_or_404(Restaurant, name__iexact=name)
-
+def restaurant_detail(request, id):
+    # DO SOMETHING HERE
+    restaurant = get_object_or_404(Restaurant, id=id)
+    reviews = Comment.objects.filter(
+        restaurant=restaurant,
+        commenter__is_activated=True,  # only include comments from active customers
+    ).order_by("-posted_at")
+    avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
+    avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -45,6 +57,9 @@ def restaurant_detail(request, name):
         "maps/restaurant_detail.html",
         {
             "restaurant": restaurant,
+            "reviews": reviews,
+            "avg_rating": avg_rating or 0,
+            "avg_health": avg_health or 0,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
         },
@@ -59,9 +74,119 @@ def dynamic_map_view(request):
 
 @login_required(login_url="/login/")
 def user_profile(request, username):
-    user = get_object_or_404(Customer, username__iexact=username)
-    context = {"user": user, "has_unread_messages": has_unread_messages(request.user)}
+    user = get_object_or_404(User, username=username)
+    customer = None
+    try:
+        customer = Customer.objects.get(username=username)
+    except Customer.DoesNotExist:
+        customer = None
+
+    is_owner = False
+    if request.user.is_authenticated and request.user.username == user.username:
+        is_owner = True
+
+    if customer:
+        reviews = Comment.objects.filter(commenter=customer.id).order_by("-posted_at")
+    else:
+        reviews = []
+
+    context = {
+        "profile_user": user,
+        "has_unread_messages": has_unread_messages(request.user),
+        "customer": customer,
+        "is_owner": is_owner,
+        "reviews": reviews,
+    }
     return render(request, "user_profile.html", context)
+
+
+@login_required(login_url="/login/")
+def admin_profile(request, username):
+    admin = get_object_or_404(Moderator, username__iexact=username)
+    context = {"admin": admin}
+    return render(request, "admin_profile.html", context)
+
+
+@login_required(login_url="/login/")
+def messages_view(request, chat_user_id=None):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        return render(
+            request,
+            "inbox.html",
+            {
+                "conversations": [],
+                "active_chat": None,
+                "messages": [],
+                "error": "Your profile could not be found.",
+                "has_unread_messages": has_unread_messages(request.user),
+            },
+        )
+
+    # remove DMs from deactivated users
+    all_dms = DM.objects.filter(
+        (Q(sender=user) & Q(receiver__is_activated=True))
+        | (Q(sender__is_activated=True) & Q(receiver=user))
+    )
+
+    participants = {}
+    for dm in all_dms:
+        other = dm.receiver if dm.sender == user else dm.sender
+        if other.id not in participants:
+            participants[other.id] = {
+                "id": other.id,
+                "name": other.first_name,
+                "email": other.email,
+                "avatar_url": "/static/images/avatar-placeholder.png",
+                "has_unread": False,  # Initialize unread flag
+            }
+
+    # Check for unread messages in each conversation
+    for participant_id in participants:
+        has_unread = DM.objects.filter(
+            sender_id=participant_id, receiver=user, read=False
+        ).exists()
+        participants[participant_id]["has_unread"] = has_unread
+
+    conversations = list(participants.values())
+
+    active_chat = None
+    if chat_user_id:
+        active_chat = get_object_or_404(Customer, id=chat_user_id)
+    elif conversations:
+        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
+
+    messages = []
+    if active_chat:
+        raw_messages = DM.objects.filter(
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
+        ).order_by("sent_at")
+
+        # Mark messages as read when viewed
+        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
+            read=True
+        )
+
+        for msg in raw_messages:
+            try:
+                byte_data = bytes(msg.message)
+                msg.decoded_message = byte_data.decode("utf-8")
+            except Exception as e:
+                msg.decoded_message = "[Could not decode message]"
+            messages.append(msg)
+
+    return render(
+        request,
+        "inbox.html",
+        {
+            "conversations": conversations,
+            "active_chat": active_chat,
+            "messages": messages,
+            "has_unread_messages": has_unread_messages(request.user),
+        },
+    )
 
 
 @login_required(login_url="/login/")
@@ -160,8 +285,25 @@ def send_message(request, chat_user_id):
                     extra_tags=INBOX_MESSAGE,
                 )
                 return HttpResponse("Sender not found", status=404)
+        try:
+            recipient = Customer.objects.get(id=chat_user_id)
+        except Customer.DoesNotExist:
+            messages.error(
+                request,
+                "The user you're trying to message could not be found.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+        message_text = request.POST.get("message")
+        # only able to send messages to activated users
+        if not recipient.is_activated:
+            messages.error(
+                request,
+                "Sorry, that user has been deactivated. You can't DM them.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
 
-        recipient = get_object_or_404(Customer, id=chat_user_id)
         message_text = request.POST.get("message")
 
         if recipient == sender:
@@ -264,7 +406,7 @@ def send_message_generic(request):
 
 
 @login_required(login_url="/login/")
-def delete_conversation(request, other_user_id):
+def delete_conversation(request, other_user_id, **kwargs):
     try:
         user = Customer.objects.get(email=request.user.email)
         other_user = Customer.objects.get(id=other_user_id)
@@ -289,45 +431,37 @@ def delete_conversation(request, other_user_id):
 @login_required(login_url="/login/")
 def update_restaurant_profile_view(request):
     try:
-        restaurant = Restaurant.objects.get(user=request.user)
+        restaurant = Restaurant.objects.get(username=request.user)
     except Restaurant.DoesNotExist:
         messages.error(request, "No restaurant is linked to your account.")
         return redirect("home")
 
     if request.method == "POST":
-        if "name" in request.POST:
-            restaurant.name = request.POST.get("name")
-        if "phone" in request.POST:
-            restaurant.phone = request.POST.get("phone")
-        if "street" in request.POST:
-            restaurant.street = request.POST.get("street")
-        if "building" in request.POST and request.POST.get("building").isdigit():
-            restaurant.building = int(request.POST.get("building"))
-        if "zipcode" in request.POST:
-            restaurant.zipcode = request.POST.get("zipcode")
-        if "cuisine_description" in request.POST:
-            restaurant.cuisine_description = request.POST.get("cuisine_description")
-        else:
-            restaurant.name = request.POST.get("name", restaurant.name)
-            restaurant.building = request.POST.get("building", restaurant.building)
-            restaurant.street = request.POST.get("street", restaurant.street)
-            restaurant.zipcode = request.POST.get("zipcode", restaurant.zipcode)
-            restaurant.phone = request.POST.get("phone", restaurant.phone)
-            restaurant.cuisine_description = request.POST.get(
-                "cuisine_description", restaurant.cuisine_description
-            )
-            restaurant.violation_description = request.POST.get(
-                "description", restaurant.violation_description
-            )
+        try:
+            if "name" in request.POST:
+                restaurant.name = request.POST.get("name")
+            if "phone" in request.POST:
+                restaurant.phone = request.POST.get("phone")
+            if "street" in request.POST:
+                restaurant.street = request.POST.get("street")
+            if "building" in request.POST and request.POST.get("building").isdigit():
+                restaurant.building = int(request.POST.get("building"))
+            if "zipcode" in request.POST:
+                restaurant.zipcode = request.POST.get("zipcode")
+            if "cuisine_description" in request.POST:
+                restaurant.cuisine_description = request.POST.get("cuisine_description")
 
-        if "profile_image" in request.FILES:
-            restaurant.profile_image = request.FILES["profile_image"]
+            if "profile_image" in request.FILES:
+                restaurant.profile_image = request.FILES["profile_image"]
 
-        restaurant.save()
-        messages.success(request, "Restaurant profile updated successfully!")
-        return redirect("restaurant_detail", name=restaurant.name)
+            restaurant.save()
+            messages.success(request, "Restaurant profile updated successfully!")
+            return redirect("restaurant_detail", name=restaurant.id)
+        except Exception as e:
+            messages.error(request, f"Error updating profile: {e}")
+            return redirect("home")
 
-    return redirect("home")
+    return redirect("restaurant_detail", name=restaurant.id)
 
 
 @login_required(login_url="/login/")
@@ -338,29 +472,54 @@ def profile_router(request, username):
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
-
+        reviews = Comment.objects.filter(
+            restaurant=user_obj.id,
+            commenter__is_activated=True,  # only include comments from active customers
+        ).order_by(
+            "-posted_at"
+        )  # adding reviews
         return render(
             request,
             "maps/restaurant_detail.html",
             {
                 "restaurant": user_obj,
                 "is_owner": is_owner,
+                "reviews": reviews,
                 "has_unread_messages": has_unread_messages(request.user),
             },
         )
     except Restaurant.DoesNotExist:
         try:
             user_obj = Customer.objects.get(username=username)
+            profile_user = get_object_or_404(User, username=username)
+            is_owner = False
+
+            if (
+                request.user.is_authenticated
+                and request.user.username == user_obj.username
+            ):
+                is_owner = True
+
+            reviews = Comment.objects.filter(commenter=user_obj.id).order_by(
+                "-posted_at"
+            )
             return render(
                 request,
                 "user_profile.html",
                 {
                     "customer": user_obj,
+                    "profile_user": profile_user,
+                    "is_owner": is_owner,
+                    "reviews": reviews,
                     "has_unread_messages": has_unread_messages(request.user),
                 },
             )
         except Customer.DoesNotExist:
-            return redirect("home")  # or a 404 page
+            try:
+                admin_obj = Moderator.objects.get(username=username)
+                return redirect("moderator_profile")
+            except Moderator.DoesNotExist:
+                return redirect("home")  # or a 404 page
 
 
 @login_required(login_url="/login/")
@@ -409,6 +568,215 @@ def debug_unread_messages(request):
         )
 
 
+@login_required(login_url="/login/")
+def write_comment(request, id):
+    restaurant_obj = get_object_or_404(Restaurant, id=id)
+    author = get_object_or_404(Customer, username=request.user.username)
+
+    if request.method == "POST":
+        form = Review(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.commenter = author
+            review.restaurant = restaurant_obj
+            review.rating = request.POST.get("rating")
+            review.health_rating = request.POST.get("health_rating")
+            review.save()
+            return redirect("restaurant_detail", id=restaurant_obj.id)
+        else:
+            print(form.errors)  # helpful for debugging
+    else:
+        form = Review()
+
+    context = {"restaurant": restaurant_obj, "form": form}
+    return render(request, "addreview.html", context)
+
+
+@login_required(login_url="/login/")
+def moderator_profile_view(request):
+    # verify user is a moderator
+    try:
+        moderator = Moderator.objects.get(email=request.user.email)
+    except Moderator.DoesNotExist:
+        messages.error(request, "Unauthorized action.")
+        return redirect("home")
+    # query for flagged DMs and comments
+    flagged_dms = DM.objects.filter(flagged=True, sender__is_activated=True)
+    flagged_comments = Comment.objects.filter(
+        flagged=True, commenter__is_activated=True
+    )
+
+    # decode DM messages
+    for dm in flagged_dms:
+        try:
+            dm.decoded_message = bytes(dm.message).decode("utf-8")
+        except Exception as e:
+            dm.decoded_message = "[Could not decode message]"
+
+    context = {
+        "moderator": moderator,
+        "flagged_dms": flagged_dms,
+        "flagged_comments": flagged_comments,
+    }
+    return render(request, "admin_profile.html", context)
+
+
+@login_required(login_url="/login/")
+def deactivate_account(request, user_type, user_id):
+    # verify user is a moderator
+    try:
+        moderator = Moderator.objects.get(email=request.user.email)
+    except Moderator.DoesNotExist:
+        messages.error(request, "Unauthorized action.")
+        return redirect("home")
+
+    if user_type == "customer":
+        user_obj = get_object_or_404(Customer, id=user_id)
+    elif user_type == "restaurant":
+        user_obj = get_object_or_404(Restaurant, id=user_id)
+    else:
+        messages.error(request, "Invalid user type.")
+        return redirect("moderator_profile")
+
+    if request.method == "POST":
+        deactivation_reason = request.POST.get("deactivation_reason", "")
+        user_obj.deactivation_reason = deactivation_reason
+        user_obj.is_activated = False
+        user_obj.save()
+        messages.success(
+            request, f"{user_type.capitalize()} account deactivated successfully."
+        )
+        return redirect("moderator_profile")
+    else:
+        messages.error(request, "Invalid request method.")
+        return redirect("moderator_profile")
+
+
+@login_required(login_url="/login/")
+def delete_comment(request, comment_id):
+    try:
+        moderator = Moderator.objects.get(email=request.user.email)
+    except Moderator.DoesNotExist:
+        messages.error(request, "Unauthorized action.")
+        return redirect("home")
+
+    comment = get_object_or_404(Comment, id=comment_id)
+    comment.delete()
+    messages.success(request, "Comment deleted successfully.")
+    return redirect("moderator_profile")
+
+
+@login_required(login_url="/login/")
+def report_comment(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            comment_id = data.get("comment_id")
+            if not comment_id:
+                return JsonResponse(
+                    {"success": False, "error": "Missing comment ID"}, status=400
+                )
+            comment = get_object_or_404(Comment, id=comment_id)
+            comment.flagged = True
+            # identify the flagger (can be a Customer, Restaurant, or Moderator)
+            flagger = None
+            try:
+                flagger = Customer.objects.get(email=request.user.email)
+            except Customer.DoesNotExist:
+                try:
+                    flagger = Restaurant.objects.get(email=request.user.email)
+                except Restaurant.DoesNotExist:
+                    try:
+                        flagger = Moderator.objects.get(email=request.user.email)
+                    except Moderator.DoesNotExist:
+                        flagger = None
+            if not flagger:
+                return JsonResponse(
+                    {"success": False, "error": "Flagger not found"}, status=404
+                )
+
+            # Use generic foreign key fields to store the flagger
+            comment.flagged_by_content_type = ContentType.objects.get_for_model(flagger)
+            comment.flagged_by_object_id = flagger.id
+            comment.save()
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+    else:
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
+
+@login_required(login_url="/login/")
+def report_dm(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            partner_id = data.get("partner_id")
+            if not partner_id:
+                return JsonResponse(
+                    {"success": False, "error": "Missing partner_id"}, status=400
+                )
+            try:
+                reporter = Customer.objects.get(email=request.user.email)
+            except Customer.DoesNotExist:
+                return JsonResponse(
+                    {"success": False, "error": "Reporter not found"}, status=404
+                )
+            partner = get_object_or_404(Customer, id=partner_id)
+
+            # flag the most recent DM from the partner to the reporter
+            dm = (
+                DM.objects.filter(sender=partner, receiver=reporter)
+                .order_by("-sent_at")
+                .first()
+            )
+            if not dm:
+                return JsonResponse(
+                    {"success": False, "error": "No DM from the partner found"},
+                    status=404,
+                )
+
+            dm.flagged = True
+            dm.flagged_by_content_type = ContentType.objects.get_for_model(reporter)
+            dm.flagged_by_object_id = reporter.id
+            dm.save()
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+    else:
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
+
+@login_required(login_url="/login/")
+def global_search(request):
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return JsonResponse({"results": []})
+
+    customers = Customer.objects.filter(
+        username__icontains=query, is_activated=True
+    ).values("username")[:5]
+    restaurants = Restaurant.objects.filter(
+        name__icontains=query, is_activated=True
+    ).values("id", "name", "username")[:5]
+
+    results = []
+
+    for c in customers:
+        results.append(
+            {"label": f"👤 {c['username']}", "url": f"/user/{c['username']}/"}
+        )
+
+    for r in restaurants:
+        results.append({"label": f"🍽️ {r['name']}", "url": f"/restaurant/{r['id']}/"})
+
+    return JsonResponse({"results": results})
+
+
 # =====================================================================================
 # AUTHENTICATION VIEWS - doesn't return anything but authentication data
 # =====================================================================================
@@ -420,8 +788,31 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            login(request, user)
-            return redirect("home")  # Redirect to homepage after login
+            try:
+                profile = Restaurant.objects.get(username=username)
+            except Restaurant.DoesNotExist:
+                try:
+                    profile = Customer.objects.get(username=username)
+                except Customer.DoesNotExist:
+                    try:
+                        profile = Moderator.objects.get(username=username)
+                    except Moderator.DoesNotExist:
+                        profile = None
+
+            if profile is None:
+                messages.error(
+                    request, "Invalid username or password", extra_tags=AUTH_MESSAGE
+                )
+                return redirect("/")
+            elif not profile.is_activated:
+                messages.error(
+                    request,
+                    f"Your account has been deactivated. Reason: {profile.deactivation_reason}",
+                )
+                return redirect("landing")
+            else:
+                login(request, user)
+                return redirect("home")
         else:
             messages.error(
                 request, "Invalid username or password", extra_tags=AUTH_MESSAGE
@@ -464,6 +855,45 @@ def register_view(request):
             username=username, email=email, password=password1
         )
         customer = Customer.objects.create(email=email, username=username)
+        # Explicitly set authentication backend to avoid 'backend' error
+        user.backend = "django.contrib.auth.backends.ModelBackend"
+
+        # Log in the user
+        login(request, user)
+
+        return redirect("home")  # Redirect to homepage after registration
+
+    return redirect("/")
+
+
+def moderator_register(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        email = request.POST.get("email")
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+
+        if password1 != password2:
+            messages.error(request, "Passwords do not match", extra_tags=AUTH_MESSAGE)
+            return redirect("register")
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already taken", extra_tags=AUTH_MESSAGE)
+            return redirect("register")
+
+        # Ensure email is unique in both User and Moderator tables
+        if (
+            User.objects.filter(email=email).exists()
+            or Moderator.objects.filter(email=email).exists()
+        ):
+            messages.error(request, "Email is already in use", extra_tags=AUTH_MESSAGE)
+            return redirect("register")
+
+        # Create the user & moderator
+        user = User.objects.create_user(
+            username=username, email=email, password=password1
+        )
+        moderator = Moderator.objects.create(email=email, username=username)
 
         # Explicitly set authentication backend to avoid 'backend' error
         user.backend = "django.contrib.auth.backends.ModelBackend"
@@ -554,3 +984,153 @@ def restaurant_verify(request):
             return redirect("restaurant_register")
 
     return redirect("restaurant_register")  # Redirect if accessed via GET
+
+
+# =====================================================================================
+# CSRF EXEMPT/PROTECTED VIEWS - need to update this later probably
+# =====================================================================================
+
+
+@csrf_exempt
+@login_required(login_url="/login/")
+def bookmarks_view(request):
+    if request.method == "POST":
+        try:
+            restaurant_id = request.POST.get("restaurant_id")
+            if not restaurant_id:
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant ID required"}, status=400
+                )
+
+            restaurant = Restaurant.objects.get(id=restaurant_id)
+            customer = Customer.objects.get(username=request.user.username)
+
+            # Check if bookmark exists
+            if FavoriteRestaurant.objects.filter(
+                customer=customer, restaurant=restaurant
+            ).exists():
+                return JsonResponse(
+                    {"success": False, "error": "Restaurant already bookmarked"},
+                    status=400,
+                )
+
+            FavoriteRestaurant.objects.create(customer=customer, restaurant=restaurant)
+            return JsonResponse(
+                {"success": True, "message": "Bookmark added successfully"}
+            )
+
+        except Restaurant.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "Restaurant not found"}, status=404
+            )
+        except Customer.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "User not found"}, status=404
+            )
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    if request.method == "DELETE":
+        try:
+            data = json.loads(request.body)
+            bookmark_id = data.get("id")  # or "bookmark_id", just keep consistent
+
+            if not bookmark_id:
+                return JsonResponse(
+                    {"success": False, "error": "Missing bookmark ID"}, status=400
+                )
+
+            customer = Customer.objects.get(username=request.user.username)
+
+            # ✅ Delete by the bookmark's actual ID (primary key of FavoriteRestaurant)
+            deleted, _ = FavoriteRestaurant.objects.filter(
+                id=bookmark_id, customer=customer
+            ).delete()
+
+            if deleted:
+                return JsonResponse({"success": True, "message": "Bookmark deleted"})
+            else:
+                return JsonResponse(
+                    {"success": False, "error": "Bookmark not found"}, status=404
+                )
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    try:
+        if not hasattr(request.user, "username"):
+            return JsonResponse({"error": "Customer profile missing"}, status=400)
+
+        customer = Customer.objects.get(username=request.user.username)
+
+        # Get restaurant IDs from the user's bookmarks
+        favorite_qs = FavoriteRestaurant.objects.filter(customer=customer)
+
+        restaurant_ids = favorite_qs.values_list("restaurant_id", flat=True)
+
+        # Original restaurant list (unchanged)
+        restaurants = list(
+            Restaurant.objects.filter(id__in=restaurant_ids).values(
+                "id", "name", "phone", "cuisine_description"
+            )
+        )
+
+        # New bookmarks list: bookmark ID + restaurant ID
+        bookmarks = list(favorite_qs.values("id", "restaurant_id"))
+
+        return JsonResponse(
+            {
+                "restaurants": restaurants,
+                "bookmarks": bookmarks,
+                "count": len(restaurants),
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"error": str(e), "type": type(e).__name__}, status=500)
+
+
+@csrf_protect
+@login_required(login_url="/login/")
+def update_profile(request):
+    print("=== HIT update_profile ===")
+    print("Authenticated:", request.user.is_authenticated)
+
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
+
+    try:
+        # Parse JSON body
+        data = json.loads(request.body)
+
+        name = data.get("name", "").strip()
+        email = data.get("email", "").strip()
+        aboutme = data.get("aboutme", "").strip()
+        currentUser = data.get("currentUsername", "").strip()
+
+        # Split full name into first and last
+        parts = name.split(" ", 1)
+        request.user.first_name = parts[0]
+        request.user.last_name = parts[1] if len(parts) > 1 else ""
+        request.user.email = email
+        request.user.save()
+
+        customer = Customer.objects.get(username=currentUser)
+        customer.aboutme = aboutme
+        customer.save()
+
+        return JsonResponse(
+            {
+                "name": f"{request.user.first_name} {request.user.last_name}",
+                "email": request.user.email,
+                "aboutme": customer.aboutme,
+            }
+        )
+
+    except Customer.DoesNotExist:
+        return JsonResponse({"error": "Customer profile not found."}, status=404)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

@@ -28,22 +28,23 @@
         </div>
     </nav>
 
-    {% if messages %}
-      <div class="messages" style="position: fixed; top: 70px; left: 0; right: 0; z-index: 9999; padding: 10px 20px;">
-        {% for message in messages %}
-          {% if 'auth_message' in message.tags %}
-            <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" style="border-radius: 5px; padding: 10px 15px; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-              {{ message }}
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endif %}
+    
     
     <!-- Hero Section -->
     <div class="hero">
         <h1>CleanBites</h1>
         <p>Hygiene Made Simple.</p>
+        {% if messages %}
+          <div class = "container mt-3" style="position: fixed; bottom: 50px; left: 0; right: 0; z-index: 100;">
+            {% for message in messages %}
+              {% if 'auth_message' in message.tags %}
+                <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" style="border-radius: 5px; padding: 10px 15px; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                  {{ message }}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
     </div>
 
     <!-- Login Modal -->
@@ -90,7 +91,7 @@
         </div>
     </div>
 
-    <!-- Register Modal -->
+    <!-- User Register Modal -->
     <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -100,6 +101,59 @@
                 </div>
                 <div class="modal-body">
                     <form method="POST" action="{% url 'register' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="reg-username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="reg-username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reg-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="reg-email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reg-password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="reg-password" name="password1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reg-password-confirm" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="reg-password-confirm" name="password2" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Register</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <p>or</p>
+                        <!-- Google Sign Up Popup Button -->
+                        <div id="g_id_onload_signup"
+                             data-context="signup"
+                             data-ux_mode="popup"
+                             data-client_id="405283966911-hr2n3vbrackk4ed28bbltm9li5nlv1o4.apps.googleusercontent.com"
+                             data-callback="handleRegistrationCredentialResponse"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-size="large"
+                             data-theme="outline"
+                             data-text="continue_with"
+                             data-shape="rectangular"
+                             data-logo_alignment="center">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Register Modal -->
+    <div class="modal fade" id="adminRegisterModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="registerModalLabel">Register</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{% url 'moderator_register' %}">
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="reg-username" class="form-label">Username</label>
@@ -159,6 +213,7 @@
                             <select class="form-select" id="userType" name="user_type" required>
                                 <option value="user">User</option>
                                 <option value="restaurant_owner">Restaurant Owner</option>
+                                <option value="admin">Admin</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Continue</button>
@@ -167,7 +222,37 @@
             </div>
         </div>
     </div>
-
+    <!-- Message modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <!-- You could change the title dynamically by checking the message type if desired -->
+              <h5 class="modal-title" id="messageModalLabel">Notice</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              {% for message in messages %}
+                <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+          {% if messages %}
+            // Initialize the modal and show it
+            var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+            messageModal.show();
+          {% endif %}
+        });
+    </script>
     <script>
         document.getElementById("registerSelectionForm").addEventListener("submit", function(event) {
             event.preventDefault();  // Prevent the default form submission
@@ -179,13 +264,21 @@
                 var registerSelectionModal = bootstrap.Modal.getInstance(document.getElementById('registerSelectionModal'));
                 registerSelectionModal.hide();
         
-                // Open the Register Modal
+                // Open the User Register Modal
                 var registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
                 registerModal.show();
         
             } else if (userType === "restaurant_owner") {
                 // Redirect to the Restaurant Owner Registration Page
                 window.location.href = "{% url 'restaurant_register' %}";
+            } else if (userType === "admin") {
+                // Close the Register Selection Modal
+                var registerSelectionModal = bootstrap.Modal.getInstance(document.getElementById('registerSelectionModal'));
+                registerSelectionModal.hide();
+        
+                // Open the Admin Register Modal
+                var adminRegisterModal = new bootstrap.Modal(document.getElementById('adminRegisterModal'));
+                adminRegisterModal.show();
             }
         });
     </script>
