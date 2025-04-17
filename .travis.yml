@@ -19,7 +19,7 @@ install:
 
 before_script:
   - python CleanBites/manage.py collectstatic --noinput
-  - python CleanBites/manage.py showmigrations --list
+  - python CleanBites/manage.py check
 
 script:
   - black --check .
