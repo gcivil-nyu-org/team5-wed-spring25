@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 
 class Customer(models.Model):
@@ -7,7 +9,8 @@ class Customer(models.Model):
     last_name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=255)
-    is_activated = models.BooleanField(default=True, null=True, blank=True)
+    is_activated = models.BooleanField(default=True)
+    deactivation_reason = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -19,6 +22,8 @@ class Moderator(models.Model):
     last_name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField()
     username = models.CharField(max_length=255)
+    is_activated = models.BooleanField(default=True)
+    deactivation_reason = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -34,9 +39,15 @@ class DM(models.Model):
     )
     message = models.BinaryField()  # BYTEA for binary message storage
     flagged = models.BooleanField(default=False)
-    flagged_by = models.ForeignKey(
-        Moderator, null=True, blank=True, on_delete=models.SET_NULL
+    # flagged_by = models.ForeignKey(
+    #     Moderator, null=True, blank=True, on_delete=models.SET_NULL
+    # )
+    flagged_by_content_type = models.ForeignKey(
+        ContentType, on_delete=models.SET_NULL, null=True, blank=True
     )
+    flagged_by_object_id = models.PositiveIntegerField(null=True, blank=True)
+    flagged_by = GenericForeignKey("flagged_by_content_type", "flagged_by_object_id")
+
     sent_at = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)  # Track if message has been read
 
@@ -47,6 +58,16 @@ class DM(models.Model):
                 name="chk_dm_sender_receiver",  # Prevent sending DMs to self
             )
         ]
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.message, memoryview):
+            # Convert memoryview to bytes.
+            self.message = self.message.tobytes()
+        elif isinstance(self.message, str):
+            # Convert string to bytes using UTF-8 encoding.
+            self.message = self.message.encode("utf-8")
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"DM from {self.sender} to {self.receiver} at {self.sent_at}"

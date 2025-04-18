@@ -1,19 +1,46 @@
+<head><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"></head>
 <div class="reviews-section">
     <h2>Recent Reviews for {{ restaurant.name }}</h2>
     {% if reviews %}
     <div class="scrollable-reviews">
         <ul class="review-list">
           {% for comment in reviews %}
-            <li class="review">
+          <li class="review" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="review-content">
               <div class="review-meta">
-                <span class="review-restaurant"><a href="{% url 'user_profile' comment.commenter.username %}" class="restaurant-name">{{ comment.commenter.username }}</a></span>
-                <span class="review-rating">Rating: {{ comment.rating }}/5</span>
-                <span class="review-health">Health Rating: {{ comment.health_rating }}/5</span>
+                <span class="review-title">{{ comment.decoded_title }}</span>
+                <div class="review-restaurant">
+                  <a href="{% url 'user_profile' comment.commenter.username %}" class="restaurant-name">{{ comment.commenter.username }}</a>
+                </div>
+                <span class="review-rating">
+                  Rating:
+                  {% for i in "12345" %}
+                    <i class="fa-star {% if comment.rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
+                  {% endfor %}
+                </span>
+              
+                <span class="review-health">
+                  Health:
+                  {% for i in "12345" %}
+                    <i class="fa-star {% if comment.health_rating|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
+                  {% endfor %}
+                </span>
+            
                 <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
               </div>
-              <p class="review-title">{{ comment.title }}</p>
-              <p class="review-text">{{ comment.comment }}</p>
-            </li>
+              <p class="review-text">{{ comment.decoded_comment }}</p>
+            </div>
+            <!-- Report button styled as a Bootstrap button and aligned to the right -->
+            <div class="review-actions" style="margin-left: 20px;">
+              {% if comment.flagged %}
+                <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+              {% else %}
+                <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
+                  Report
+                </button>
+              {% endif %}
+            </div>
+          </li>
           {% endfor %}
         </ul>
       </div>
@@ -61,4 +88,11 @@
   line-height: 1.6;
   color: #333;
 }
+.text-yellow {
+  color: #f5b301;
+}
+.text-green {
+  color: #28a745;
+}
+
   </style>

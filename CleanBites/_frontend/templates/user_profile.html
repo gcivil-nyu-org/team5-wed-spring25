@@ -33,6 +33,10 @@
         .card {
             position: relative;
             display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 16px;
+            color: #333;
             flex-direction: column;
             min-width: 0;
             word-wrap: break-word;
@@ -41,11 +45,79 @@
             border: 0 solid rgba(0,0,0,.125);
             border-radius: .25rem;
         }
+        .info i {
+            color: #1a73e8;
+            margin-right: 10px;
+        }
+        .rating {
+            font-weight: bold;
+            font-size: 16px;
+            color: green;
+        }
+        .description {
+            margin-top: 15px;
+            font-size: 15px;
+            color: #555;
+            line-height: 1.5;
+        }
+        .scrollable-reviews {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 20px;
+}
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.review {
+  border-bottom: 1px solid #ddd;
+  padding: 16px 0;
+}
+
+.review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.review-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #222;
+}
+
+.review-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+}
+
+.text-yellow {
+    color: #f5b301; /* Gold star */
+}
+.text-green {
+    color: #28a745; /* Health rating */
+}
+
 
         .card-body {
             flex: 1 1 auto;
             min-height: 1px;
             padding: 1rem;
+        }
+
+        #profile-card {
+            flex: 1 1 auto;
+            min-height: 1px;
+            padding: 1rem;
+            width: 100%;
         }
 
         .gutters-sm {
@@ -120,13 +192,14 @@
 </head>
 <body>
 {% include 'components/header_nofilter.html' %}
-<div style="min-height: 100%; padding-top: 150px; background-color: #ffedd3;">
-<div class="container" style="background-color: #ffedd3;">
+<div style="min-height: 100%; padding-top: 85px; background-color: #ffedd3;">
+  <div style="height: 90vh; overflow-y: auto;">
+    <div class="container" style="background-color: #ffedd3;">
   <div class="main-body">
         <div class="row gutters-sm">
           <div class="col-md-4 mb-3">
             <div class="card">
-              <div class="card-body">
+              <div class="card-body" id="profile-card">
                 <div class="d-flex flex-column align-items-center text-center">
                   <img src="{% static 'images/avatar-placeholder.png' %}" alt="Admin" class="rounded-circle" width="150">
                   <div class="mt-3">
@@ -140,7 +213,7 @@
           </div>
           <div class="col-md-8">
             <div class="card mb-3">
-              <div class="card-body">
+              <div class="card-body" id="profile-card">
                 <div class="row">
                   <div class="col-sm-3">
                     <h6 class="mb-0">Username</h6>
@@ -194,28 +267,50 @@
         </div>
 
       </div>
-  </div>
-  <div class="container">
+    </div>
+    <div class="container">
     <div id = "wrapper"></div>
     <div id="main">
         <div class="reviews-section">
           <div class="card">
-            <div class="card-body">  
+            <div class="card-body" id="profile-card">  
               <h2>Recent Reviews for {{ profile_user.username }}</h2>
               {% if reviews %}
               <div class="scrollable-reviews">
                   <ul class="review-list">
                     {% for comment in reviews %}
-                      <li class="review">
+
+                    <li class="review" style="display: flex; justify-content: space-between; align-items: center;">
+                      <div class="review-content">
                         <div class="review-meta">
                           <span class="review-restaurant"><a href="{% url 'restaurant_detail' comment.restaurant.id %}" class="restaurant-name" style="color: orange; text-decoration: none;">{{ comment.restaurant.name }}</a></span>
-                          <span class="review-rating">Rating: {{ comment.rating }}/5</span>
-                          <span class="review-health">Health Rating: {{ comment.health_rating }}/5</span>
+                          <span class="review-rating">
+                            Rating:
+                            {% for i in "12345" %}
+                              <i class="fa-star {% if comment.rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
+                            {% endfor %}
+                          </span>
+                         <span class="review-health">
+                            Health:
+                            {% for i in "12345" %}
+                              <i class="fa-star {% if comment.health_rating|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
+                            {% endfor %}
+                          </span>
                           <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
                         </div>
-                        <p class="review-title">{{ comment.title }}</p>
-                        <p class="review-text">{{ comment.comment }}</p>
-                      </li>
+                        <p class="review-text">{{ comment.decoded_comment }}</p>
+                      </div>
+                      <!-- Report button styled as a Bootstrap button and aligned to the right -->
+                      <div class="review-actions" style="margin-left: 20px;">
+                        {% if comment.flagged %}
+                          <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+                        {% else %}
+                          <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
+                            Report
+                          </button>
+                        {% endif %}
+                      </div>
+                    </li>
                     {% endfor %}
                   </ul>
                 </div> 
@@ -231,9 +326,9 @@
         {% endif %}
        </div> 
     </div>
+    </div>
   </div>
 </div>
-  
 
 <script>
   function toggleDropdown() {
@@ -321,5 +416,49 @@
     });
   }
 </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      // Attach event listener to each Report button
+      const reportButtons = document.querySelectorAll(".report-comment-btn");
+      reportButtons.forEach(function(button) {
+          button.addEventListener("click", function() {
+              // Ask for confirmation before reporting
+              if (!confirm("Are you sure you want to report this comment?")) {
+                  return;
+              }
+              const commentId = button.getAttribute("data-comment-id");
+              const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+              
+              // Send AJAX POST request to report the comment
+              fetch("/report_comment/", {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json",
+                      "X-CSRFToken": csrfToken
+                  },
+                  body: JSON.stringify({ comment_id: commentId }),
+                  credentials: "include"
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert("Comment reported successfully.");
+                      // Disable the button or change its label
+                      button.disabled = true;
+                      button.textContent = "Reported";
+                  } else {
+                      alert("Error reporting comment: " + (data.error || "Unknown error"));
+                  }
+              })
+              .catch(err => {
+                  console.error(err);
+                  alert("An error occurred. Please try again.");
+              });
+          });
+      });
+  });
+</script>
+  
 </body>
 </html>
