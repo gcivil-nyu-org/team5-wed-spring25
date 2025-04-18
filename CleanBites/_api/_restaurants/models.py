@@ -33,7 +33,7 @@ class Restaurant(models.Model):
     is_activated = models.BooleanField(default=True)
     deactivation_reason = models.TextField(null=True, blank=True)
     deactivated_until = models.DateField(null=True, blank=True)
-    
+
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"
 
