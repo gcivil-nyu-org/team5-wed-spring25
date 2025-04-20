@@ -16,17 +16,21 @@
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="apple-navbar">
-        <div class="navbar-left">
-            <a class="logo" href="{% url 'home' %}">CleanBites</a>
-        </div>
-        <div class="navbar-right">
-            <ul class="nav-links">
-                <li><a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
-                <li><a href="#" data-bs-toggle="modal" data-bs-target="#registerSelectionModal">Register</a></li>
-            </ul>
-        </div>
-    </nav>
+    {% if user.is_authenticated %}
+        {% include 'components/header_nofilter.html' %}
+    {% else %}
+        <nav class="apple-navbar">
+            <div class="navbar-left">
+                <a class="logo" href="{% url 'home' %}">CleanBites</a>
+            </div>
+            <div class="navbar-right">
+                <ul class="nav-links">
+                    <li><a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
+                    <li><a href="#" data-bs-toggle="modal" data-bs-target="#registerSelectionModal">Register</a></li>
+                </ul>
+            </div>
+        </nav>
+    {% endif %}
 
     
     
@@ -244,15 +248,15 @@
           </div>
         </div>
     </div>
+    {% if messages %}
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-          {% if messages %}
             // Initialize the modal and show it
             var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
             messageModal.show();
-          {% endif %}
         });
     </script>
+    {% endif %}
     <script>
         document.getElementById("registerSelectionForm").addEventListener("submit", function(event) {
             event.preventDefault();  // Prevent the default form submission
