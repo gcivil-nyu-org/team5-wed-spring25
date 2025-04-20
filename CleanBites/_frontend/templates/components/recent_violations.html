@@ -100,6 +100,12 @@
   </style>
   
   <script>
+  function getColorByRating(rating) {
+      if (rating >= 28) return "#ff0000"; // Red for poor rating (8+)
+      else if (rating >= 14) return "#ffa500"; // Orange for average (5-7)
+      else return "#00cc00"; // Green for excellent (0-2)
+  }
+
   function toggleViolationModal() {
     const modal = document.getElementById("violation-modal");
     const toggleWrapper = document.getElementById("violation-toggle-wrapper");
@@ -118,7 +124,7 @@
     container.innerHTML = "Loading...";
   
     try {
-      const res = await fetch("/api/restaurants/restaurants/?ordering=-inspection_date&limit=50");
+      const res = await fetch("/api/restaurants/restaurants/?ordering=-inspection_date");
   
       // Defensive check for failed fetch
       if (!res.ok) {
@@ -146,15 +152,18 @@
         return;
       }
   
-      container.innerHTML = filtered.map(v => `
-        <div class="violation-entry">
-          <a href="/restaurant/${v.id}/" style="text-decoration: none; color: orange;">
-            <strong>${v.name || "Unnamed Restaurant"}</strong><br/>
-          </a>
-          ${v.violation_description}<br/>
-          <small>${v.inspection_date || "Unknown date"}</small>
-        </div>
-      `).join("");
+      container.innerHTML = filtered.map(v => {
+        const color = getColorByRating(v.hygiene_rating || 0);
+        return `
+          <div class="violation-entry">
+            <a href="/restaurant/${v.id}/" style="text-decoration: none;">
+              <strong style="color: ${color};">${v.name || "Unnamed Restaurant"}</strong><br/>
+            </a>
+            ${v.violation_description}<br/>
+            <small>${v.inspection_date || "Unknown date"}</small>
+          </div>
+        `;
+      }).join("");
   
     } catch (err) {
       container.innerHTML = "<p>⚠️ Error loading violations.</p>";
