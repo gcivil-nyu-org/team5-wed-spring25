@@ -1118,6 +1118,8 @@ def update_profile(request):
         request.user.save()
 
         customer = Customer.objects.get(username=currentUser)
+        customer.first_name = parts[0]
+        customer.last_name = parts[1] if len(parts) > 1 else ""
         customer.aboutme = aboutme
         customer.save()
 
