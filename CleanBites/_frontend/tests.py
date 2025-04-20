@@ -5,6 +5,9 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.contrib.messages import get_messages
 from django.utils import timezone
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.contenttypes.models import ContentType
+from datetime import datetime, timedelta
 
 from _api._users.models import Moderator, Customer, DM, FavoriteRestaurant
 from _api._restaurants.models import Restaurant, Comment
@@ -1667,3 +1670,50 @@ class AdminProfileViewTests(TestCase):
 
         response = self.client.get(reverse("moderator_profile"))
         self.assertEqual(response.status_code, 302)
+
+class UpdateRestaurantProfileTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="restouser", password="testpass")
+
+        self.restaurant = Restaurant.objects.create(
+            username="restouser",
+            name="Old Name",
+            phone="1234567890",
+            street="Old Street",
+            building=123,
+            zipcode="10001",
+            cuisine_description="Old Cuisine",
+            hygiene_rating=10,
+            inspection_date=datetime.date.today(),
+            geo_coords=Point(0.0, 0.0),
+            borough=0,  # ✅ NEW required field
+        )
+
+    def test_update_profile_success(self):
+        self.client.login(username="restouser", password="testpass")
+        data = {
+            "name": "New Name",
+            "phone": "0987654321",
+            "street": "New Street",
+            "building": "456",
+            "zipcode": "10002",
+            "cuisine_description": "New Cuisine",
+        }
+        response = self.client.post(reverse("update-profile"), data)
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.name, "New Name")
+        self.assertRedirects(response, reverse("restaurant_detail", kwargs={"id": self.restaurant.id}))
+
+    def test_update_profile_no_restaurant(self):
+        self.restaurant.delete()
+        self.client.login(username="restouser", password="testpass")
+        response = self.client.post(reverse("update-profile"))
+        self.assertRedirects(response, reverse("home"))
+
+    def test_update_profile_invalid_building(self):
+        self.client.login(username="restouser", password="testpass")
+        data = {"building": "notanumber"}
+        response = self.client.post(reverse("update-profile"), data)
+        self.assertRedirects(response, reverse("restaurant_detail", kwargs={"id": self.restaurant.id}))  # triggers the exception block
+
