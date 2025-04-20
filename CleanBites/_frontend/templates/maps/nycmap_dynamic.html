@@ -126,6 +126,10 @@
                     const btn = document.querySelector('.bookmark-btn');
                     if (btn) btn.classList.add('bookmarked');
                 }
+
+                if (typeof window.parent.loadBookmarks === 'function') {
+                  window.parent.loadBookmarks();
+                }
             } catch (error) {
                 console.error('Bookmark error:', error);
                 showToast('Error: Please try again');
