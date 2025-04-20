@@ -124,7 +124,7 @@
     container.innerHTML = "Loading...";
   
     try {
-      const res = await fetch("/api/restaurants/restaurants/?ordering=-inspection_date");
+      const res = await fetch("/api/restaurants/restaurants/?ordering=-inspection_date&limit=50");
   
       // Defensive check for failed fetch
       if (!res.ok) {
