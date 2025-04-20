@@ -95,6 +95,14 @@
     const suggestions = document.getElementById('search-suggestions');
   
     let timeout = null;
+
+    // Absolutely block Enter key behavior
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        return false;
+      }
+    });
   
     input.addEventListener('input', () => {
       clearTimeout(timeout);
