@@ -30,6 +30,27 @@
               </div>
               <p class="review-text">{{ comment.decoded_comment }}</p>
             </div>
+            {% if comment.replies.all %}
+              <button onclick="toggleReplies('replies-{{ comment.id }}', this)">Show Replies</button>
+            {% else %}
+              <button onclick="toggleReplies('replies-{{ comment.id }}', this)">Reply</button>
+            {% endif %}
+      
+            <ul id="replies-{{ comment.id }}" style="display: none;">
+              {% for reply in comment.replies.all %}
+                <li class="reply">
+                  <strong>{{ reply.commenter.username }}</strong> ({{ reply.posted_at|date:"F j, Y" }}): {{ reply.comment }}
+                </li>
+              {% endfor %}
+      
+              <form method="POST" action="{% url 'post_reply' %}">
+                {% csrf_token %}
+                <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                <input type="hidden" name="restaurant_id" value="{{ restaurant.id }}">
+                <textarea name="comment" placeholder="Write your reply..." rows="2" style="width: 100%;"></textarea>
+                <button type="submit">Post Reply</button>
+              </form>
+            </ul>
             <!-- Report button styled as a Bootstrap button and aligned to the right -->
             <div class="review-actions" style="margin-left: 20px;">
               {% if comment.flagged %}
@@ -96,3 +117,16 @@
 }
 
   </style>
+
+<script>
+  function toggleReplies(id, btn) {
+    const el = document.getElementById(id);
+    if (el.style.display === "none") {
+      el.style.display = "block";
+      btn.textContent = "Hide Replies";
+    } else {
+      el.style.display = "none";
+      btn.textContent = "Reply";
+    }
+  }
+</script>
