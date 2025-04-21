@@ -1865,4 +1865,71 @@ class ReportDMTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json())
 
+class MessagesViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.user = User.objects.create_user(username="user1", email="user1@example.com", password="testpass")
+        self.partner_user = User.objects.create_user(username="user2", email="user2@example.com", password="testpass")
+
+        self.customer = Customer.objects.create(username="user1", email="user1@example.com", first_name="UserOne")
+        self.partner = Customer.objects.create(username="user2", email="user2@example.com", first_name="UserTwo")
+
+        self.client.login(username="user1", password="testpass")
+        self.url = reverse("messages inbox")
+
+    def test_inbox_basic_render(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "inbox.html")
+        self.assertIn("conversations", response.context)
+        self.assertIn("has_unread_messages", response.context)
+
+    def test_inbox_no_customer_found(self):
+        self.customer.delete()  # Remove user profile
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("error", response.context)
+        self.assertEqual(response.context["error"], "Your profile could not be found.")
+
+    def test_inbox_with_conversation(self):
+        DM.objects.create(
+            sender=self.partner,
+            receiver=self.customer,
+            message=b"Hello!",
+            read=False,
+            sent_at=datetime.now() - timedelta(minutes=10)
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["conversations"]) > 0)
+        self.assertIsNotNone(response.context["active_chat"])
+        self.assertEqual(response.context["active_chat"].id, self.partner.id)
+        self.assertTrue(any("decoded_message" in str(msg.__dict__) for msg in response.context["messages"]))
+
+    def test_chat_user_id_explicit_param(self):
+        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Hi!", sent_at=datetime.now())
+        url = reverse("messages inbox") + f"?chat_user_id={self.partner.id}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_message_decoding_failure(self):
+        # Create message with invalid byte sequence
+        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"\xff", sent_at=datetime.now())
+        response = self.client.get(self.url)
+        messages = response.context["messages"]
+        self.assertIn("[Could not decode message]", [msg.decoded_message for msg in messages])
+
+    def test_messages_marked_as_read(self):
+        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Unread", read=False, sent_at=datetime.now())
+        self.client.get(self.url)
+        dm = DM.objects.filter(sender=self.partner, receiver=self.customer).first()
+        self.assertTrue(dm.read)
+
+    def test_no_conversations(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["conversations"], [])
+        self.assertEqual(response.context["messages"], [])
+
 
