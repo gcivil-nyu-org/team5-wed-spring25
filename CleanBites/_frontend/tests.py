@@ -1932,4 +1932,98 @@ class MessagesViewTests(TestCase):
         self.assertEqual(response.context["conversations"], [])
         self.assertEqual(response.context["messages"], [])
 
+class ReportCommentTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="user1", email="user1@example.com", password="testpass")
+        self.customer = Customer.objects.create(username="user1", email="user1@example.com")
+        self.restaurant = Restaurant.objects.create(
+            username="restouser",
+            name="Old Name",
+            phone="1234567890",
+            street="Old Street",
+            building=123,
+            zipcode="10001",
+            cuisine_description="Old Cuisine",
+            hygiene_rating=10,
+            inspection_date=date.today(),
+            geo_coords=Point(0.0, 0.0),
+            borough=0,  # 
+        )
+        self.moderator = Moderator.objects.create(username="mod1", email="mod@example.com")
+        self.comment = Comment.objects.create(
+            commenter=self.customer,
+            restaurant=self.restaurant,
+            title="Clean place",
+            comment="Very hygienic and friendly staff.",
+            rating=5,
+            health_rating=5,
+            flagged=False
+        )
+        self.url = reverse("report_comment")
+
+    def test_report_by_customer(self):
+        self.client.login(username="user1", password="testpass")
+        data = {"comment_id": self.comment.id}
+        response = self.client.post(self.url, json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": True})
+
+        self.comment.refresh_from_db()
+        self.assertTrue(self.comment.flagged)
+        self.assertEqual(self.comment.flagged_by_object_id, self.customer.id)
+        self.assertEqual(
+            self.comment.flagged_by_content_type,
+            ContentType.objects.get_for_model(self.customer),
+        )
+
+    def test_report_by_restaurant(self):
+        self.client.login(username="rest1", password="testpass")  # Use a restaurant user
+        self.restaurant_user = User.objects.create_user(username="rest1", email="rest@example.com", password="testpass")
+        self.client.login(username="rest1", password="testpass")
+        data = {"comment_id": self.comment.id}
+        response = self.client.post(self.url, json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 404)
+        self.comment.refresh_from_db()
+        self.assertEqual(self.comment.flagged_by_object_id, None)
+
+    def test_report_by_moderator(self):
+        self.moderator_user = User.objects.create_user(username="mod1", email="mod@example.com", password="testpass")
+        self.client.login(username="mod1", password="testpass")
+        data = {"comment_id": self.comment.id}
+        response = self.client.post(self.url, json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.comment.refresh_from_db()
+        self.assertEqual(self.comment.flagged_by_object_id, self.moderator.id)
+
+    def test_missing_comment_id(self):
+        self.client.login(username="user1", password="testpass")
+        response = self.client.post(self.url, json.dumps({}), content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Missing comment ID", response.json()["error"])
+
+    def test_comment_not_found(self):
+        self.client.login(username="user1", password="testpass")
+        response = self.client.post(self.url, json.dumps({"comment_id": 999}), content_type="application/json")
+        self.assertEqual(response.status_code, 500 or 404)
+
+    def test_flagger_not_found(self):
+        # Simulate a user with no profile
+        other_user = User.objects.create_user(username="ghost", email="ghost@example.com", password="ghostpass")
+        self.client.login(username="ghost", password="ghostpass")
+        response = self.client.post(self.url, json.dumps({"comment_id": self.comment.id}), content_type="application/json")
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Flagger not found", response.json()["error"])
+
+    def test_invalid_method(self):
+        self.client.login(username="user1", password="testpass")  # ensure you're logged in
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+        self.assertIn("Invalid request method", response.json()["error"])
+
+    def test_invalid_json(self):
+        self.client.login(username="user1", password="testpass")
+        response = self.client.post(self.url, data="not-json", content_type="application/json")
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("error", response.json())
 
