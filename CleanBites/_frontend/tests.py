@@ -7,7 +7,7 @@ from django.contrib.messages import get_messages
 from django.utils import timezone
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.contenttypes.models import ContentType
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from _api._users.models import Moderator, Customer, DM, FavoriteRestaurant
 from _api._restaurants.models import Restaurant, Comment
@@ -1685,7 +1685,7 @@ class UpdateRestaurantProfileTests(TestCase):
             zipcode="10001",
             cuisine_description="Old Cuisine",
             hygiene_rating=10,
-            inspection_date=datetime.date.today(),
+            inspection_date=date.today(),
             geo_coords=Point(0.0, 0.0),
             borough=0,  # ✅ NEW required field
         )
@@ -1716,4 +1716,153 @@ class UpdateRestaurantProfileTests(TestCase):
         data = {"building": "notanumber"}
         response = self.client.post(reverse("update-profile"), data)
         self.assertRedirects(response, reverse("restaurant_detail", kwargs={"id": self.restaurant.id}))  # triggers the exception block
+class ModeratorRegisterTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.register_url = reverse("moderator_register")  # Matches your new URL path
+
+    def test_successful_registration(self):
+        data = {
+            "username": "moduser",
+            "email": "mod@example.com",
+            "password1": "securepass123",
+            "password2": "securepass123",
+        }
+        response = self.client.post(self.register_url, data)
+        self.assertRedirects(response, reverse("home"))
+        self.assertTrue(User.objects.filter(username="moduser").exists())
+        self.assertTrue(Moderator.objects.filter(email="mod@example.com").exists())
+
+    def test_password_mismatch(self):
+        data = {
+            "username": "moduser",
+            "email": "mod@example.com",
+            "password1": "pass1",
+            "password2": "pass2",
+        }
+        response = self.client.post(self.register_url, data, follow=True)
+        self.assertRedirects(response, "/")
+        self.assertFalse(User.objects.filter(username="moduser").exists())
+
+    def test_username_already_taken(self):
+        User.objects.create_user(username="moduser", email="other@example.com", password="test123")
+        data = {
+            "username": "moduser",
+            "email": "newmod@example.com",
+            "password1": "securepass123",
+            "password2": "securepass123",
+        }
+        response = self.client.post(self.register_url, data, follow=True)
+        self.assertRedirects(response, "/")
+        self.assertEqual(User.objects.filter(username="moduser").count(), 1)
+
+    def test_email_already_used_by_user(self):
+        User.objects.create_user(username="someuser", email="mod@example.com", password="test123")
+        data = {
+            "username": "newmod",
+            "email": "mod@example.com",
+            "password1": "securepass123",
+            "password2": "securepass123",
+        }
+        response = self.client.post(self.register_url, data, follow=True)
+        self.assertRedirects(response, "/")
+        self.assertFalse(Moderator.objects.filter(username="newmod").exists())
+
+    def test_email_already_used_by_moderator(self):
+        Moderator.objects.create(username="moduser", email="mod@example.com")
+        data = {
+            "username": "anotheruser",
+            "email": "mod@example.com",
+            "password1": "securepass123",
+            "password2": "securepass123",
+        }
+        response = self.client.post(self.register_url, data, follow=True)
+        self.assertRedirects(response, "/")
+        self.assertFalse(User.objects.filter(username="anotheruser").exists())
+
+    def test_get_request_redirects(self):
+        response = self.client.get(self.register_url)
+        self.assertRedirects(response, "/")
+
+class ReportDMTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="reporter", email="reporter@example.com", password="testpass")
+        self.partner_user = User.objects.create_user(username="partner", email="partner@example.com", password="testpass")
+        self.reporter = Customer.objects.create(username="reporter", email="reporter@example.com")
+        self.partner = Customer.objects.create(username="partner", email="partner@example.com")
+
+        # Login reporter
+        self.client.login(username="reporter", password="testpass")
+
+        # Create a DM from partner to reporter
+        self.dm = DM.objects.create(
+            sender=self.partner,
+            receiver=self.reporter,
+            message=b"Test DM",
+            sent_at=datetime.now() - timedelta(minutes=1),
+        )
+
+        self.url = reverse("report_dm")  # Ensure this is defined in your urls.py
+
+    def test_successful_report(self):
+        data = {"partner_id": self.partner.id}
+        response = self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": True})
+
+        self.dm.refresh_from_db()
+        self.assertTrue(self.dm.flagged)
+        self.assertEqual(self.dm.flagged_by_object_id, self.reporter.id)
+        self.assertEqual(
+            self.dm.flagged_by_content_type,
+            ContentType.objects.get_for_model(self.reporter),
+        )
+
+    def test_missing_partner_id(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Missing partner_id", response.json()["error"])
+
+    def test_reporter_not_found(self):
+        self.reporter.delete()  # simulate missing reporter
+        data = {"partner_id": self.partner.id}
+        response = self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Reporter not found", response.json()["error"])
+
+    def test_no_dm_found(self):
+        DM.objects.all().delete()
+        data = {"partner_id": self.partner.id}
+        response = self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("No DM from the partner found", response.json()["error"])
+
+    def test_invalid_method(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+        self.assertIn("Invalid request method", response.json()["error"])
+
+    def test_invalid_json(self):
+        # Invalid JSON payload (simulate parse error)
+        response = self.client.post(self.url, data="not-json", content_type="application/json")
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("error", response.json())
+
 
