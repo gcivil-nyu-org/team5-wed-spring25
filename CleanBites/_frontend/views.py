@@ -451,17 +451,14 @@ def update_restaurant_profile_view(request):
             if "cuisine_description" in request.POST:
                 restaurant.cuisine_description = request.POST.get("cuisine_description")
 
-            if "profile_image" in request.FILES:
-                restaurant.profile_image = request.FILES["profile_image"]
-
             restaurant.save()
             messages.success(request, "Restaurant profile updated successfully!")
-            return redirect("restaurant_detail", name=restaurant.id)
+            return redirect("restaurant_detail", id=restaurant.id)
         except Exception as e:
             messages.error(request, f"Error updating profile: {e}")
             return redirect("home")
 
-    return redirect("restaurant_detail", name=restaurant.id)
+    return redirect("restaurant_detail", id=restaurant.id)
 
 
 @login_required(login_url="/login/")
