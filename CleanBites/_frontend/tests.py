@@ -2027,3 +2027,47 @@ class ReportCommentTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json())
 
+class DebugUnreadMessagesTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="reader", email="reader@example.com", password="testpass")
+        self.customer = Customer.objects.create(username="reader", email="reader@example.com", first_name="Reader")
+        self.partner_user = User.objects.create_user(username="partner", email="partner@example.com", password="testpass")
+        self.partner = Customer.objects.create(username="partner", email="partner@example.com", first_name="Partner")
+
+        self.url = reverse("debug_unread_messages")
+
+    def test_unread_messages_with_data(self):
+        # Create some unread and read messages
+        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Unread 1", read=False, sent_at=datetime.now())
+        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Unread 2", read=False, sent_at=datetime.now())
+        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Read msg", read=True, sent_at=datetime.now())
+
+        self.client.login(username="reader", password="testpass")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertTrue(data["has_unread_messages"])
+        self.assertEqual(data["unread_count"], 2)
+        self.assertEqual(data["user_email"], "reader@example.com")
+        self.assertTrue(data["is_authenticated"])
+        self.assertEqual(len(data["unread_messages"]), 2)
+        for msg in data["unread_messages"]:
+            self.assertIn("sent_at", msg)
+            self.assertIn("sender__email", msg)
+
+    def test_no_customer_profile(self):
+        self.customer.delete()
+        self.client.login(username="reader", password="testpass")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("error", data)
+        self.assertEqual(data["error"], "Customer not found")
+
+    def test_unauthenticated_user(self):
+        response = self.client.get(self.url, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/html", response["Content-Type"])
+
