@@ -1671,6 +1671,7 @@ class AdminProfileViewTests(TestCase):
         response = self.client.get(reverse("moderator_profile"))
         self.assertEqual(response.status_code, 302)
 
+
 class UpdateRestaurantProfileTests(TestCase):
     def setUp(self):
         self.client = Client()
@@ -1703,7 +1704,9 @@ class UpdateRestaurantProfileTests(TestCase):
         response = self.client.post(reverse("update-profile"), data)
         self.restaurant.refresh_from_db()
         self.assertEqual(self.restaurant.name, "New Name")
-        self.assertRedirects(response, reverse("restaurant_detail", kwargs={"id": self.restaurant.id}))
+        self.assertRedirects(
+            response, reverse("restaurant_detail", kwargs={"id": self.restaurant.id})
+        )
 
     def test_update_profile_no_restaurant(self):
         self.restaurant.delete()
@@ -1715,7 +1718,11 @@ class UpdateRestaurantProfileTests(TestCase):
         self.client.login(username="restouser", password="testpass")
         data = {"building": "notanumber"}
         response = self.client.post(reverse("update-profile"), data)
-        self.assertRedirects(response, reverse("restaurant_detail", kwargs={"id": self.restaurant.id}))  # triggers the exception block
+        self.assertRedirects(
+            response, reverse("restaurant_detail", kwargs={"id": self.restaurant.id})
+        )  # triggers the exception block
+
+
 class ModeratorRegisterTests(TestCase):
     def setUp(self):
         self.client = Client()
@@ -1745,7 +1752,9 @@ class ModeratorRegisterTests(TestCase):
         self.assertFalse(User.objects.filter(username="moduser").exists())
 
     def test_username_already_taken(self):
-        User.objects.create_user(username="moduser", email="other@example.com", password="test123")
+        User.objects.create_user(
+            username="moduser", email="other@example.com", password="test123"
+        )
         data = {
             "username": "moduser",
             "email": "newmod@example.com",
@@ -1757,7 +1766,9 @@ class ModeratorRegisterTests(TestCase):
         self.assertEqual(User.objects.filter(username="moduser").count(), 1)
 
     def test_email_already_used_by_user(self):
-        User.objects.create_user(username="someuser", email="mod@example.com", password="test123")
+        User.objects.create_user(
+            username="someuser", email="mod@example.com", password="test123"
+        )
         data = {
             "username": "newmod",
             "email": "mod@example.com",
@@ -1784,13 +1795,22 @@ class ModeratorRegisterTests(TestCase):
         response = self.client.get(self.register_url)
         self.assertRedirects(response, "/")
 
+
 class ReportDMTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="reporter", email="reporter@example.com", password="testpass")
-        self.partner_user = User.objects.create_user(username="partner", email="partner@example.com", password="testpass")
-        self.reporter = Customer.objects.create(username="reporter", email="reporter@example.com")
-        self.partner = Customer.objects.create(username="partner", email="partner@example.com")
+        self.user = User.objects.create_user(
+            username="reporter", email="reporter@example.com", password="testpass"
+        )
+        self.partner_user = User.objects.create_user(
+            username="partner", email="partner@example.com", password="testpass"
+        )
+        self.reporter = Customer.objects.create(
+            username="reporter", email="reporter@example.com"
+        )
+        self.partner = Customer.objects.create(
+            username="partner", email="partner@example.com"
+        )
 
         # Login reporter
         self.client.login(username="reporter", password="testpass")
@@ -1861,19 +1881,30 @@ class ReportDMTests(TestCase):
 
     def test_invalid_json(self):
         # Invalid JSON payload (simulate parse error)
-        response = self.client.post(self.url, data="not-json", content_type="application/json")
+        response = self.client.post(
+            self.url, data="not-json", content_type="application/json"
+        )
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json())
+
 
 class MessagesViewTests(TestCase):
     def setUp(self):
         self.client = Client()
 
-        self.user = User.objects.create_user(username="user1", email="user1@example.com", password="testpass")
-        self.partner_user = User.objects.create_user(username="user2", email="user2@example.com", password="testpass")
+        self.user = User.objects.create_user(
+            username="user1", email="user1@example.com", password="testpass"
+        )
+        self.partner_user = User.objects.create_user(
+            username="user2", email="user2@example.com", password="testpass"
+        )
 
-        self.customer = Customer.objects.create(username="user1", email="user1@example.com", first_name="UserOne")
-        self.partner = Customer.objects.create(username="user2", email="user2@example.com", first_name="UserTwo")
+        self.customer = Customer.objects.create(
+            username="user1", email="user1@example.com", first_name="UserOne"
+        )
+        self.partner = Customer.objects.create(
+            username="user2", email="user2@example.com", first_name="UserTwo"
+        )
 
         self.client.login(username="user1", password="testpass")
         self.url = reverse("messages inbox")
@@ -1898,30 +1929,53 @@ class MessagesViewTests(TestCase):
             receiver=self.customer,
             message=b"Hello!",
             read=False,
-            sent_at=datetime.now() - timedelta(minutes=10)
+            sent_at=datetime.now() - timedelta(minutes=10),
         )
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["conversations"]) > 0)
         self.assertIsNotNone(response.context["active_chat"])
         self.assertEqual(response.context["active_chat"].id, self.partner.id)
-        self.assertTrue(any("decoded_message" in str(msg.__dict__) for msg in response.context["messages"]))
+        self.assertTrue(
+            any(
+                "decoded_message" in str(msg.__dict__)
+                for msg in response.context["messages"]
+            )
+        )
 
     def test_chat_user_id_explicit_param(self):
-        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Hi!", sent_at=datetime.now())
+        DM.objects.create(
+            sender=self.partner,
+            receiver=self.customer,
+            message=b"Hi!",
+            sent_at=datetime.now(),
+        )
         url = reverse("messages inbox") + f"?chat_user_id={self.partner.id}"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
     def test_message_decoding_failure(self):
         # Create message with invalid byte sequence
-        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"\xff", sent_at=datetime.now())
+        DM.objects.create(
+            sender=self.partner,
+            receiver=self.customer,
+            message=b"\xff",
+            sent_at=datetime.now(),
+        )
         response = self.client.get(self.url)
         messages = response.context["messages"]
-        self.assertIn("[Could not decode message]", [msg.decoded_message for msg in messages])
+        self.assertIn(
+            "[Could not decode message]", [msg.decoded_message for msg in messages]
+        )
 
     def test_messages_marked_as_read(self):
-        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Unread", read=False, sent_at=datetime.now())
+        DM.objects.create(
+            sender=self.partner,
+            receiver=self.customer,
+            message=b"Unread",
+            read=False,
+            sent_at=datetime.now(),
+        )
         self.client.get(self.url)
         dm = DM.objects.filter(sender=self.partner, receiver=self.customer).first()
         self.assertTrue(dm.read)
@@ -1932,11 +1986,16 @@ class MessagesViewTests(TestCase):
         self.assertEqual(response.context["conversations"], [])
         self.assertEqual(response.context["messages"], [])
 
+
 class ReportCommentTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="user1", email="user1@example.com", password="testpass")
-        self.customer = Customer.objects.create(username="user1", email="user1@example.com")
+        self.user = User.objects.create_user(
+            username="user1", email="user1@example.com", password="testpass"
+        )
+        self.customer = Customer.objects.create(
+            username="user1", email="user1@example.com"
+        )
         self.restaurant = Restaurant.objects.create(
             username="restouser",
             name="Old Name",
@@ -1948,9 +2007,11 @@ class ReportCommentTests(TestCase):
             hygiene_rating=10,
             inspection_date=date.today(),
             geo_coords=Point(0.0, 0.0),
-            borough=0,  # 
+            borough=0,  #
         )
-        self.moderator = Moderator.objects.create(username="mod1", email="mod@example.com")
+        self.moderator = Moderator.objects.create(
+            username="mod1", email="mod@example.com"
+        )
         self.comment = Comment.objects.create(
             commenter=self.customer,
             restaurant=self.restaurant,
@@ -1958,14 +2019,16 @@ class ReportCommentTests(TestCase):
             comment="Very hygienic and friendly staff.",
             rating=5,
             health_rating=5,
-            flagged=False
+            flagged=False,
         )
         self.url = reverse("report_comment")
 
     def test_report_by_customer(self):
         self.client.login(username="user1", password="testpass")
         data = {"comment_id": self.comment.id}
-        response = self.client.post(self.url, json.dumps(data), content_type="application/json")
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content, {"success": True})
 
@@ -1978,70 +2041,121 @@ class ReportCommentTests(TestCase):
         )
 
     def test_report_by_restaurant(self):
-        self.client.login(username="rest1", password="testpass")  # Use a restaurant user
-        self.restaurant_user = User.objects.create_user(username="rest1", email="rest@example.com", password="testpass")
+        self.client.login(
+            username="rest1", password="testpass"
+        )  # Use a restaurant user
+        self.restaurant_user = User.objects.create_user(
+            username="rest1", email="rest@example.com", password="testpass"
+        )
         self.client.login(username="rest1", password="testpass")
         data = {"comment_id": self.comment.id}
-        response = self.client.post(self.url, json.dumps(data), content_type="application/json")
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
         self.assertEqual(response.status_code, 404)
         self.comment.refresh_from_db()
         self.assertEqual(self.comment.flagged_by_object_id, None)
 
     def test_report_by_moderator(self):
-        self.moderator_user = User.objects.create_user(username="mod1", email="mod@example.com", password="testpass")
+        self.moderator_user = User.objects.create_user(
+            username="mod1", email="mod@example.com", password="testpass"
+        )
         self.client.login(username="mod1", password="testpass")
         data = {"comment_id": self.comment.id}
-        response = self.client.post(self.url, json.dumps(data), content_type="application/json")
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
         self.assertEqual(response.status_code, 200)
         self.comment.refresh_from_db()
         self.assertEqual(self.comment.flagged_by_object_id, self.moderator.id)
 
     def test_missing_comment_id(self):
         self.client.login(username="user1", password="testpass")
-        response = self.client.post(self.url, json.dumps({}), content_type="application/json")
+        response = self.client.post(
+            self.url, json.dumps({}), content_type="application/json"
+        )
         self.assertEqual(response.status_code, 400)
         self.assertIn("Missing comment ID", response.json()["error"])
 
     def test_comment_not_found(self):
         self.client.login(username="user1", password="testpass")
-        response = self.client.post(self.url, json.dumps({"comment_id": 999}), content_type="application/json")
+        response = self.client.post(
+            self.url, json.dumps({"comment_id": 999}), content_type="application/json"
+        )
         self.assertEqual(response.status_code, 500 or 404)
 
     def test_flagger_not_found(self):
         # Simulate a user with no profile
-        other_user = User.objects.create_user(username="ghost", email="ghost@example.com", password="ghostpass")
+        other_user = User.objects.create_user(
+            username="ghost", email="ghost@example.com", password="ghostpass"
+        )
         self.client.login(username="ghost", password="ghostpass")
-        response = self.client.post(self.url, json.dumps({"comment_id": self.comment.id}), content_type="application/json")
+        response = self.client.post(
+            self.url,
+            json.dumps({"comment_id": self.comment.id}),
+            content_type="application/json",
+        )
         self.assertEqual(response.status_code, 404)
         self.assertIn("Flagger not found", response.json()["error"])
 
     def test_invalid_method(self):
-        self.client.login(username="user1", password="testpass")  # ensure you're logged in
+        self.client.login(
+            username="user1", password="testpass"
+        )  # ensure you're logged in
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
         self.assertIn("Invalid request method", response.json()["error"])
 
     def test_invalid_json(self):
         self.client.login(username="user1", password="testpass")
-        response = self.client.post(self.url, data="not-json", content_type="application/json")
+        response = self.client.post(
+            self.url, data="not-json", content_type="application/json"
+        )
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json())
+
 
 class DebugUnreadMessagesTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="reader", email="reader@example.com", password="testpass")
-        self.customer = Customer.objects.create(username="reader", email="reader@example.com", first_name="Reader")
-        self.partner_user = User.objects.create_user(username="partner", email="partner@example.com", password="testpass")
-        self.partner = Customer.objects.create(username="partner", email="partner@example.com", first_name="Partner")
+        self.user = User.objects.create_user(
+            username="reader", email="reader@example.com", password="testpass"
+        )
+        self.customer = Customer.objects.create(
+            username="reader", email="reader@example.com", first_name="Reader"
+        )
+        self.partner_user = User.objects.create_user(
+            username="partner", email="partner@example.com", password="testpass"
+        )
+        self.partner = Customer.objects.create(
+            username="partner", email="partner@example.com", first_name="Partner"
+        )
 
         self.url = reverse("debug_unread_messages")
 
     def test_unread_messages_with_data(self):
         # Create some unread and read messages
-        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Unread 1", read=False, sent_at=datetime.now())
-        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Unread 2", read=False, sent_at=datetime.now())
-        DM.objects.create(sender=self.partner, receiver=self.customer, message=b"Read msg", read=True, sent_at=datetime.now())
+        DM.objects.create(
+            sender=self.partner,
+            receiver=self.customer,
+            message=b"Unread 1",
+            read=False,
+            sent_at=datetime.now(),
+        )
+        DM.objects.create(
+            sender=self.partner,
+            receiver=self.customer,
+            message=b"Unread 2",
+            read=False,
+            sent_at=datetime.now(),
+        )
+        DM.objects.create(
+            sender=self.partner,
+            receiver=self.customer,
+            message=b"Read msg",
+            read=True,
+            sent_at=datetime.now(),
+        )
 
         self.client.login(username="reader", password="testpass")
         response = self.client.get(self.url)
@@ -2070,4 +2184,3 @@ class DebugUnreadMessagesTests(TestCase):
         response = self.client.get(self.url, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/html", response["Content-Type"])
-
