@@ -52,6 +52,8 @@ def restaurant_detail(request, id):
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
 
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+
     return render(
         request,
         "maps/restaurant_detail.html",
@@ -62,6 +64,7 @@ def restaurant_detail(request, id):
             "avg_health": avg_health or 0,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
+            "is_customer": is_customer,
         },
     )
 
