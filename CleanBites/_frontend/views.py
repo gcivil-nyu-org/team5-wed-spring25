@@ -47,8 +47,12 @@ def restaurant_detail(request, id):
         parent__isnull=True,
         commenter__is_activated=True,  # only include comments from active customers
     ).order_by("-posted_at")
-    avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))["rating__avg"]
-    avg_health = reviews.filter(parent__isnull=True).aggregate(Avg("health_rating"))["health_rating__avg"]
+    avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))[
+        "rating__avg"
+    ]
+    avg_health = reviews.filter(parent__isnull=True).aggregate(Avg("health_rating"))[
+        "health_rating__avg"
+    ]
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -87,7 +91,9 @@ def user_profile(request, username):
         is_owner = True
 
     if customer:
-        reviews = Comment.objects.filter(commenter=customer.id, parent__isnull=True).order_by("-posted_at")
+        reviews = Comment.objects.filter(
+            commenter=customer.id, parent__isnull=True
+        ).order_by("-posted_at")
     else:
         reviews = []
 
@@ -521,7 +527,8 @@ def profile_router(request, username):
                 return redirect("moderator_profile")
             except Moderator.DoesNotExist:
                 return redirect("home")  # or a 404 page
-            
+
+
 @login_required
 def post_reply(request):
     if request.method == "POST":
@@ -541,10 +548,11 @@ def post_reply(request):
             comment=comment_text,
             title="",
             rating=1,
-            health_rating=1
+            health_rating=1,
         )
 
-    return redirect(request.META.get('HTTP_REFERER', '/'))
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
 @login_required(login_url="/login/")
 def debug_unread_messages(request):
