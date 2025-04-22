@@ -26,7 +26,9 @@
     <div id="side-modal" class="side-modal hidden">
       <div class="modal-header">
         <h2 id="modal-title">Restaurant Name</h2>
+        {% if is_customer %}
         <button class="bookmark-btn" onclick="addBookmark()">★ Bookmark</button>
+        {% endif %}
         <button onclick="closeModal()">×</button>
       </div>
       <div id="modal-content"></div>

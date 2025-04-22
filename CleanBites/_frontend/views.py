@@ -71,7 +71,8 @@ def restaurant_detail(request, id):
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    context = {"has_unread_messages": has_unread_messages(request.user)}
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+    context = {"has_unread_messages": has_unread_messages(request.user), "is_customer": is_customer}
     return render(request, "maps/nycmap_dynamic.html", context)
 
 
