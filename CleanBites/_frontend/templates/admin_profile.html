@@ -118,27 +118,76 @@
     </div>
   </div>
   
-  <!-- Bootstrap Modal for deactivation reason -->
+  <!-- Bootstrap Modal for deactivation/suspension -->
   <div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="deactivateModalLabel">Deactivation Reason</h5>
+          <!-- changed title -->
+          <h5 class="modal-title" id="deactivateModalLabel">Suspend or Deactivate User</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="deactivateForm" method="post" action="">
             {% csrf_token %}
             <input type="hidden" name="user_id" id="modalUserId" value="">
+
+            <!-- choose action -->
             <div class="mb-3">
-              <textarea name="deactivation_reason" class="form-control" rows="4" placeholder="Enter the reason for deactivation..." required></textarea>
+              <label class="form-label">Action</label>
+              <select id="actionSelect" name="action" class="form-select" required>
+                <option value="" disabled selected>— Select —</option>
+                <option value="suspend">Suspend until…</option>
+                <option value="deactivate">Deactivate permanently</option>
+              </select>
             </div>
+
+            <!-- only shown when “Suspend” is picked -->
+            <div class="mb-3" id="suspendDateGroup" style="display: none;">
+              <label for="deactivate_until" class="form-label">Suspend Until</label>
+              <input
+                type="date"
+                id="deactivate_until"
+                name="deactivate_until"
+                class="form-control"
+                placeholder="YYYY‑MM‑DD"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="deactivation_reason" class="form-label">Reason</label>
+              <textarea
+                name="deactivation_reason"
+                id="deactivation_reason"
+                class="form-control"
+                rows="4"
+                placeholder="Enter the reason…"
+                required
+              ></textarea>
+            </div>
+
             <button type="submit" class="btn btn-primary">Submit</button>
           </form>
         </div>
       </div>
     </div>
   </div>
+
+  <script>
+  // toggle date field visibility
+  document.getElementById('actionSelect').addEventListener('change', function() {
+    const suspendGroup = document.getElementById('suspendDateGroup');
+    if (this.value === 'suspend') {
+      suspendGroup.style.display = 'block';
+      // make date required when suspending
+      document.getElementById('deactivate_until').setAttribute('required','');
+    } else {
+      suspendGroup.style.display = 'none';
+      document.getElementById('deactivate_until').removeAttribute('required');
+    }
+  });
+  </script>
+
   
   <!-- load Boodstrap -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>

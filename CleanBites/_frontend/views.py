@@ -16,6 +16,7 @@ from django.db.models import Avg
 import json
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.contrib.contenttypes.models import ContentType
+from datetime import date
 
 # Get user model
 User = get_user_model()
@@ -40,11 +41,11 @@ def home_view(request):
 
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
-    # DO SOMETHING HERE
     restaurant = get_object_or_404(Restaurant, id=id)
     reviews = Comment.objects.filter(
-        restaurant=restaurant,
-        commenter__is_activated=True,  # only include comments from active customers
+        Q(restaurant=restaurant),
+        # only include comments from active customers
+        Q(commenter__is_activated=True) | Q(commenter__deactivate_until__lt=date.today()),
     ).order_by("-posted_at")
     avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
     avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
@@ -126,8 +127,10 @@ def messages_view(request, chat_user_id=None):
 
     # remove DMs from deactivated users
     all_dms = DM.objects.filter(
-        (Q(sender=user) & Q(receiver__is_activated=True))
-        | (Q(sender__is_activated=True) & Q(receiver=user))
+        (Q(sender=user) &
+            Q(receiver__is_activated=True)) | Q(receiver__deactivate_until__lt=date.today())
+        | (Q(sender__is_activated=True) | Q(sender__deactivate_until__lt=date.today()) &
+            Q(receiver=user)) 
     )
 
     participants = {}
@@ -296,7 +299,7 @@ def send_message(request, chat_user_id):
             return redirect("messages inbox")
         message_text = request.POST.get("message")
         # only able to send messages to activated users
-        if not recipient.is_activated:
+        if (not recipient.is_activated) and recipient.deactivated_until>=date.today():
             messages.error(
                 request,
                 "Sorry, that user has been deactivated. You can't DM them.",
@@ -473,8 +476,9 @@ def profile_router(request, username):
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
         reviews = Comment.objects.filter(
-            restaurant=user_obj.id,
-            commenter__is_activated=True,  # only include comments from active customers
+            Q(restaurant=user_obj.id),
+            # only include comments from active customers
+            Q(commenter__is_activated=True) | Q(commenter__deactivate_until__lt=date.today()),
         ).order_by(
             "-posted_at"
         )  # adding reviews
@@ -601,9 +605,13 @@ def moderator_profile_view(request):
         messages.error(request, "Unauthorized action.")
         return redirect("home")
     # query for flagged DMs and comments
-    flagged_dms = DM.objects.filter(flagged=True, sender__is_activated=True)
+    flagged_dms = DM.objects.filter(
+        Q(flagged=True),
+        Q(sender__is_activated=True) | Q(sender__deactivate_until__lt=date.today()),
+    )
     flagged_comments = Comment.objects.filter(
-        flagged=True, commenter__is_activated=True
+        Q(flagged=True),
+        Q(commenter__is_activated=True) | Q(commenter__deactivate_until__lt=date.today()),
     )
 
     # decode DM messages
@@ -640,7 +648,9 @@ def deactivate_account(request, user_type, user_id):
 
     if request.method == "POST":
         deactivation_reason = request.POST.get("deactivation_reason", "")
+        deactivated_until = request.POST.get("deactivated_until", "")
         user_obj.deactivation_reason = deactivation_reason
+        user_obj.deactivated_until = deactivated_until
         user_obj.is_activated = False
         user_obj.save()
         messages.success(
@@ -758,10 +768,12 @@ def global_search(request):
         return JsonResponse({"results": []})
 
     customers = Customer.objects.filter(
-        username__icontains=query, is_activated=True
+        Q(username__icontains=query),
+        Q(is_activated=True) | Q(deactivate_until__lt=date.today()),
     ).values("username")[:5]
     restaurants = Restaurant.objects.filter(
-        name__icontains=query, is_activated=True
+        Q(name__icontains=query),
+        Q(is_activated=True) | Q(deactivate_until__lt=date.today()),
     ).values("id", "name", "username")[:5]
 
     results = []
@@ -804,7 +816,7 @@ def login_view(request):
                     request, "Invalid username or password", extra_tags=AUTH_MESSAGE
                 )
                 return redirect("/")
-            elif not profile.is_activated:
+            elif (not profile.is_activated) and profile.deactivated_until>=date.today():
                 messages.error(
                     request,
                     f"Your account has been deactivated. Reason: {profile.deactivation_reason}",
