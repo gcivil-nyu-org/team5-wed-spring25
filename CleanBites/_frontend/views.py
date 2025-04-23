@@ -42,11 +42,23 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
+    try:
+        current_customer = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        current_customer = None
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
         # only include comments from active customers
-        Q(commenter__is_activated=True) | Q(commenter__deactivate_until__lt=date.today()),
-    ).order_by("-posted_at")
+        Q(commenter__is_activated=True)
+        | Q(commenter__deactivated_until__lt=date.today()),
+    )
+    # exclude anyone blocked
+    if current_customer:
+        reviews = reviews.exclude(
+            commenter__in=current_customer.blocked_customers.all()
+        )
+    reviews = reviews.order_by("-posted_at")
+
     avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
     avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
     is_owner = False
@@ -76,27 +88,45 @@ def dynamic_map_view(request):
 @login_required(login_url="/login/")
 def user_profile(request, username):
     user = get_object_or_404(User, username=username)
-    customer = None
+    # customer whose profile you're viewing
     try:
-        customer = Customer.objects.get(username=username)
+        profile_customer = Customer.objects.get(username=username)
     except Customer.DoesNotExist:
-        customer = None
+        profile_customer = None
+
+    # customer who is viewing profiles
+    try:
+        current_customer = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        current_customer = None
 
     is_owner = False
     if request.user.is_authenticated and request.user.username == user.username:
         is_owner = True
 
-    if customer:
-        reviews = Comment.objects.filter(commenter=customer.id).order_by("-posted_at")
+    if profile_customer:
+        reviews = Comment.objects.filter(commenter=profile_customer.id).order_by(
+            "-posted_at"
+        )
     else:
+        reviews = []
+
+    is_blocked = (
+        profile_customer
+        and current_customer
+        and current_customer.blocked_customers.filter(id=profile_customer.id).exists()
+    )
+    if is_blocked:
         reviews = []
 
     context = {
         "profile_user": user,
+        "profle_customer": profile_customer,
         "has_unread_messages": has_unread_messages(request.user),
-        "customer": customer,
+        "customer": profile_customer,
         "is_owner": is_owner,
         "reviews": reviews,
+        "is_blocked": is_blocked,
     }
     return render(request, "user_profile.html", context)
 
@@ -127,89 +157,19 @@ def messages_view(request, chat_user_id=None):
 
     # remove DMs from deactivated users
     all_dms = DM.objects.filter(
-        (Q(sender=user) &
-            Q(receiver__is_activated=True)) | Q(receiver__deactivate_until__lt=date.today())
-        | (Q(sender__is_activated=True) | Q(sender__deactivate_until__lt=date.today()) &
-            Q(receiver=user)) 
+        (Q(sender=user) & Q(receiver__is_activated=True))
+        | Q(receiver__deactivated_until__lt=date.today())
+        | (
+            Q(sender__is_activated=True)
+            | Q(sender__deactivated_until__lt=date.today()) & Q(receiver=user)
+        )
     )
 
-    participants = {}
-    for dm in all_dms:
-        other = dm.receiver if dm.sender == user else dm.sender
-        if other.id not in participants:
-            participants[other.id] = {
-                "id": other.id,
-                "name": other.first_name,
-                "email": other.email,
-                "avatar_url": "/static/images/avatar-placeholder.png",
-                "has_unread": False,  # Initialize unread flag
-            }
-
-    # Check for unread messages in each conversation
-    for participant_id in participants:
-        has_unread = DM.objects.filter(
-            sender_id=participant_id, receiver=user, read=False
-        ).exists()
-        participants[participant_id]["has_unread"] = has_unread
-
-    conversations = list(participants.values())
-
-    active_chat = None
-    if chat_user_id:
-        active_chat = get_object_or_404(Customer, id=chat_user_id)
-    elif conversations:
-        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
-
-    messages = []
-    if active_chat:
-        raw_messages = DM.objects.filter(
-            (Q(sender=user) & Q(receiver=active_chat))
-            | (Q(sender=active_chat) & Q(receiver=user))
-        ).order_by("sent_at")
-
-        # Mark messages as read when viewed
-        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
-            read=True
-        )
-
-        for msg in raw_messages:
-            try:
-                byte_data = bytes(msg.message)
-                msg.decoded_message = byte_data.decode("utf-8")
-            except Exception as e:
-                msg.decoded_message = "[Could not decode message]"
-            messages.append(msg)
-
-    return render(
-        request,
-        "inbox.html",
-        {
-            "conversations": conversations,
-            "active_chat": active_chat,
-            "messages": messages,
-            "has_unread_messages": has_unread_messages(request.user),
-        },
+    # remove any DM from/to blocked individuals
+    all_dms = all_dms.exclude(
+        Q(sender=user, receiver__in=user.blocked_customers.all())
+        | Q(receiver=user, sender__in=user.blocked_customers.all())
     )
-
-
-@login_required(login_url="/login/")
-def messages_view(request, chat_user_id=None):
-    try:
-        user = Customer.objects.get(email=request.user.email)
-    except Customer.DoesNotExist:
-        return render(
-            request,
-            "inbox.html",
-            {
-                "conversations": [],
-                "active_chat": None,
-                "messages": [],
-                "error": "Your profile could not be found.",
-                "has_unread_messages": has_unread_messages(request.user),
-            },
-        )
-
-    all_dms = DM.objects.filter(Q(sender=user) | Q(receiver=user))
 
     participants = {}
     for dm in all_dms:
@@ -299,13 +259,22 @@ def send_message(request, chat_user_id):
             return redirect("messages inbox")
         message_text = request.POST.get("message")
         # only able to send messages to activated users
-        if (not recipient.is_activated) and recipient.deactivated_until>=date.today():
+        if (not recipient.is_activated) and recipient.deactivated_until >= date.today():
             messages.error(
                 request,
                 "Sorry, that user has been deactivated. You can't DM them.",
                 extra_tags=INBOX_MESSAGE,
             )
             return redirect("messages inbox")
+
+        if isinstance(sender, Customer):
+            if sender.blocked_customers.filter(id=recipient.id).exists():
+                messages.error(
+                    request,
+                    "You can’t send messages to a user you’ve blocked.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return redirect("chat", chat_user_id=recipient.id)
 
         message_text = request.POST.get("message")
 
@@ -371,23 +340,6 @@ def send_message_generic(request):
         try:
             # First try to find the recipient as a Customer
             recipient = Customer.objects.get(email=recipient_email)
-
-            if recipient == sender:
-                messages.error(
-                    request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
-                )
-                return redirect("messages inbox")
-
-            # Create DM with read=False for new messages
-            DM.objects.create(
-                sender=sender,
-                receiver=recipient,
-                message=message_text.encode("utf-8"),
-                read=False,
-            )
-
-            return redirect("chat", chat_user_id=recipient.id)
-
         except Customer.DoesNotExist:
             # Check if recipient exists as a Restaurant
             try:
@@ -404,8 +356,31 @@ def send_message_generic(request):
                     f"Recipient '{recipient_email}' does not exist. Please check the email address and try again.",
                     extra_tags=INBOX_MESSAGE,
                 )
-
             return redirect("messages inbox")
+
+        if isinstance(sender, Customer):
+            if sender.blocked_customers.filter(id=recipient.id).exists():
+                messages.error(
+                    request,
+                    "You can’t send messages to someone you’ve blocked.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return redirect("messages inbox")
+        if recipient == sender:
+            messages.error(
+                request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
+            )
+            return redirect("messages inbox")
+
+        # Create DM with read=False for new messages
+        DM.objects.create(
+            sender=sender,
+            receiver=recipient,
+            message=message_text.encode("utf-8"),
+            read=False,
+        )
+
+        return redirect("chat", chat_user_id=recipient.id)
 
 
 @login_required(login_url="/login/")
@@ -472,16 +447,28 @@ def profile_router(request, username):
     try:
         user_obj = Restaurant.objects.get(username=username)
 
+        try:
+            current_customer = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            current_customer = None
+
         is_owner = False
         if request.user.is_authenticated and request.user.username == user_obj.username:
             is_owner = True
         reviews = Comment.objects.filter(
             Q(restaurant=user_obj.id),
             # only include comments from active customers
-            Q(commenter__is_activated=True) | Q(commenter__deactivate_until__lt=date.today()),
-        ).order_by(
-            "-posted_at"
-        )  # adding reviews
+            Q(commenter__is_activated=True)
+            | Q(commenter__deactivated_until__lt=date.today()),
+        )
+
+        if current_customer:
+            reviews = reviews.exclude(
+                commenter__in=current_customer.blocked_customers.all()
+            )
+
+        reviews = reviews.order_by("-posted_at")
+
         return render(
             request,
             "maps/restaurant_detail.html",
@@ -607,11 +594,12 @@ def moderator_profile_view(request):
     # query for flagged DMs and comments
     flagged_dms = DM.objects.filter(
         Q(flagged=True),
-        Q(sender__is_activated=True) | Q(sender__deactivate_until__lt=date.today()),
+        Q(sender__is_activated=True) | Q(sender__deactivated_until__lt=date.today()),
     )
     flagged_comments = Comment.objects.filter(
         Q(flagged=True),
-        Q(commenter__is_activated=True) | Q(commenter__deactivate_until__lt=date.today()),
+        Q(commenter__is_activated=True)
+        | Q(commenter__deactivated_until__lt=date.today()),
     )
 
     # decode DM messages
@@ -650,16 +638,56 @@ def deactivate_account(request, user_type, user_id):
         deactivation_reason = request.POST.get("deactivation_reason", "")
         deactivated_until = request.POST.get("deactivated_until", "")
         user_obj.deactivation_reason = deactivation_reason
-        user_obj.deactivated_until = deactivated_until
+        # permanent deactivation
+        if deactivated_until == "":
+            user_obj.deactivated_until = "9999-12-31"
+        # suspension
+        else:
+            user_obj.deactivated_until = deactivated_until
         user_obj.is_activated = False
         user_obj.save()
-        messages.success(
-            request, f"{user_type.capitalize()} account deactivated successfully."
-        )
         return redirect("moderator_profile")
     else:
         messages.error(request, "Invalid request method.")
         return redirect("moderator_profile")
+
+
+@login_required(login_url="/login/")
+def block_user(request, user_type, username):
+    try:
+        blocker = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        messages.error(request, "Only customers may block other users.")
+        return redirect("home")
+    if user_type == "customer":
+        target = get_object_or_404(Customer, username=username)
+    # elif user_type == "restaurant":
+    #     target = get_object_or_404(Restaurant, id=user_id)
+    else:
+        messages.error(request, "Invalid user type.")
+        return redirect("home")
+    blocker.blocked_customers.add(target)
+    messages.success(request, f"You have blocked {target}.")
+    return redirect("home")
+
+
+@login_required(login_url="/login/")
+def unblock_user(request, user_type, username):
+    try:
+        blocker = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        messages.error(request, "Only customers may block/unblock other users.")
+        return redirect("home")
+    if user_type == "customer":
+        target = get_object_or_404(Customer, username=username)
+    # elif user_type == "restaurant":
+    #     target = get_object_or_404(Restaurant, id=user_id)
+    else:
+        messages.error(request, "Invalid user type.")
+        return redirect("home")
+    blocker.blocked_customers.remove(target)
+    messages.success(request, f"You have unblocked {target}.")
+    return redirect("home")
 
 
 @login_required(login_url="/login/")
@@ -768,12 +796,10 @@ def global_search(request):
         return JsonResponse({"results": []})
 
     customers = Customer.objects.filter(
-        Q(username__icontains=query),
-        Q(is_activated=True) | Q(deactivate_until__lt=date.today()),
+        username__icontains=query, is_activated=True
     ).values("username")[:5]
     restaurants = Restaurant.objects.filter(
-        Q(name__icontains=query),
-        Q(is_activated=True) | Q(deactivate_until__lt=date.today()),
+        name__icontains=query, is_activated=True
     ).values("id", "name", "username")[:5]
 
     results = []
@@ -816,10 +842,20 @@ def login_view(request):
                     request, "Invalid username or password", extra_tags=AUTH_MESSAGE
                 )
                 return redirect("/")
-            elif (not profile.is_activated) and profile.deactivated_until>=date.today():
+            elif (not profile.is_activated) and profile.deactivated_until == date(
+                9999, 12, 31
+            ):
                 messages.error(
                     request,
                     f"Your account has been deactivated. Reason: {profile.deactivation_reason}",
+                )
+                return redirect("landing")
+            elif (
+                not profile.is_activated
+            ) and profile.deactivated_until >= date.today():
+                messages.error(
+                    request,
+                    f"Your account has been suspended until {profile.deactivated_until}. Reason: {profile.deactivation_reason}",
                 )
                 return redirect("landing")
             else:
