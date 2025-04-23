@@ -49,6 +49,12 @@ urlpatterns = [
         views.deactivate_account,
         name="deactivate_account",
     ),
+    path("block/<str:user_type>/<str:username>/", views.block_user, name="block_user"),
+    path(
+        "unblock/<str:user_type>/<str:username>/",
+        views.unblock_user,
+        name="unblock_user",
+    ),
     path(
         "delete_comment/<int:comment_id>/", views.delete_comment, name="delete_comment"
     ),
