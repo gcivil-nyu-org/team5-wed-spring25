@@ -51,6 +51,7 @@ def restaurant_detail(request, id):
         # only include comments from active customers
         Q(commenter__is_activated=True)
         | Q(commenter__deactivated_until__lt=date.today()),
+        parent__isnull=True,
     )
     # exclude anyone blocked
     if current_customer:
@@ -105,9 +106,9 @@ def user_profile(request, username):
         is_owner = True
 
     if profile_customer:
-        reviews = Comment.objects.filter(commenter=profile_customer.id).order_by(
-            "-posted_at"
-        )
+        reviews = Comment.objects.filter(
+            commenter=profile_customer.id, parent__isnull=True
+        ).order_by("-posted_at")
     else:
         reviews = []
 
@@ -460,6 +461,7 @@ def profile_router(request, username):
             # only include comments from active customers
             Q(commenter__is_activated=True)
             | Q(commenter__deactivated_until__lt=date.today()),
+            parent__isnull=True,
         )
 
         if current_customer:
