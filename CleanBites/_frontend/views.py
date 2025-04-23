@@ -1140,3 +1140,26 @@ def update_profile(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_protect
+@login_required
+def ensure_customer_exists(request):
+    try:
+        if not request.user.email:
+            return JsonResponse(
+                {"success": False, "error": "User has no email"}, status=400
+            )
+
+        customer, created = Customer.objects.get_or_create(
+            email=request.user.email,
+            defaults={
+                "username": request.user.username,
+                "first_name": request.user.first_name,
+                "last_name": request.user.last_name,
+            },
+        )
+
+        return JsonResponse({"success": True, "created": created})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

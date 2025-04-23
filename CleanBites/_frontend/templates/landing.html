@@ -334,7 +334,7 @@
             console.log("Backend Response:", data);
             if (data.success) {
               // e.g., redirect or close modal
-              window.location.href = data.redirect_url || "/home/";
+              ensureCustomerExistsAndRedirect(data.redirect_url || "/home/");
             } else {
               alert("Google sign-in failed: " + (data.error || "Unknown error"));
             }
@@ -342,6 +342,28 @@
           .catch(err => {
             console.error("Fetch error:", err);
             alert("Something went wrong during Google sign-in.");
+          });
+        }
+
+        function ensureCustomerExistsAndRedirect(redirectUrl = "/home/") {
+          fetch("/ensure-customer/", {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": getCookie("csrftoken"),
+            },
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (!data.success) {
+              console.error("Failed to ensure Customer record:", data.error);
+            } else {
+              console.log("Customer ensured:", data);
+            }
+            window.location.href = redirectUrl;
+          })
+          .catch(err => {
+            console.error("Error ensuring Customer record:", err);
+            window.location.href = redirectUrl;
           });
         }
       </script>
