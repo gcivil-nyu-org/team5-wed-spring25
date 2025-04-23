@@ -57,6 +57,8 @@ def restaurant_detail(request, id):
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
 
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+
     return render(
         request,
         "maps/restaurant_detail.html",
@@ -67,13 +69,18 @@ def restaurant_detail(request, id):
             "avg_health": avg_health or 0,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
+            "is_customer": is_customer,
         },
     )
 
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    context = {"has_unread_messages": has_unread_messages(request.user)}
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+    context = {
+        "has_unread_messages": has_unread_messages(request.user),
+        "is_customer": is_customer,
+    }
     return render(request, "maps/nycmap_dynamic.html", context)
 
 
@@ -1147,6 +1154,8 @@ def update_profile(request):
         request.user.save()
 
         customer = Customer.objects.get(username=currentUser)
+        customer.first_name = parts[0]
+        customer.last_name = parts[1] if len(parts) > 1 else ""
         customer.aboutme = aboutme
         customer.save()
 
@@ -1163,3 +1172,26 @@ def update_profile(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_protect
+@login_required
+def ensure_customer_exists(request):
+    try:
+        if not request.user.email:
+            return JsonResponse(
+                {"success": False, "error": "User has no email"}, status=400
+            )
+
+        customer, created = Customer.objects.get_or_create(
+            email=request.user.email,
+            defaults={
+                "username": request.user.username,
+                "first_name": request.user.first_name,
+                "last_name": request.user.last_name,
+            },
+        )
+
+        return JsonResponse({"success": True, "created": created})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
