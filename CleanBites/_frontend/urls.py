@@ -56,4 +56,5 @@ urlpatterns = [
     path("report_dm/", views.report_dm, name="report_dm"),
     path("profileedit/", views.update_profile, name="update_profile"),
     path("global-search/", views.global_search, name="global_search"),
+    path("reply/", views.post_reply, name="post_reply"),
 ]
