@@ -48,23 +48,21 @@ def restaurant_detail(request, id):
         current_customer = None
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
-        # only include comments from active customers
         Q(commenter__is_activated=True)
-        | Q(commenter__deactivated_until__lt=date.today()),
-        parent__isnull=True,
-    )
-    # exclude anyone blocked
-    if current_customer:
-        reviews = reviews.exclude(
-            commenter__in=current_customer.blocked_customers.all()
-        )
-    reviews = reviews.order_by("-posted_at")
-
-    avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
-    avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
+    | Q(commenter__deactivated_until__lt=date.today()),
+        parent__isnull=True,# only include comments from active customers
+    ).order_by("-posted_at")
+    avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))[
+        "rating__avg"
+    ]
+    avg_health = reviews.filter(parent__isnull=True).aggregate(Avg("health_rating"))[
+        "health_rating__avg"
+    ]
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
+
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
 
     return render(
         request,
@@ -76,13 +74,18 @@ def restaurant_detail(request, id):
             "avg_health": avg_health or 0,
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
+            "is_customer": is_customer,
         },
     )
 
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    context = {"has_unread_messages": has_unread_messages(request.user)}
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+    context = {
+        "has_unread_messages": has_unread_messages(request.user),
+        "is_customer": is_customer,
+    }
     return render(request, "maps/nycmap_dynamic.html", context)
 
 
@@ -430,17 +433,14 @@ def update_restaurant_profile_view(request):
             if "cuisine_description" in request.POST:
                 restaurant.cuisine_description = request.POST.get("cuisine_description")
 
-            if "profile_image" in request.FILES:
-                restaurant.profile_image = request.FILES["profile_image"]
-
             restaurant.save()
             messages.success(request, "Restaurant profile updated successfully!")
-            return redirect("restaurant_detail", name=restaurant.id)
+            return redirect("restaurant_detail", id=restaurant.id)
         except Exception as e:
             messages.error(request, f"Error updating profile: {e}")
             return redirect("home")
 
-    return redirect("restaurant_detail", name=restaurant.id)
+    return redirect("restaurant_detail", id=restaurant.id)
 
 
 @login_required(login_url="/login/")
@@ -513,6 +513,31 @@ def profile_router(request, username):
                 return redirect("moderator_profile")
             except Moderator.DoesNotExist:
                 return redirect("home")  # or a 404 page
+
+
+@login_required
+def post_reply(request):
+    if request.method == "POST":
+        parent_id = request.POST.get("parent_id")
+
+        restaurant_id = request.POST.get("restaurant_id")
+        comment_text = request.POST.get("comment")
+
+        parent = get_object_or_404(Comment, id=parent_id)
+        restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+        customer = get_object_or_404(Customer, username=request.user.username)
+
+        Comment.objects.create(
+            commenter=customer,
+            restaurant=restaurant,
+            parent=parent,
+            comment=comment_text,
+            title="",
+            rating=1,
+            health_rating=1,
+        )
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 @login_required(login_url="/login/")
@@ -1168,6 +1193,8 @@ def update_profile(request):
         request.user.save()
 
         customer = Customer.objects.get(username=currentUser)
+        customer.first_name = parts[0]
+        customer.last_name = parts[1] if len(parts) > 1 else ""
         customer.aboutme = aboutme
         customer.save()
 
@@ -1184,3 +1211,26 @@ def update_profile(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_protect
+@login_required
+def ensure_customer_exists(request):
+    try:
+        if not request.user.email:
+            return JsonResponse(
+                {"success": False, "error": "User has no email"}, status=400
+            )
+
+        customer, created = Customer.objects.get_or_create(
+            email=request.user.email,
+            defaults={
+                "username": request.user.username,
+                "first_name": request.user.first_name,
+                "last_name": request.user.last_name,
+            },
+        )
+
+        return JsonResponse({"success": True, "created": created})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
