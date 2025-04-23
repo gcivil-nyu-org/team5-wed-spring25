@@ -49,8 +49,8 @@ def restaurant_detail(request, id):
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
         Q(commenter__is_activated=True)
-    | Q(commenter__deactivated_until__lt=date.today()),
-        parent__isnull=True,# only include comments from active customers
+        | Q(commenter__deactivated_until__lt=date.today()),
+        parent__isnull=True,  # only include comments from active customers
     ).order_by("-posted_at")
     avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))[
         "rating__avg"
