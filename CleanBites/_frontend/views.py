@@ -44,10 +44,15 @@ def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
     reviews = Comment.objects.filter(
         restaurant=restaurant,
+        parent__isnull=True,
         commenter__is_activated=True,  # only include comments from active customers
     ).order_by("-posted_at")
-    avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
-    avg_health = reviews.aggregate(Avg("health_rating"))["health_rating__avg"]
+    avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))[
+        "rating__avg"
+    ]
+    avg_health = reviews.filter(parent__isnull=True).aggregate(Avg("health_rating"))[
+        "health_rating__avg"
+    ]
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -93,7 +98,9 @@ def user_profile(request, username):
         is_owner = True
 
     if customer:
-        reviews = Comment.objects.filter(commenter=customer.id).order_by("-posted_at")
+        reviews = Comment.objects.filter(
+            commenter=customer.id, parent__isnull=True
+        ).order_by("-posted_at")
     else:
         reviews = []
 
@@ -524,6 +531,31 @@ def profile_router(request, username):
                 return redirect("moderator_profile")
             except Moderator.DoesNotExist:
                 return redirect("home")  # or a 404 page
+
+
+@login_required
+def post_reply(request):
+    if request.method == "POST":
+        parent_id = request.POST.get("parent_id")
+
+        restaurant_id = request.POST.get("restaurant_id")
+        comment_text = request.POST.get("comment")
+
+        parent = get_object_or_404(Comment, id=parent_id)
+        restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+        customer = get_object_or_404(Customer, username=request.user.username)
+
+        Comment.objects.create(
+            commenter=customer,
+            restaurant=restaurant,
+            parent=parent,
+            comment=comment_text,
+            title="",
+            rating=1,
+            health_rating=1,
+        )
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 @login_required(login_url="/login/")

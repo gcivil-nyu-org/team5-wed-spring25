@@ -57,4 +57,5 @@ urlpatterns = [
     path("profileedit/", views.update_profile, name="update_profile"),
     path("global-search/", views.global_search, name="global_search"),
     path("ensure-customer/", views.ensure_customer_exists, name="ensure_customer"),
+    path("reply/", views.post_reply, name="post_reply"),
 ]
