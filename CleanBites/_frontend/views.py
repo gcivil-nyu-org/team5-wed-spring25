@@ -30,7 +30,7 @@ INBOX_MESSAGE = "inbox_message"  # For inbox related messages
 # WEBSITE VIEWS - visual endpoints
 # =====================================================================================
 def landing_view(request):
-    return render(request, "landing.html")
+    return render(request, "landing_page.html")
 
 
 @login_required(login_url="/login/")
