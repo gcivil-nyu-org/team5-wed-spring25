@@ -1,7 +1,6 @@
 import requests
 from datetime import datetime
 from django.core.exceptions import ValidationError
-import time
 from geopy.geocoders import Nominatim
 from _api._restaurants.models import Restaurant
 from django.contrib.gis.geos import Point

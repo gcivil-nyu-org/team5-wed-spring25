@@ -1,8 +1,6 @@
-import unittest
 from unittest.mock import patch, MagicMock
 import requests
 from django.test import TestCase
-from django.core.exceptions import ValidationError
 from _api._restaurants.fetch_data import NYC_DATA_URL
 from _api._restaurants.models import Restaurant, Comment, Reply
 from _api._users.models import Customer

@@ -1,5 +1,4 @@
 from _api._users.models import Customer, DM
-from django.db.models import Q
 import logging
 
 # Get logger

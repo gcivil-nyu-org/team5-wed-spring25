@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import viewsets, generics, filters
 from .serializers import (
     RestaurantSerializer,
@@ -8,11 +7,9 @@ from .serializers import (
 )
 from .models import Restaurant, Comment, Reply
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import HttpResponse
 from django.views import View
-from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D

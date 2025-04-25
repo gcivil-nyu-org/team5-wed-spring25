@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
@@ -156,7 +155,7 @@ class GoogleSignInView(APIView):
         except ValueError as e:
             # This exception is raised if the token is invalid
             return Response({"success": False, "error": str(e)}, status=401)
-        except Exception as e:
+        except Exception:
             return Response(
                 {"success": False, "error": "Internal server error"}, status=500
             )

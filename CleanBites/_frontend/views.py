@@ -4,7 +4,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth import get_user_model
-from django.contrib.auth.backends import ModelBackend
 from _api._users.models import Customer, DM, FavoriteRestaurant, Moderator
 from django.db.models import Q
 from django.db import transaction
@@ -45,7 +44,7 @@ def restaurant_detail(request, id):
     try:
         current_customer = Customer.objects.get(email=request.user.email)
     except Customer.DoesNotExist:
-        current_customer = None
+        pass
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
         Q(commenter__is_activated=True)
@@ -218,7 +217,7 @@ def messages_view(request, chat_user_id=None):
             try:
                 byte_data = bytes(msg.message)
                 msg.decoded_message = byte_data.decode("utf-8")
-            except Exception as e:
+            except Exception:
                 msg.decoded_message = "[Could not decode message]"
             messages.append(msg)
 
@@ -633,7 +632,7 @@ def moderator_profile_view(request):
     for dm in flagged_dms:
         try:
             dm.decoded_message = bytes(dm.message).decode("utf-8")
-        except Exception as e:
+        except Exception:
             dm.decoded_message = "[Could not decode message]"
 
     context = {

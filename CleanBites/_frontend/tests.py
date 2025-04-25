@@ -1,11 +1,9 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.contrib.messages import get_messages
 from django.utils import timezone
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.contenttypes.models import ContentType
 from datetime import date, datetime, timedelta
 
@@ -13,7 +11,6 @@ from _api._users.models import Moderator, Customer, DM, FavoriteRestaurant
 from _api._restaurants.models import Restaurant, Comment
 from _frontend.utils import has_unread_messages
 from django.contrib.gis.geos import Point
-from django.test import RequestFactory
 import json
 
 User = get_user_model()
@@ -317,7 +314,7 @@ class MessageSystemTests(TestCase):
 
         # Login and view messages
         self.client.login(username="user1", password="testpass123")
-        response = self.client.get(reverse("messages inbox"))
+        self.client.get(reverse("messages inbox"))
 
         # Message should now be marked as read
         self.assertFalse(
@@ -798,7 +795,7 @@ class ModeratorViewTests(TestCase):
         """
         self.client.login(username="mod1", password="modpass")
         url = reverse("deactivate_account", args=["customer", self.customer1.id])
-        response = self.client.post(url)
+        self.client.post(url)
         self.customer1.refresh_from_db()
         self.assertFalse(self.customer1.is_activated)
 
@@ -827,7 +824,7 @@ class ModeratorViewTests(TestCase):
         )
         self.client.login(username="mod1", password="modpass")
         url = reverse("deactivate_account", args=["restaurant", restaurant.id])
-        response = self.client.post(url)
+        self.client.post(url)
 
         restaurant.refresh_from_db()
         self.assertFalse(restaurant.is_activated)
@@ -838,7 +835,7 @@ class ModeratorViewTests(TestCase):
         """
         self.client.login(username="mod1", password="modpass")
         url = reverse("delete_comment", args=[self.flagged_comment.id])
-        response = self.client.post(url)
+        self.client.post(url)
         with self.assertRaises(Comment.DoesNotExist):
             Comment.objects.get(id=self.flagged_comment.id)
 
