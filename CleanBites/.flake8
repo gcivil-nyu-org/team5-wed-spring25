@@ -1,3 +1,0 @@
-[flake8]
-exclude = venv,migrations,__pycache__
-max-line-length = 88
