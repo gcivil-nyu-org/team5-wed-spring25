@@ -2184,3 +2184,32 @@ class DebugUnreadMessagesTests(TestCase):
         response = self.client.get(self.url, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/html", response["Content-Type"])
+
+
+class EnsureCustomerViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="testuser", email="test@example.com", password="testpass123"
+        )
+        self.url = reverse("ensure_customer")
+
+    def test_redirects_if_not_logged_in(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)  # Redirect to login
+
+    def test_creates_customer_if_missing(self):
+        self.client.login(username="testuser", password="testpass123")
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": True, "created": True})
+        self.assertTrue(Customer.objects.filter(email="test@example.com").exists())
+
+    def test_does_nothing_if_customer_exists(self):
+        Customer.objects.create(
+            username="testuser", email="test@example.com", first_name="Test"
+        )
+        self.client.login(username="testuser", password="testpass123")
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": True, "created": False})

@@ -90,11 +90,24 @@
 </header>
 
 <script>
+  function toggleDropdown() {
+    const dropdown = document.getElementById('profileDropdown');
+    dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+  }
+  
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('global-search-input');
     const suggestions = document.getElementById('search-suggestions');
   
     let timeout = null;
+
+    // Absolutely block Enter key behavior
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        return false;
+      }
+    });
   
     input.addEventListener('input', () => {
       clearTimeout(timeout);

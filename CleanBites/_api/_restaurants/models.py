@@ -32,6 +32,7 @@ class Restaurant(models.Model):
     )
     is_activated = models.BooleanField(default=True)
     deactivation_reason = models.TextField(null=True, blank=True)
+    deactivated_until = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.street}, {self.zipcode})"
@@ -42,6 +43,9 @@ class Comment(models.Model):
     commenter = models.ForeignKey("_users.Customer", on_delete=models.CASCADE)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     title = models.CharField(max_length=80)
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, related_name="replies", on_delete=models.CASCADE
+    )
     comment = models.TextField()
     rating = models.IntegerField(default=1)
     health_rating = models.IntegerField(default=1)

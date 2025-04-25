@@ -251,9 +251,11 @@
             </form>
         </div>
 
+        {% if is_customer %}
         <a href="{% url 'addreview' restaurant.id %}" id="add-review-btn" class="btn">
             Write a review
         </a>
+        {% endif %}
         {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
     </div>
 </main>
