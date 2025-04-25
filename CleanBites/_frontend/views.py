@@ -2,15 +2,16 @@ from django.shortcuts import get_object_or_404, render, redirect
 from _api._restaurants.models import Restaurant, Comment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import login, authenticate, logout, update_session_auth_hash
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth.forms import PasswordChangeForm
 from _api._users.models import Customer, DM, FavoriteRestaurant, Moderator
 from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
-from .forms import Review
+from .forms import Review, EmailChangeForm, DeactivateAccountForm
 from django.http import JsonResponse
 from django.db.models import Avg
 import json
@@ -1060,7 +1061,47 @@ def restaurant_verify(request):
 
     return redirect("restaurant_register")  # Redirect if accessed via GET
 
+@login_required
+def user_settings(request):
+    user = request.user
 
+    # Pre-fill forms
+    email_form = EmailChangeForm(instance=user)
+    password_form = PasswordChangeForm(user=user)
+    deactivate_form = DeactivateAccountForm()
+    #blocked_users = BlockedUser.objects.filter(user=user)
+
+    if request.method == 'POST':
+        if 'change_email' in request.POST:
+            email_form = EmailChangeForm(request.POST, instance=user)
+            if email_form.is_valid():
+                email_form.save()
+                messages.success(request, "Email updated successfully.")
+                return redirect('user_settings')
+
+        elif 'change_password' in request.POST:
+            password_form = PasswordChangeForm(user, request.POST)
+            if password_form.is_valid():
+                password_form.save()
+                update_session_auth_hash(request, password_form.user)  
+                messages.success(request, "Password changed successfully.")
+                return redirect('user_settings')
+
+        elif 'deactivate' in request.POST:
+            deactivate_form = DeactivateAccountForm(request.POST)
+            if deactivate_form.is_valid() and deactivate_form.cleaned_data['confirm']:
+                user.is_active = False
+                user.save()
+                logout(request)
+                messages.success(request, "Your account has been deactivated.")
+                return redirect('home')
+
+    return render(request, 'settings.html', {
+        'email_form': email_form,
+        'password_form': password_form,
+        'deactivate_form': deactivate_form,
+        #'blocked_users': blocked_users,
+    })
 # =====================================================================================
 # CSRF EXEMPT/PROTECTED VIEWS - need to update this later probably
 # =====================================================================================
