@@ -705,7 +705,7 @@ def unblock_user(request, user_type, username):
         blocker = Customer.objects.get(email=request.user.email)
     except Customer.DoesNotExist:
         messages.error(request, "Only customers may block/unblock other users.")
-        return redirect("home")
+        return redirect("user_settings")
     if user_type == "customer":
         target = get_object_or_404(Customer, username=username)
     # elif user_type == "restaurant":
@@ -714,8 +714,8 @@ def unblock_user(request, user_type, username):
         messages.error(request, "Invalid user type.")
         return redirect("home")
     blocker.blocked_customers.remove(target)
-    messages.success(request, f"You have unblocked {target}.")
-    return redirect("home")
+    messages.success(request, f"You have unblocked {target}({username}).")
+    return redirect("user_settings")
 
 
 @login_required(login_url="/login/")
@@ -1069,8 +1069,14 @@ def user_settings(request):
     email_form = EmailChangeForm(instance=user)
     password_form = PasswordChangeForm(user=user)
     deactivate_form = DeactivateAccountForm()
-    #blocked_users = BlockedUser.objects.filter(user=user)
 
+    blocked_customers = None
+    try:
+        curr_customer = Customer.objects.get(email=user.email)
+        blocked_customers = curr_customer.blocked_customers.all()
+        blocked_usernames = [customer.username for customer in blocked_customers]
+    except Customer.DoesNotExist:
+        pass
     if request.method == 'POST':
         if 'change_email' in request.POST:
             email_form = EmailChangeForm(request.POST, instance=user)
@@ -1100,7 +1106,7 @@ def user_settings(request):
         'email_form': email_form,
         'password_form': password_form,
         'deactivate_form': deactivate_form,
-        #'blocked_users': blocked_users,
+        'blocked_usernames': blocked_usernames,
     })
 # =====================================================================================
 # CSRF EXEMPT/PROTECTED VIEWS - need to update this later probably

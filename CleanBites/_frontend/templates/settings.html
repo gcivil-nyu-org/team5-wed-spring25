@@ -72,6 +72,14 @@
         <div class="settings-section">
           <h2>Account Settings</h2>
 
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-success" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+
           <!-- Change Email -->
           <div class="card p-4">
             <h5>Change Email</h5>
@@ -95,22 +103,22 @@
           <!-- Blocked Users -->
           <div class="card p-4">
             <h5>Blocked Users</h5>
-            {% if blocked_users %}
               <ul class="list-group">
-                {% for blocked in blocked_users %}
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ blocked.blocked_user.username }}
-                    <form method="post" action="{% url 'unblock_user' 'customer' blocked.blocked_user.username %}">
-                      {% csrf_token %}
-                      <button class="btn btn-sm btn-success">Unblock</button>
-                    </form>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="text-muted">You haven't blocked anyone.</p>
-            {% endif %}
-          </div>
+                  {% for username in blocked_usernames %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      {{ username }}
+                      <form method="post" action="{% url 'unblock_user' 'customer' username %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success">Unblock</button>
+                      </form>
+                    </li>
+                  {% empty %}
+                    <li class="list-group-item">
+                      <p class="text-muted mb-0">You haven't blocked anyone.</p>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
 
           <!-- Account Deactivation -->
           <div class="card p-4">
