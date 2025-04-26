@@ -4,6 +4,7 @@ from _api._restaurants.models import Comment
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 
+
 class Review(ModelForm):
     class Meta:
         model = Comment
@@ -16,7 +17,8 @@ class Review(ModelForm):
 class EmailChangeForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['email']
+        fields = ["email"]
+
 
 class DeactivateAccountForm(forms.Form):
     confirm = forms.BooleanField(label="I confirm I want to deactivate my account.")

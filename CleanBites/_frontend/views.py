@@ -1061,6 +1061,7 @@ def restaurant_verify(request):
 
     return redirect("restaurant_register")  # Redirect if accessed via GET
 
+
 @login_required
 def user_settings(request):
     user = request.user
@@ -1070,44 +1071,50 @@ def user_settings(request):
     password_form = PasswordChangeForm(user=user)
     deactivate_form = DeactivateAccountForm()
 
-    blocked_customers = None
+    blocked_usernames = None
     try:
         curr_customer = Customer.objects.get(email=user.email)
         blocked_customers = curr_customer.blocked_customers.all()
         blocked_usernames = [customer.username for customer in blocked_customers]
     except Customer.DoesNotExist:
         pass
-    if request.method == 'POST':
-        if 'change_email' in request.POST:
+    if request.method == "POST":
+        if "change_email" in request.POST:
             email_form = EmailChangeForm(request.POST, instance=user)
             if email_form.is_valid():
                 email_form.save()
                 messages.success(request, "Email updated successfully.")
-                return redirect('user_settings')
+                return redirect("user_settings")
 
-        elif 'change_password' in request.POST:
+        elif "change_password" in request.POST:
             password_form = PasswordChangeForm(user, request.POST)
             if password_form.is_valid():
                 password_form.save()
-                update_session_auth_hash(request, password_form.user)  
+                update_session_auth_hash(request, password_form.user)
                 messages.success(request, "Password changed successfully.")
-                return redirect('user_settings')
+                return redirect("user_settings")
 
-        elif 'deactivate' in request.POST:
+        elif "deactivate" in request.POST:
             deactivate_form = DeactivateAccountForm(request.POST)
-            if deactivate_form.is_valid() and deactivate_form.cleaned_data['confirm']:
+            if deactivate_form.is_valid() and deactivate_form.cleaned_data["confirm"]:
                 user.is_active = False
                 user.save()
                 logout(request)
                 messages.success(request, "Your account has been deactivated.")
-                return redirect('home')
+                return redirect("home")
 
-    return render(request, 'settings.html', {
-        'email_form': email_form,
-        'password_form': password_form,
-        'deactivate_form': deactivate_form,
-        'blocked_usernames': blocked_usernames,
-    })
+    return render(
+        request,
+        "settings.html",
+        {
+            "email_form": email_form,
+            "password_form": password_form,
+            "deactivate_form": deactivate_form,
+            "blocked_usernames": blocked_usernames,
+        },
+    )
+
+
 # =====================================================================================
 # CSRF EXEMPT/PROTECTED VIEWS - need to update this later probably
 # =====================================================================================
