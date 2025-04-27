@@ -62,7 +62,6 @@ urlpatterns = [
     path("report_dm/", views.report_dm, name="report_dm"),
     path("profileedit/", views.update_profile, name="update_profile"),
     path("global-search/", views.global_search, name="global_search"),
-    path("websocket-test/", views.websocket_test, name="websocket_test"),
     path("ensure-customer/", views.ensure_customer_exists, name="ensure_customer"),
     path("reply/", views.post_reply, name="post_reply"),
     path("settings/", views.user_settings, name="user_settings"),
