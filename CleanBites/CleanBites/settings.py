@@ -38,7 +38,7 @@ ALLOWED_HOSTS = [
     "cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
     "172.31.38.6",
     "api",
-    "192.168.31.1"
+    "192.168.31.1",
 ]
 
 

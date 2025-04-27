@@ -15,6 +15,8 @@ from channels.security.websocket import AllowedHostsOriginValidator
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CleanBites.settings")
 
-application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-})
+application = ProtocolTypeRouter(
+    {
+        "http": get_asgi_application(),
+    }
+)
