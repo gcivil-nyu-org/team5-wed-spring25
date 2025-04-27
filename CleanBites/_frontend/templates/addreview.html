@@ -195,61 +195,63 @@ body {
 </style>
 {% include 'components/header_nofilter.html' %}
 <div style="min-height: 100%; padding-top: 130px; background-color: #ffedd3;">
-    <div id="outer" class="outer-container">
-        <div id="wrapper" class="wrapper-container">
-            <div class="restaurant-header">
-                <h1>
-                    <a href="{% url 'restaurant_detail' restaurant.id %}" class="restaurant-name">
-                        <i class="fa-solid fa-arrow-left"></i>  {{ restaurant.name }}
-                    </a>
-                </h1>
-            </div>
-
-            <hr class="divider">
-
-            <form action="{% url 'addreview' restaurant.id %}" method="post" class="review-form" onsubmit="disableSubmitButton()">
-                {% csrf_token %}
-
-                <!-- Rating Section -->
-                <div class="rating-section">
-                    <h6 class="section-title">Your overall rating of the restaurant</h6>
-                    <div class="star-rating">
-                        {% for i in "54321" %}
-                        <input type="radio" id="rating{{ i }}" name="rating" value="{{ i }}">
-                        <label for="rating{{ i }}" title="{{ i }} stars">&#9733;</label>
-                        {% endfor %}
-                    </div>
-                </div>
-                
-                <!-- Health Rating Section -->
-                <div class="health-rating-section">
-                    <h6 class="section-title">How clean is this restaurant?</h6>
-                    <div class="health-rating">
-                        {% for i in "54321" %}
-                        <input type="radio" id="health_rating{{ i }}" name="health_rating" value="{{ i }}">
-                        <label for="health_rating{{ i }}" title="{{ i }} stars">&#9733;</label>
-                        {% endfor %}
-                    </div>
+    <div style="height: 90vh; overflow-y: auto;">
+        <div id="outer" class="outer-container">
+            <div id="wrapper" class="wrapper-container">
+                <div class="restaurant-header">
+                    <h1>
+                        <a href="{% url 'restaurant_detail' restaurant.id %}" class="restaurant-name">
+                            <i class="fa-solid fa-arrow-left"></i>  {{ restaurant.name }}
+                        </a>
+                    </h1>
                 </div>
 
                 <hr class="divider">
 
-                <!-- Title of Review Section -->
-                <div class="fieldWrapper">
-                    <h6 class="section-title">Title of your review</h6>
-                    {% render_field form.title class="form-control" %}
-                </div>
+                <form action="{% url 'addreview' restaurant.id %}" method="post" class="review-form" onsubmit="disableSubmitButton()">
+                    {% csrf_token %}
 
-                <!-- Review Text Section -->
-                <div class="fieldWrapper">
-                    <h6 class="section-title">Your review</h6>
-                    {% render_field form.comment class="form-control" %}
-                </div>
+                    <!-- Rating Section -->
+                    <div class="rating-section">
+                        <h6 class="section-title">Your overall rating of the restaurant</h6>
+                        <div class="star-rating">
+                            {% for i in "54321" %}
+                            <input type="radio" id="rating{{ i }}" name="rating" value="{{ i }}">
+                            <label for="rating{{ i }}" title="{{ i }} stars">&#9733;</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Health Rating Section -->
+                    <div class="health-rating-section">
+                        <h6 class="section-title">How clean is this restaurant?</h6>
+                        <div class="health-rating">
+                            {% for i in "54321" %}
+                            <input type="radio" id="health_rating{{ i }}" name="health_rating" value="{{ i }}">
+                            <label for="health_rating{{ i }}" title="{{ i }} stars">&#9733;</label>
+                            {% endfor %}
+                        </div>
+                    </div>
 
-                <div class="submit-btn-container">
-                    <input type="submit" value="Submit your review" class="btn btn-success submit-btn" id="submit-btn">
-                </div>
-            </form>
+                    <hr class="divider">
+
+                    <!-- Title of Review Section -->
+                    <div class="fieldWrapper">
+                        <h6 class="section-title">Title of your review</h6>
+                        {% render_field form.title class="form-control" %}
+                    </div>
+
+                    <!-- Review Text Section -->
+                    <div class="fieldWrapper">
+                        <h6 class="section-title">Your review</h6>
+                        {% render_field form.comment class="form-control" %}
+                    </div>
+
+                    <div class="submit-btn-container">
+                        <input type="submit" value="Submit your review" class="btn btn-success submit-btn" id="submit-btn">
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
