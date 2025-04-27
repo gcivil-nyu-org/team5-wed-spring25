@@ -18,6 +18,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.contrib.contenttypes.models import ContentType
 from datetime import date
+from asgiref.sync import sync_to_async
 
 # Get user model
 User = get_user_model()
@@ -1022,14 +1023,10 @@ def ensure_customer_exists(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
     
 
-# =====================================================================================
-# WEBSOCKET TESTS
-# =====================================================================================
 
-
-@login_required(login_url="/login/")
-def websocket_test(request):
-    return render(request, "websocket_test.html")
+# =====================================================================================
+# MESSAGE VIEWS
+# =====================================================================================
 
 
 @login_required(login_url="/login/")
@@ -1052,14 +1049,6 @@ def get_conversation_messages(request, receiver_id):
         ]
     })
 
-
-# =====================================================================================
-# MESSAGE VIEWS
-# =====================================================================================
-from asgiref.sync import sync_to_async
-from django.utils.timezone import now
-from django.utils.decorators import method_decorator
-from asgiref.sync import async_to_sync
 
 @login_required(login_url="/login/")
 def messages_view(request, chat_user_id=None):
