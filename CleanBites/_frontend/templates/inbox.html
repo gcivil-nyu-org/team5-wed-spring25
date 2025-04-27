@@ -3,6 +3,7 @@
 <head>
   {% load static %}
   <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Inbox</title>
@@ -70,7 +71,7 @@
                     <a href="{% url 'chat' convo.id %}" class="list-group-item list-group-item-action border-0 {% if active_chat and convo.id == active_chat.id %}active{% endif %} {% if convo.has_unread %}unread-conversation{% endif %}" style="margin-top: 15px;">
                       <div class="d-flex align-items-start" style="padding-left: 10px;">
                         <img src="{{ convo.avatar_url }}" class="rounded-circle mr-1" width="40" height="40" alt="{{ convo.name }}">
-                        <div class="flex-grow-1 ml-3" style="padding-left: 5px;">
+                        <div class="flex-grow-1 ml-3" style="padding-left: 5px; max-width: 200px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">
                           {{ convo.email }}
                           {% if convo.has_unread %}
                             <span class="unread-icon">✉️</span>
@@ -125,6 +126,13 @@
                   <strong>{{ active_chat.email }}</strong>
                   <div class="text-muted small" style="color: orange;"><em>Online</em></div>
                 </div>
+
+                <div style="position: absolute; top: 10px; right: 10px;">
+                  <button id="report-dm-btn" class="btn btn-danger btn-sm" data-partner-id="{{ active_chat.id }}">
+                    Report
+                 </button>
+                </div>
+
               </div>
             </div>
             {% endif %}
@@ -205,5 +213,44 @@
       }
     });   
   </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      const reportDMBtn = document.getElementById("report-dm-btn");
+      if (reportDMBtn) {
+          reportDMBtn.addEventListener("click", function() {
+              if (!confirm("Are you sure you want to report this conversation?")) {
+                  return;
+              }
+              const partnerId = reportDMBtn.getAttribute("data-partner-id");
+              const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+              fetch("/report_dm/", {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json",
+                      "X-CSRFToken": csrfToken
+                  },
+                  body: JSON.stringify({ partner_id: partnerId }),
+                  credentials: "include"
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert("Conversation reported successfully.");
+                      reportDMBtn.disabled = true;
+                      reportDMBtn.textContent = "Reported";
+                  } else {
+                      alert("Error reporting conversation: " + (data.error || "Unknown error"));
+                  }
+              })
+              .catch(err => {
+                  console.error(err);
+                  alert("An error occurred. Please try again.");
+              });
+          });
+      }
+  });
+  </script>
+  
 </body>
 </html>

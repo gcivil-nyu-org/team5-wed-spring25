@@ -16,17 +16,21 @@
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="apple-navbar">
-        <div class="navbar-left">
-            <a class="logo" href="{% url 'home' %}">CleanBites</a>
-        </div>
-        <div class="navbar-right">
-            <ul class="nav-links">
-                <li><a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
-                <li><a href="#" data-bs-toggle="modal" data-bs-target="#registerSelectionModal">Register</a></li>
-            </ul>
-        </div>
-    </nav>
+    {% if user.is_authenticated %}
+        {% include 'components/header_nofilter.html' %}
+    {% else %}
+        <nav class="apple-navbar">
+            <div class="navbar-left">
+                <a class="logo" href="{% url 'home' %}">CleanBites</a>
+            </div>
+            <div class="navbar-right">
+                <ul class="nav-links">
+                    <li><a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
+                    <li><a href="#" data-bs-toggle="modal" data-bs-target="#registerSelectionModal">Register</a></li>
+                </ul>
+            </div>
+        </nav>
+    {% endif %}
 
     
     
@@ -222,7 +226,37 @@
             </div>
         </div>
     </div>
-
+    <!-- Message modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <!-- You could change the title dynamically by checking the message type if desired -->
+              <h5 class="modal-title" id="messageModalLabel">Notice</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              {% for message in messages %}
+                <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+    </div>
+    {% if messages %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Initialize the modal and show it
+            var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+            messageModal.show();
+        });
+    </script>
+    {% endif %}
     <script>
         document.getElementById("registerSelectionForm").addEventListener("submit", function(event) {
             event.preventDefault();  // Prevent the default form submission
@@ -300,7 +334,7 @@
             console.log("Backend Response:", data);
             if (data.success) {
               // e.g., redirect or close modal
-              window.location.href = data.redirect_url || "/home/";
+              ensureCustomerExistsAndRedirect(data.redirect_url || "/home/");
             } else {
               alert("Google sign-in failed: " + (data.error || "Unknown error"));
             }
@@ -308,6 +342,28 @@
           .catch(err => {
             console.error("Fetch error:", err);
             alert("Something went wrong during Google sign-in.");
+          });
+        }
+
+        function ensureCustomerExistsAndRedirect(redirectUrl = "/home/") {
+          fetch("/ensure-customer/", {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": getCookie("csrftoken"),
+            },
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (!data.success) {
+              console.error("Failed to ensure Customer record:", data.error);
+            } else {
+              console.log("Customer ensured:", data);
+            }
+            window.location.href = redirectUrl;
+          })
+          .catch(err => {
+            console.error("Error ensuring Customer record:", err);
+            window.location.href = redirectUrl;
           });
         }
       </script>

@@ -3,6 +3,7 @@
 <head>
   {% load static %}
   <meta charset="UTF-8" />
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{{ restaurant.name }}</title>
   <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
@@ -250,31 +251,12 @@
             </form>
         </div>
 
+        {% if is_customer %}
         <a href="{% url 'addreview' restaurant.id %}" id="add-review-btn" class="btn">
             Write a review
         </a>
-
-        <div class="reviews-section">
-            <h2>Recent Reviews for {{ restaurant.name }}</h2>
-            {% if reviews %}
-            <div class="scrollable-reviews">
-                <ul class="review-list">
-                    {% for comment in reviews %}
-                    <li class="review">
-                        <div class="review-meta">
-                            <span class="review-title">{{ comment.title }}</span>
-                            <span class="review-rating">Rating: {{ comment.rating }}/5</span>
-                            <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
-                        </div>
-                        <p class="review-text">{{ comment.comment }}</p>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% else %}
-            <p class="text-muted">No reviews yet for {{ restaurant.name }}.</p>
-            {% endif %}
-        </div>
+        {% endif %}
+        {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
     </div>
 </main>
 
@@ -322,6 +304,49 @@
       const dropdown = document.getElementById('profileDropdown');
       dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
     }
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      // Attach event listener to each Report button
+      const reportButtons = document.querySelectorAll(".report-comment-btn");
+      reportButtons.forEach(function(button) {
+          button.addEventListener("click", function() {
+              // Ask for confirmation before reporting
+              if (!confirm("Are you sure you want to report this comment?")) {
+                  return;
+              }
+              const commentId = button.getAttribute("data-comment-id");
+              const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+              
+              // Send AJAX POST request to report the comment
+              fetch("/report_comment/", {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json",
+                      "X-CSRFToken": csrfToken
+                  },
+                  body: JSON.stringify({ comment_id: commentId }),
+                  credentials: "include"
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert("Comment reported successfully.");
+                      // Disable the button or change its label
+                      button.disabled = true;
+                      button.textContent = "Reported";
+                  } else {
+                      alert("Error reporting comment: " + (data.error || "Unknown error"));
+                  }
+              })
+              .catch(err => {
+                  console.error(err);
+                  alert("An error occurred. Please try again.");
+              });
+          });
+      });
+  });
 </script>
 
 </body>

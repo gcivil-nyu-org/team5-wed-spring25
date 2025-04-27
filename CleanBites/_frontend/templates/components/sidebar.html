@@ -5,6 +5,7 @@
     <div class="geocode-container">
       <input type="text" id="sidebar-geocode-address" placeholder="Enter your location">
       <button type="button" onclick="submitSidebarGeocode()">Set Location</button>
+      <button type="button" class="reset-btn" onclick="resetToCurrentLocation()" style="padding-top: 5px; background-color:#6c757d">Reset Location</button>
       <span id="sidebar-geocode-status" class="geocode-status"></span>
     </div>
     <div class="search-container">
@@ -21,7 +22,7 @@
         <input type="text" id="sidebar-search-cuisine" placeholder="Cuisine">
         <input type="text" id="sidebar-search-distance" placeholder="Distance (km)">
         <button type="submit" class="search-btn">Search</button>
-        <button type="button" class="reset-btn" onclick="resetMapInIframe()">Reset</button>
+        <button type="button" class="reset-btn" onclick="resetMapInIframe()">Reset Markers</button>
       </form>
     </div>
   </div>
@@ -296,6 +297,56 @@ function resetMapInIframe() {
     }
   } catch (error) {
     console.error('Error resetting map:', error);
+  }
+}
+
+function resetToCurrentLocation() {
+  const status = document.getElementById('sidebar-geocode-status');
+
+  if (!navigator.geolocation) {
+    setFallbackLocation("❌ Geolocation not supported by your browser");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords;
+      window.globalLAT = latitude;
+      window.globalLNG = longitude;
+
+      status.textContent = '✅ Location reset';
+      status.style.color = 'green';
+
+      const mapFrame = document.getElementById("map-frame");
+      if (mapFrame && mapFrame.contentWindow && typeof mapFrame.contentWindow.dropGeocodeMarker === "function") {
+        mapFrame.contentWindow.dropGeocodeMarker(latitude, longitude);
+      }
+
+      setTimeout(() => {
+        status.textContent = '';
+      }, 3000);
+    },
+    (error) => {
+      console.error("Geolocation error:", error);
+      setFallbackLocation('❌ Could not retrieve location, defaulting to NYC');
+    }
+  );
+
+  function setFallbackLocation(message) {
+    window.globalLAT = 40.69455789521935;
+    window.globalLNG = -73.9865872293045;
+
+    status.textContent = message;
+    status.style.color = 'orange';
+
+    const mapFrame = document.getElementById("map-frame");
+    if (mapFrame && mapFrame.contentWindow && typeof mapFrame.contentWindow.dropGeocodeMarker === "function") {
+      mapFrame.contentWindow.dropGeocodeMarker(window.globalLAT, window.globalLNG);
+    }
+
+    setTimeout(() => {
+      status.textContent = '';
+    }, 3000);
   }
 }
 </script>

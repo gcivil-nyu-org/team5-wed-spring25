@@ -60,7 +60,7 @@ class RestaurantGeoJSONView(APIView):
         lng = request.GET.get("lng", "").strip()
 
         # Start with all restaurants
-        queryset = Restaurant.objects.all()
+        queryset = Restaurant.objects.filter(is_activated=True)
 
         # Filter by name
         if name:
@@ -113,6 +113,7 @@ class RestaurantGeoJSONView(APIView):
                     "cuisine": restaurant.cuisine_description,
                     "street": restaurant.street,
                     "zipcode": restaurant.zipcode,
+                    "building": restaurant.building,
                 },
             }
             for restaurant in queryset

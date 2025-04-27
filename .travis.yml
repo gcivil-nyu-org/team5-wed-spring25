@@ -1,8 +1,9 @@
+# trying to tigger a build
 dist: focal
 language: python
 python:
   - 3.9
- 
+  
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install gnupg2
@@ -17,8 +18,8 @@ install:
   - pip install -r CleanBites/requirements.txt
 
 before_script:
-  - python CleanBites/manage.py migrate
   - python CleanBites/manage.py collectstatic --noinput
+  - python CleanBites/manage.py check
 
 script:
   - black --check .
@@ -27,4 +28,4 @@ script:
   - coverage run manage.py test --noinput
 
 after_script:
-  - coveralls
+  - coveralls --service=travis-pro
