@@ -38,7 +38,6 @@ ALLOWED_HOSTS = [
     "cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com",
     "172.31.38.6",
     "api",
-    "192.168.31.1",
 ]
 
 
@@ -220,23 +219,3 @@ LOGIN_URL = "/"
 LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/"
 BASE_URL = "http://cleanbites-amznlnx-docker-stable-env.eba-pjmdemmy.us-west-2.elasticbeanstalk.com/"
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-        },
-        "channels": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-        },
-    },
-}
