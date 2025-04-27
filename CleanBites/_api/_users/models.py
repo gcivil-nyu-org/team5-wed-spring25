@@ -12,6 +12,7 @@ class Customer(models.Model):
     is_activated = models.BooleanField(default=True)
     deactivation_reason = models.TextField(null=True, blank=True)
     deactivated_until = models.DateField(null=True, blank=True)
+    karmatotal = models.IntegerField(null=True, blank=True)
     blocked_customers = models.ManyToManyField(
         "self",
         symmetrical=True,  # if a user blocks someone, they are blocked back

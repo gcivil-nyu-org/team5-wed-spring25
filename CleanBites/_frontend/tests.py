@@ -2210,3 +2210,99 @@ class EnsureCustomerViewTests(TestCase):
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content, {"success": True, "created": False})
+
+
+class UserSettingsViewTests(TestCase):
+    def setUp(self):
+        # Create a test user and login
+        self.user = User.objects.create_user(
+            username="testuser", email="test@example.com", password="password123"
+        )
+        self.customer = Customer.objects.create(
+            username="testuser",
+            email="test@example.com",
+            first_name="Test",
+            last_name="User",
+        )
+        self.client.login(username="testuser", password="password123")
+
+    def test_get_user_settings_page(self):
+        """Test GET request to settings page loads successfully."""
+        response = self.client.get(reverse("user_settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "settings.html")
+        self.assertIn("email_form", response.context)
+        self.assertIn("password_form", response.context)
+        self.assertIn("deactivate_form", response.context)
+        self.assertIn("blocked_usernames", response.context)
+
+    def test_change_email_success(self):
+        """Test successfully changing the email address."""
+        response = self.client.post(
+            reverse("user_settings"),
+            {
+                "change_email": True,
+                "email": "newemail@example.com",
+            },
+            follow=True,
+        )
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "newemail@example.com")
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("Email updated successfully." in str(m) for m in messages))
+
+    def test_change_password_success(self):
+        """Test successfully changing the password."""
+        response = self.client.post(
+            reverse("user_settings"),
+            {
+                "change_password": True,
+                "old_password": "password123",
+                "new_password1": "newsecurepass123",
+                "new_password2": "newsecurepass123",
+            },
+            follow=True,
+        )
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("newsecurepass123"))
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(
+            any("Password changed successfully." in str(m) for m in messages)
+        )
+
+    def test_deactivate_account(self):
+        """Test deactivating the user account."""
+        response = self.client.post(
+            reverse("user_settings"),
+            {
+                "deactivate": True,
+                "confirm": True,
+            },
+            follow=True,
+        )
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(
+            any("Your account has been deactivated." in str(m) for m in messages)
+        )
+
+    def test_blocked_users_display(self):
+        """Test blocked usernames appear in context."""
+        blocked_user = Customer.objects.create(
+            username="blockeduser",
+            email="blocked@example.com",
+            first_name="Blocked",
+            last_name="User",
+        )
+        self.customer.blocked_customers.add(blocked_user)
+
+        response = self.client.get(reverse("user_settings"))
+        self.assertIn("blocked_usernames", response.context)
+        self.assertIn("blockeduser", response.context["blocked_usernames"])
