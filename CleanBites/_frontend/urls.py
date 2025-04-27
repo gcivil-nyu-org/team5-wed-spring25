@@ -63,4 +63,9 @@ urlpatterns = [
     path("profileedit/", views.update_profile, name="update_profile"),
     path("global-search/", views.global_search, name="global_search"),
     path("websocket-test/", views.websocket_test, name="websocket_test"),
+    path("ensure-customer/", views.ensure_customer_exists, name="ensure_customer"),
+    path("reply/", views.post_reply, name="post_reply"),
+    path("settings/", views.user_settings, name="user_settings"),
+    path('stream_messages/<int:chat_user_id>/', views.stream_messages, name='stream_messages'),
+    path('get_conversations/', views.get_conversations, name='get_conversations'),
 ]
