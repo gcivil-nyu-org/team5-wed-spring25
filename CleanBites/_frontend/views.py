@@ -1021,7 +1021,6 @@ def ensure_customer_exists(request):
         return JsonResponse({"success": True, "created": created})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
-    
 
 
 # =====================================================================================
@@ -1033,21 +1032,22 @@ def ensure_customer_exists(request):
 def get_conversation_messages(request, receiver_id):
     sender_id = request.user.id  # Assuming the user is authenticated
     messages = DM.objects.filter(
-        sender_id__in=[sender_id, receiver_id],
-        receiver_id__in=[sender_id, receiver_id]
+        sender_id__in=[sender_id, receiver_id], receiver_id__in=[sender_id, receiver_id]
     ).order_by("sent_at")
 
-    return JsonResponse({
-        "messages": [
-            {
-                "decoded_message": message.message.decode("utf-8"),
-                "sender_id": message.sender_id,
-                "receiver_id": message.receiver_id,
-                "sent_at": message.sent_at.isoformat(),
-            }
-            for message in messages
-        ]
-    })
+    return JsonResponse(
+        {
+            "messages": [
+                {
+                    "decoded_message": message.message.decode("utf-8"),
+                    "sender_id": message.sender_id,
+                    "receiver_id": message.receiver_id,
+                    "sent_at": message.sent_at.isoformat(),
+                }
+                for message in messages
+            ]
+        }
+    )
 
 
 @login_required(login_url="/login/")
@@ -1087,10 +1087,10 @@ def messages_view(request, chat_user_id=None):
         if other.id not in participants:
             # Check if there are actually messages between these users
             message_count = DM.objects.filter(
-                (Q(sender=user) & Q(receiver=other)) |
-                (Q(sender=other) & Q(receiver=user))
+                (Q(sender=user) & Q(receiver=other))
+                | (Q(sender=other) & Q(receiver=user))
             ).count()
-            
+
             # Only add to participants if there are messages
             if message_count > 0:
                 participants[other.id] = {
@@ -1114,16 +1114,16 @@ def messages_view(request, chat_user_id=None):
     active_chat = None
     if chat_user_id:
         active_chat = get_object_or_404(Customer, id=chat_user_id)
-        
+
         # Check if there are messages before setting active_chat
         message_count = DM.objects.filter(
-            (Q(sender=user) & Q(receiver=active_chat)) |
-            (Q(sender=active_chat) & Q(receiver=user))
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
         ).count()
-        
+
         if message_count == 0:
             active_chat = None
-            
+
     elif conversations:
         active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
 
@@ -1172,7 +1172,7 @@ def send_message(request, chat_user_id):
                 sender = Restaurant.objects.get(email=request.user.email)
             except Restaurant.DoesNotExist:
                 # Optional: handle case where sender is neither
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return JsonResponse({"error": "Sender not found"}, status=404)
                 messages.error(
                     request,
@@ -1183,7 +1183,7 @@ def send_message(request, chat_user_id):
         try:
             recipient = Customer.objects.get(id=chat_user_id)
         except Customer.DoesNotExist:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"error": "Recipient not found"}, status=404)
             messages.error(
                 request,
@@ -1191,12 +1191,12 @@ def send_message(request, chat_user_id):
                 extra_tags=INBOX_MESSAGE,
             )
             return redirect("messages inbox")
-            
+
         message_text = request.POST.get("message")
-        
+
         # Only able to send messages to activated users
         if (not recipient.is_activated) and recipient.deactivated_until >= date.today():
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"error": "User is deactivated"}, status=400)
             messages.error(
                 request,
@@ -1207,8 +1207,10 @@ def send_message(request, chat_user_id):
 
         if isinstance(sender, Customer):
             if sender.blocked_customers.filter(id=recipient.id).exists():
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({"error": "Cannot message blocked user"}, status=400)
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {"error": "Cannot message blocked user"}, status=400
+                    )
                 messages.error(
                     request,
                     "You can't send messages to a user you've blocked.",
@@ -1217,7 +1219,7 @@ def send_message(request, chat_user_id):
                 return redirect("chat", chat_user_id=recipient.id)
 
         if recipient == sender:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"error": "Cannot message yourself"}, status=400)
             messages.error(
                 request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
@@ -1225,7 +1227,7 @@ def send_message(request, chat_user_id):
             return redirect("chat", chat_user_id=recipient.id)
 
         if not message_text.strip():
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"error": "Empty message"}, status=400)
             messages.error(
                 request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
@@ -1239,14 +1241,11 @@ def send_message(request, chat_user_id):
             message=message_text.encode("utf-8"),
             read=False,
         )
-        
+
         # For AJAX requests, return success response
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                "success": True,
-                "message_id": message.id
-            })
-            
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True, "message_id": message.id})
+
         # For regular form submissions, redirect as before
         return redirect("chat", chat_user_id=recipient.id)
 
@@ -1263,7 +1262,7 @@ def send_message_generic(request):
                 sender = Restaurant.objects.get(email=request.user.email)
             except Restaurant.DoesNotExist:
                 # Optional: handle case where sender is neither
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return JsonResponse({"error": "Sender not found"}, status=404)
                 messages.error(
                     request,
@@ -1276,8 +1275,10 @@ def send_message_generic(request):
         message_text = request.POST.get("message")
 
         if not recipient_email:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({"error": "Please enter a recipient email address"}, status=400)
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse(
+                    {"error": "Please enter a recipient email address"}, status=400
+                )
             messages.error(
                 request,
                 "Please enter a recipient email address.",
@@ -1286,7 +1287,7 @@ def send_message_generic(request):
             return redirect("messages inbox")
 
         if not message_text.strip():
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"error": "Message cannot be empty"}, status=400)
             messages.error(
                 request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
@@ -1300,8 +1301,13 @@ def send_message_generic(request):
             # Check if recipient exists as a Restaurant
             try:
                 restaurant_recipient = Restaurant.objects.get(email=recipient_email)
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({"error": f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts."}, status=400)
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {
+                            "error": f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts."
+                        },
+                        status=400,
+                    )
                 messages.error(
                     request,
                     f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts.",
@@ -1309,8 +1315,13 @@ def send_message_generic(request):
                 )
             except Restaurant.DoesNotExist:
                 # Recipient doesn't exist at all
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({"error": f"Recipient '{recipient_email}' does not exist. Please check the email address and try again."}, status=404)
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {
+                            "error": f"Recipient '{recipient_email}' does not exist. Please check the email address and try again."
+                        },
+                        status=404,
+                    )
                 messages.error(
                     request,
                     f"Recipient '{recipient_email}' does not exist. Please check the email address and try again.",
@@ -1320,18 +1331,23 @@ def send_message_generic(request):
 
         if isinstance(sender, Customer):
             if sender.blocked_customers.filter(id=recipient.id).exists():
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({"error": "You can't send messages to someone you've blocked."}, status=400)
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {"error": "You can't send messages to someone you've blocked."},
+                        status=400,
+                    )
                 messages.error(
                     request,
                     "You can't send messages to someone you've blocked.",
                     extra_tags=INBOX_MESSAGE,
                 )
                 return redirect("messages inbox")
-                
+
         if recipient == sender:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({"error": "You can't message yourself."}, status=400)
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse(
+                    {"error": "You can't message yourself."}, status=400
+                )
             messages.error(
                 request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
             )
@@ -1346,13 +1362,11 @@ def send_message_generic(request):
         )
 
         # For AJAX requests, return success with chat ID
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                "success": True,
-                "chat_user_id": recipient.id,
-                "message_id": dm.id
-            })
-            
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse(
+                {"success": True, "chat_user_id": recipient.id, "message_id": dm.id}
+            )
+
         # For regular form submissions, redirect as before
         return redirect("chat", chat_user_id=recipient.id)
 
@@ -1388,9 +1402,9 @@ async def stream_messages(request, chat_user_id=None):
     is_authenticated = await sync_to_async(lambda: request.user.is_authenticated)()
     if not is_authenticated:
         return JsonResponse({"error": "Authentication required"}, status=401)
-    
+
     user_email = await sync_to_async(lambda: request.user.email)()
-    
+
     try:
         # Fetch the current user asynchronously
         user = await sync_to_async(Customer.objects.get)(email=user_email)
@@ -1407,20 +1421,18 @@ async def stream_messages(request, chat_user_id=None):
         # Fetch messages for the active chat asynchronously
         messages = await sync_to_async(list)(
             DM.objects.filter(
-                (Q(sender=user) & Q(receiver=active_chat)) |
-                (Q(sender=active_chat) & Q(receiver=user))
-            ).order_by("sent_at").values(
-                "id", "sender__id", "receiver__id", "message", "sent_at", "read"
+                (Q(sender=user) & Q(receiver=active_chat))
+                | (Q(sender=active_chat) & Q(receiver=user))
             )
+            .order_by("sent_at")
+            .values("id", "sender__id", "receiver__id", "message", "sent_at", "read")
         )
     else:
         # Fetch all messages for the user asynchronously
         messages = await sync_to_async(list)(
-            DM.objects.filter(
-                Q(sender=user) | Q(receiver=user)
-            ).order_by("sent_at").values(
-                "id", "sender__id", "receiver__id", "message", "sent_at", "read"
-            )
+            DM.objects.filter(Q(sender=user) | Q(receiver=user))
+            .order_by("sent_at")
+            .values("id", "sender__id", "receiver__id", "message", "sent_at", "read")
         )
 
     # Decode binary messages - convert memoryview to bytes first
@@ -1437,9 +1449,7 @@ def get_conversations(request):
     try:
         user = Customer.objects.get(email=request.user.email)
     except Customer.DoesNotExist:
-        return JsonResponse({
-            "error": "Your profile could not be found."
-        }, status=404)
+        return JsonResponse({"error": "Your profile could not be found."}, status=404)
 
     # Only get participants where messages actually exist between them
     all_dms = DM.objects.filter(
@@ -1461,10 +1471,10 @@ def get_conversations(request):
         if other.id not in participants:
             # Check if there are actually messages between these users
             message_count = DM.objects.filter(
-                (Q(sender=user) & Q(receiver=other)) |
-                (Q(sender=other) & Q(receiver=user))
+                (Q(sender=user) & Q(receiver=other))
+                | (Q(sender=other) & Q(receiver=user))
             ).count()
-            
+
             # Only add to participants if there are messages
             if message_count > 0:
                 participants[other.id] = {
@@ -1483,7 +1493,5 @@ def get_conversations(request):
         participants[participant_id]["has_unread"] = has_unread
 
     conversations = list(participants.values())
-    
-    return JsonResponse({
-        "conversations": conversations
-    })
+
+    return JsonResponse({"conversations": conversations})
