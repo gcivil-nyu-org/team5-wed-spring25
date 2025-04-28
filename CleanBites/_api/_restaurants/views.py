@@ -113,6 +113,7 @@ class RestaurantGeoJSONView(APIView):
                     "cuisine": restaurant.cuisine_description,
                     "street": restaurant.street,
                     "zipcode": restaurant.zipcode,
+                    "building": restaurant.building,
                 },
             }
             for restaurant in queryset
