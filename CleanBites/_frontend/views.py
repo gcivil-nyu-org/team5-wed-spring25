@@ -435,6 +435,48 @@ def delete_conversation(request, other_user_id, **kwargs):
         return redirect("messages inbox")
 
 
+@csrf_exempt
+def toggle_karma(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        comment_id = data.get("comment_id")
+        customer_id = data.get("customer_id")
+
+        # Fetch comment and customer
+        try:
+            comment = Comment.objects.get(id=comment_id)
+            customer = Customer.objects.get(id=customer_id)
+        except (Comment.DoesNotExist, Customer.DoesNotExist):
+            return JsonResponse({"error": "Comment or Customer not found"}, status=404)
+        if customer.karmatotal is None:
+            customer.karmatotal = 0
+
+        if customer in comment.k_voters.all():
+            comment.k_voters.remove(customer)
+            comment.karma -= 1
+            customer.karmatotal -= 1
+            voted = False
+        else:
+            comment.k_voters.add(customer)
+            comment.karma += 1
+            customer.karmatotal += 1
+            voted = True
+
+        comment.save()
+        customer.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "karma": comment.karma,
+                "karmatotal": customer.karmatotal,
+                "voted": voted,
+            }
+        )
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+
 @login_required(login_url="/login/")
 def update_restaurant_profile_view(request):
     try:

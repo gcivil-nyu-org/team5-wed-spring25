@@ -57,4 +57,5 @@ urlpatterns = [
     path("profileedit/", views.update_profile, name="update_profile"),
     path("global-search/", views.global_search, name="global_search"),
     path("reply/", views.post_reply, name="post_reply"),
+    path("toggle-karma/", views.toggle_karma, name="toggle_karma"),
 ]
