@@ -19,15 +19,15 @@ ENV CONDA_MAX_MEMORY=500
 ENV CONDA_INSTALL_THREADS=1
 
 # Install Miniconda for GIS tools
-# RUN wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-#     chmod +x Miniconda3.sh && \
-#     ./Miniconda3.sh -b -p /opt/conda && \
-#     rm Miniconda3.sh
-# Replace with this code if running locally on Mac
-RUN wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh && \
+RUN wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     chmod +x Miniconda3.sh && \
     ./Miniconda3.sh -b -p /opt/conda && \
-   rm Miniconda3.sh
+    rm Miniconda3.sh
+# Replace with this code if running locally on Mac
+# RUN wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh && \
+#     chmod +x Miniconda3.sh && \
+#     ./Miniconda3.sh -b -p /opt/conda && \
+#    rm Miniconda3.sh
 
 # Add Conda to PATH
 ENV PATH="/opt/conda/bin:$PATH"
@@ -73,5 +73,5 @@ EXPOSE 8000
 # Set PYTHONPATH
 ENV PYTHONPATH="/app"
 
-# Run Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "CleanBites.wsgi:application"]
+# Run daphne
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "CleanBites.asgi:application"]
