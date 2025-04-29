@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "bootstrap5",
+    "channels",
 ]
 
 SITE_ID = env.int("DJANGO_SITE_ID", default=3)
@@ -98,8 +99,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "CleanBites.wsgi.application"
+# WSGI_APPLICATION = "CleanBites.wsgi.application"
+ASGI_APPLICATION = "CleanBites.asgi.application"
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
