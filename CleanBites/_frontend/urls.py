@@ -65,7 +65,6 @@ urlpatterns = [
     path("ensure-customer/", views.ensure_customer_exists, name="ensure_customer"),
     path("reply/", views.post_reply, name="post_reply"),
     path("toggle-karma/", views.toggle_karma, name="toggle_karma"),
-
     path("settings/", views.user_settings, name="user_settings"),
     path(
         "stream_messages/<int:chat_user_id>/",
