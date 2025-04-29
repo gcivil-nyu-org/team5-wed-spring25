@@ -77,6 +77,7 @@ def restaurant_detail(request, id):
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
             "is_customer": is_customer,
+            "current_customer": current_customer,
         },
     )
 
@@ -142,6 +143,48 @@ def admin_profile(request, username):
     admin = get_object_or_404(Moderator, username__iexact=username)
     context = {"admin": admin}
     return render(request, "admin_profile.html", context)
+
+
+@csrf_exempt
+def toggle_karma(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        comment_id = data.get("comment_id")
+        customer_id = data.get("customer_id")
+
+        # Fetch comment and customer
+        try:
+            comment = Comment.objects.get(id=comment_id)
+            customer = Customer.objects.get(id=customer_id)
+            author = comment.commenter
+        except (Comment.DoesNotExist, Customer.DoesNotExist):
+            return JsonResponse({"error": "Comment or Customer not found"}, status=404)
+        if author.karmatotal is None:
+            author.karmatotal = 0
+        if customer in comment.k_voters.all():
+            comment.k_voters.remove(customer)
+            comment.karma -= 1
+            author.karmatotal -= 1
+            voted = False
+        else:
+            comment.k_voters.add(customer)
+            comment.karma += 1
+            author.karmatotal += 1
+            voted = True
+        author.save()
+        comment.save()
+        customer.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "karma": comment.karma,
+                "karmatotal": customer.karmatotal,
+                "voted": voted,
+            }
+        )
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
 
 @login_required(login_url="/login/")
