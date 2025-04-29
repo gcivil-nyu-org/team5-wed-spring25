@@ -73,4 +73,4 @@ urlpatterns = [
         name="stream_messages",
     ),
     path("get_conversations/", views.get_conversations, name="get_conversations"),
-
+]
