@@ -17,10 +17,9 @@
       background-color: #ffedd3;
     }
     .container {
-      margin-top: 60px; 
       max-width: 700px;
       margin: 60px auto; 
-      padding: 60px;
+      padding: 15px;
       background: white;
       border-radius: 12px;
       box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
@@ -249,15 +248,17 @@
                   <button type="button" id="cancel-edit" class="btn">Cancel</button>
               </form>
           </div>
-
           {% if is_customer %}
           <a href="{% url 'addreview' restaurant.id %}" id="add-review-btn" class="btn">
               Write a review
           </a>
           {% endif %}
-          {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
+        </div>
       </div>
-    </div>
+          <div class="container">
+            {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
+          </div>
+    
   </div>
 
 <script>
