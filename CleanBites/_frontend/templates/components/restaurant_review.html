@@ -207,6 +207,8 @@
 }
 </style>
 <script>
+const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
+console.log(CURRENT_CUSTOMER_ID)
   // Hide all reply lists on page load
   window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reply-list').forEach(el => el.style.display = 'none');
@@ -218,11 +220,11 @@
     el.style.display = isHidden ? "block" : "none";
     btn.textContent = isHidden ? "Hide Replies" : "Reply";
   }
-  document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.karma-btn').forEach(function(button) {
-    button.addEventListener('click', function() {
+  document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.karma-btn').forEach(function (button) {
+    button.addEventListener('click', function () {
       const commentId = this.dataset.commentId;
-      const customerId = this.dataset.customerId;
+      const customerId = CURRENT_CUSTOMER_ID;
       const karmaCountEl = this.querySelector('.karma-count');
 
       fetch("{% url 'toggle_karma' %}", {
@@ -233,18 +235,19 @@
         },
         body: JSON.stringify({ comment_id: commentId, customer_id: customerId })
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          karmaCountEl.textContent = data.karma;
-        } else {
-          alert('Failed to update karma.');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            karmaCountEl.textContent = data.karma;
+          } else {
+            alert('Failed to update karma.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
     });
   });
 });
+
 </script>
