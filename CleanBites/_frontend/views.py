@@ -77,6 +77,7 @@ def restaurant_detail(request, id):
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
             "is_customer": is_customer,
+            "current_customer": current_customer,
         },
     )
 
@@ -476,22 +477,22 @@ def toggle_karma(request):
         try:
             comment = Comment.objects.get(id=comment_id)
             customer = Customer.objects.get(id=customer_id)
+            author = comment.commenter
         except (Comment.DoesNotExist, Customer.DoesNotExist):
             return JsonResponse({"error": "Comment or Customer not found"}, status=404)
-        if customer.karmatotal is None:
-            customer.karmatotal = 0
-
+        if author.karmatotal is None:
+            author.karmatotal = 0
         if customer in comment.k_voters.all():
             comment.k_voters.remove(customer)
             comment.karma -= 1
-            customer.karmatotal -= 1
+            author.karmatotal -= 1
             voted = False
         else:
             comment.k_voters.add(customer)
             comment.karma += 1
-            customer.karmatotal += 1
+            author.karmatotal += 1
             voted = True
-
+        author.save()
         comment.save()
         customer.save()
 
