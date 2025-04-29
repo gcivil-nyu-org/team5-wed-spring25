@@ -51,7 +51,14 @@ def restaurant_detail(request, id):
         Q(commenter__is_activated=True)
         | Q(commenter__deactivated_until__lt=date.today()),
         parent__isnull=True,  # only include comments from active customers
-    ).order_by("-posted_at")
+    )
+
+    if current_customer:
+        reviews = reviews.exclude(
+            commenter_id__in=current_customer.blocked_customers.all()
+        )
+    reviews = reviews.order_by("-posted_at")
+
     avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))[
         "rating__avg"
     ]
@@ -447,7 +454,6 @@ def update_restaurant_profile_view(request):
 def profile_router(request, username):
     try:
         user_obj = Restaurant.objects.get(username=username)
-
         try:
             current_customer = Customer.objects.get(email=request.user.email)
         except Customer.DoesNotExist:
