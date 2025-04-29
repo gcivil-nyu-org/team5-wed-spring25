@@ -171,9 +171,6 @@
     <div style="height: 90vh; overflow-y: auto;">
       <div class="container">
           <div class="restaurant-header">
-              {% if restaurant.profile_image %}
-                  <img src="{{ restaurant.profile_image.url }}" alt="{{ restaurant.name }}" class="restaurant-img" />
-              {% endif %}
               <h1 class="h3 mb-3">{{ restaurant.name }}</h1>
           </div>
           <div class="info">
@@ -240,9 +237,6 @@
 
                   <label>Cuisine:</label>
                   <input type="text" name="cuisine_description" value="{{ restaurant.cuisine_description }}">
-
-                  <label>Profile Image:</label>
-                  <input type="file" name="profile_image">
 
                   <button type="submit" class="btn">Save Changes</button>
                   <button type="button" id="cancel-edit" class="btn">Cancel</button>
