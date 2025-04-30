@@ -21,7 +21,9 @@
     {% else %}
         <nav class="apple-navbar">
             <div class="navbar-left">
-                <a class="logo" href="{% url 'home' %}">CleanBites</a>
+              <a href="{% url 'home' %}">
+                <img src="{% static 'images/logo.png' %}" style="width: auto; height: 40px; max-width: 100%; display: block;">
+              </a>
             </div>
             <div class="navbar-right">
                 <ul class="nav-links">
