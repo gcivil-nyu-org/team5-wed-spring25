@@ -74,4 +74,5 @@ EXPOSE 8000
 ENV PYTHONPATH="/app"
 
 # Run Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "CleanBites.wsgi:application"]
+CMD ["gunicorn", "CleanBites.wsgi", "--bind", "0.0.0.0:8000"]
+

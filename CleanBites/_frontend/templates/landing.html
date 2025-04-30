@@ -35,22 +35,32 @@
     
     
     <!-- Hero Section -->
-    <div class="hero">
-        <h1>CleanBites</h1>
-        <p>Hygiene Made Simple.</p>
-        {% if messages %}
-          <div class = "container mt-3" style="position: fixed; bottom: 50px; left: 0; right: 0; z-index: 100;">
-            {% for message in messages %}
-              {% if 'auth_message' in message.tags %}
-                <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" style="border-radius: 5px; padding: 10px 15px; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                  {{ message }}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-        {% endif %}
-    </div>
-
+    <section class="bg-gradient-to-br from-orange-300 to-orange-500 py-16 px-6 flex flex-col md:flex-row items-center justify-between">
+      <div class="max-w-xl text-center md:text-left">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+          Find the Cleanest Bites in NYC
+        </h1>
+        <p class="text-white mb-6 text-lg">
+          Explore hygiene ratings, inspection history, and reviews for <strong>20,000+</strong> restaurants in NYC.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+          <a href="/map" class="bg-red-500 text-white px-6 py-3 rounded-full font-semibold shadow-md hover:bg-red-600 transition duration-200">
+            Explore the Map
+          </a>
+          <a href="/login" class="bg-white text-orange-600 px-6 py-3 rounded-full font-semibold shadow-md hover:bg-orange-100 transition duration-200">
+            Log in / Sign up
+          </a>
+        </div>
+      </div>
+    
+      <!-- Replace with map image later -->
+      <div class="hidden md:block mt-10 md:mt-0">
+        <div class="w-72 h-72 rounded-xl bg-orange-200 shadow-inner flex items-center justify-center text-white text-lg font-bold">
+          [Map Placeholder]
+        </div>
+      </div>
+    </section>
+    
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
