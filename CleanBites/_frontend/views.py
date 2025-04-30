@@ -695,7 +695,7 @@ def block_user(request, user_type, username):
         messages.error(request, "Invalid user type.")
         return redirect("home")
     blocker.blocked_customers.add(target)
-    messages.success(request, f"You have blocked {target}.")
+    messages.success(request, f"You have blocked {target}({username}).")
     return redirect("home")
 
 
