@@ -42,7 +42,9 @@
 
 <header class="apple-navbar">  
     <div class="navbar-left">
-      <h2><a href="{% url 'home' %}" style="text-decoration: none; color: inherit;">CleanBites</a></h2>
+      <a href="{% url 'home' %}">
+        <img src="{% static 'images/logo.png' %}" style="width: auto; height: 40px; max-width: 100%; display: block;">
+      </a>
     </div>
 
     <div class="navbar-center position-relative" style="flex-grow: 1; max-width: 500px; margin: 0 auto;">
