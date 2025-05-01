@@ -50,6 +50,9 @@ class Comment(models.Model):
     rating = models.IntegerField(default=1)
     health_rating = models.IntegerField(default=1)
     karma = models.IntegerField(default=0)
+    k_voters = models.ManyToManyField(
+        "_users.Customer", blank=True, related_name="voted_comments"
+    )
     flagged = models.BooleanField(default=False)
     # flagged_by = models.ForeignKey(
     #     "_users.Moderator", null=True, blank=True, on_delete=models.SET_NULL
