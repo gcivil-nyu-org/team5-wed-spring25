@@ -45,36 +45,46 @@
                   {% endif %}
                 </div>
                 <p class="review-text">{{ comment.decoded_comment }}</p>
-                <!-- Report button styled as a Bootstrap button and aligned to the right -->
-                <div class="review-actions" style="margin-left: 20px;">
-                  {% if comment.flagged %}
-                    <button class="btn btn-secondary btn-sm" disabled>Reported</button>
-                  {% else %}
-                    <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
-                      Report
-                    </button>
-                  {% endif %}
-                    {% if comment.replies.all %}
-                      <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
-                        Show Replies
-                      </button>
-                    {% else %}
-                      <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
-                        Reply
-                      </button>
-                    {% endif %}
-                </div>
-
-
               </div>
-            
-
+              <!-- Report button styled as a Bootstrap button and aligned to the right -->
+              <div class="review-actions" style="margin-left: 20px;">
+                <button class="btn btn-outline-success btn-sm karma-btn" 
+                    data-comment-id="{{ comment.id }}" 
+                    data-customer-id="{{ comment.commenter.id }}">
+                  <i class="fas fa-thumbs-up"></i> <span class="karma-count">{{ comment.karma }}</span>
+                </button>
+                {% if comment.replies.all %}
+                <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
+                  Show Replies
+                </button>
+              {% else %}
+                <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
+                  Reply
+                </button>
+              {% endif %}
+              {% if comment.flagged %}
+                <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+              {% else %}
+                <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
+                  Report
+                </button>
+              {% endif %}
+              </div>
+            </div>
+          
             <ul id="replies-{{ comment.id }}" class="reply-list mt-2">
               {% for reply in comment.replies.all %}
                 <li class="reply">
                   <a href="{% url 'user_profile' comment.commenter.username %}">{{ reply.commenter.username }}</a>
                   <span class="reply-date">({{ reply.posted_at|date:"F j, Y" }})</span>
+                  <button class="btn btn-outline-success btn-sm karma-btn" 
+                    data-comment-id="{{ reply.id }}" 
+                    data-customer-id="{{ reply.commenter.id }}">
+                    <i class="fas fa-thumbs-up"></i> <span class="karma-count">{{ reply.karma }}</span>
+                  </button>
+
                   <p class="reply-text">{{ reply.comment }}</p>
+                  
                 </li>
               {% endfor %}
           
@@ -233,6 +243,8 @@
 }
 </style>
 <script>
+const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
+console.log(CURRENT_CUSTOMER_ID)
   // Hide all reply lists on page load
   window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reply-list').forEach(el => el.style.display = 'none');
@@ -244,4 +256,34 @@
     el.style.display = isHidden ? "block" : "none";
     btn.textContent = isHidden ? "Hide Replies" : "Reply";
   }
+  document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.karma-btn').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const commentId = this.dataset.commentId;
+      const customerId = CURRENT_CUSTOMER_ID;
+      const karmaCountEl = this.querySelector('.karma-count');
+
+      fetch("{% url 'toggle_karma' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ comment_id: commentId, customer_id: customerId })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            karmaCountEl.textContent = data.karma;
+          } else {
+            alert('Failed to update karma.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
+  });
+});
+
 </script>
