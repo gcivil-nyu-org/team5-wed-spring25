@@ -18,6 +18,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.contrib.contenttypes.models import ContentType
 from datetime import date
+from asgiref.sync import sync_to_async
 
 # Get user model
 User = get_user_model()
@@ -76,6 +77,7 @@ def restaurant_detail(request, id):
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
             "is_customer": is_customer,
+            "current_customer": current_customer,
         },
     )
 
@@ -143,272 +145,46 @@ def admin_profile(request, username):
     return render(request, "admin_profile.html", context)
 
 
-@login_required(login_url="/login/")
-def messages_view(request, chat_user_id=None):
-    try:
-        user = Customer.objects.get(email=request.user.email)
-    except Customer.DoesNotExist:
-        return render(
-            request,
-            "inbox.html",
+@csrf_exempt
+def toggle_karma(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        comment_id = data.get("comment_id")
+        customer_id = data.get("customer_id")
+
+        # Fetch comment and customer
+        try:
+            comment = Comment.objects.get(id=comment_id)
+            customer = Customer.objects.get(id=customer_id)
+            author = comment.commenter
+        except (Comment.DoesNotExist, Customer.DoesNotExist):
+            return JsonResponse({"error": "Comment or Customer not found"}, status=404)
+        if author.karmatotal is None:
+            author.karmatotal = 0
+        if customer in comment.k_voters.all():
+            comment.k_voters.remove(customer)
+            comment.karma -= 1
+            author.karmatotal -= 1
+            voted = False
+        else:
+            comment.k_voters.add(customer)
+            comment.karma += 1
+            author.karmatotal += 1
+            voted = True
+        author.save()
+        comment.save()
+        customer.save()
+
+        return JsonResponse(
             {
-                "conversations": [],
-                "active_chat": None,
-                "messages": [],
-                "error": "Your profile could not be found.",
-                "has_unread_messages": has_unread_messages(request.user),
-            },
-        )
-
-    # remove DMs from deactivated users
-    all_dms = DM.objects.filter(
-        (Q(sender=user) & Q(receiver__is_activated=True))
-        | Q(receiver__deactivated_until__lt=date.today())
-        | (
-            Q(sender__is_activated=True)
-            | Q(sender__deactivated_until__lt=date.today()) & Q(receiver=user)
-        )
-    )
-
-    # remove any DM from/to blocked individuals
-    all_dms = all_dms.exclude(
-        Q(sender=user, receiver__in=user.blocked_customers.all())
-        | Q(receiver=user, sender__in=user.blocked_customers.all())
-    )
-
-    participants = {}
-    for dm in all_dms:
-        other = dm.receiver if dm.sender == user else dm.sender
-        if other.id not in participants:
-            participants[other.id] = {
-                "id": other.id,
-                "name": other.first_name,
-                "email": other.email,
-                "avatar_url": "/static/images/avatar-placeholder.png",
-                "has_unread": False,  # Initialize unread flag
+                "success": True,
+                "karma": comment.karma,
+                "karmatotal": customer.karmatotal,
+                "voted": voted,
             }
-
-    # Check for unread messages in each conversation
-    for participant_id in participants:
-        has_unread = DM.objects.filter(
-            sender_id=participant_id, receiver=user, read=False
-        ).exists()
-        participants[participant_id]["has_unread"] = has_unread
-
-    conversations = list(participants.values())
-
-    active_chat = None
-    if chat_user_id:
-        active_chat = get_object_or_404(Customer, id=chat_user_id)
-    elif conversations:
-        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
-
-    messages = []
-    if active_chat:
-        raw_messages = DM.objects.filter(
-            (Q(sender=user) & Q(receiver=active_chat))
-            | (Q(sender=active_chat) & Q(receiver=user))
-        ).order_by("sent_at")
-
-        # Mark messages as read when viewed
-        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
-            read=True
         )
 
-        for msg in raw_messages:
-            try:
-                byte_data = bytes(msg.message)
-                msg.decoded_message = byte_data.decode("utf-8")
-            except Exception as e:
-                msg.decoded_message = "[Could not decode message]"
-            messages.append(msg)
-
-    return render(
-        request,
-        "inbox.html",
-        {
-            "conversations": conversations,
-            "active_chat": active_chat,
-            "messages": messages,
-            "has_unread_messages": has_unread_messages(request.user),
-        },
-    )
-
-
-@login_required(login_url="/login/")
-def send_message(request, chat_user_id):
-    if request.method == "POST":
-        try:
-            # Try to get sender from Customer
-            sender = Customer.objects.get(email=request.user.email)
-        except Customer.DoesNotExist:
-            try:
-                # If not found, try Restaurant
-                sender = Restaurant.objects.get(email=request.user.email)
-            except Restaurant.DoesNotExist:
-                # Optional: handle case where sender is neither
-                messages.error(
-                    request,
-                    "Your account was not found. Please contact support.",
-                    extra_tags=INBOX_MESSAGE,
-                )
-                return HttpResponse("Sender not found", status=404)
-        try:
-            recipient = Customer.objects.get(id=chat_user_id)
-        except Customer.DoesNotExist:
-            messages.error(
-                request,
-                "The user you're trying to message could not be found.",
-                extra_tags=INBOX_MESSAGE,
-            )
-            return redirect("messages inbox")
-        message_text = request.POST.get("message")
-        # only able to send messages to activated users
-        if (not recipient.is_activated) and recipient.deactivated_until >= date.today():
-            messages.error(
-                request,
-                "Sorry, that user has been deactivated. You can't DM them.",
-                extra_tags=INBOX_MESSAGE,
-            )
-            return redirect("messages inbox")
-
-        if isinstance(sender, Customer):
-            if sender.blocked_customers.filter(id=recipient.id).exists():
-                messages.error(
-                    request,
-                    "You can’t send messages to a user you’ve blocked.",
-                    extra_tags=INBOX_MESSAGE,
-                )
-                return redirect("chat", chat_user_id=recipient.id)
-
-        message_text = request.POST.get("message")
-
-        if recipient == sender:
-            messages.error(
-                request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
-            )
-            return redirect("chat", chat_user_id=recipient.id)
-
-        if not message_text.strip():
-            messages.error(
-                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
-            )
-            return redirect("chat", chat_user_id=recipient.id)
-
-        # Save the DM with read=False for new messages
-        DM.objects.create(
-            sender=sender,
-            receiver=recipient,
-            message=message_text.encode("utf-8"),
-            read=False,
-        )
-
-        return redirect("chat", chat_user_id=recipient.id)
-
-
-@login_required(login_url="/login/")
-def send_message_generic(request):
-    if request.method == "POST":
-        try:
-            # Try to get sender from Customer
-            sender = Customer.objects.get(email=request.user.email)
-        except Customer.DoesNotExist:
-            try:
-                # If not found, try Restaurant
-                sender = Restaurant.objects.get(email=request.user.email)
-            except Restaurant.DoesNotExist:
-                # Optional: handle case where sender is neither
-                messages.error(
-                    request,
-                    "Your account was not found. Please contact support.",
-                    extra_tags=INBOX_MESSAGE,
-                )
-                return redirect("messages inbox")
-
-        recipient_email = request.POST.get("recipient")
-        message_text = request.POST.get("message")
-
-        if not recipient_email:
-            messages.error(
-                request,
-                "Please enter a recipient email address.",
-                extra_tags=INBOX_MESSAGE,
-            )
-            return redirect("messages inbox")
-
-        if not message_text.strip():
-            messages.error(
-                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
-            )
-            return redirect("messages inbox")
-
-        try:
-            # First try to find the recipient as a Customer
-            recipient = Customer.objects.get(email=recipient_email)
-        except Customer.DoesNotExist:
-            # Check if recipient exists as a Restaurant
-            try:
-                restaurant_recipient = Restaurant.objects.get(email=recipient_email)
-                messages.error(
-                    request,
-                    f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts.",
-                    extra_tags=INBOX_MESSAGE,
-                )
-            except Restaurant.DoesNotExist:
-                # Recipient doesn't exist at all
-                messages.error(
-                    request,
-                    f"Recipient '{recipient_email}' does not exist. Please check the email address and try again.",
-                    extra_tags=INBOX_MESSAGE,
-                )
-            return redirect("messages inbox")
-
-        if isinstance(sender, Customer):
-            if sender.blocked_customers.filter(id=recipient.id).exists():
-                messages.error(
-                    request,
-                    "You can’t send messages to someone you’ve blocked.",
-                    extra_tags=INBOX_MESSAGE,
-                )
-                return redirect("messages inbox")
-        if recipient == sender:
-            messages.error(
-                request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
-            )
-            return redirect("messages inbox")
-
-        # Create DM with read=False for new messages
-        DM.objects.create(
-            sender=sender,
-            receiver=recipient,
-            message=message_text.encode("utf-8"),
-            read=False,
-        )
-
-        return redirect("chat", chat_user_id=recipient.id)
-
-
-@login_required(login_url="/login/")
-def delete_conversation(request, other_user_id, **kwargs):
-    try:
-        user = Customer.objects.get(email=request.user.email)
-        other_user = Customer.objects.get(id=other_user_id)
-
-        # Delete all messages between these two users (in both directions)
-        DM.objects.filter(
-            (Q(sender=user) & Q(receiver=other_user))
-            | (Q(sender=other_user) & Q(receiver=user))
-        ).delete()
-
-        messages.success(
-            request,
-            f"Conversation with {other_user.first_name} has been deleted.",
-            extra_tags=INBOX_MESSAGE,
-        )
-        return redirect("messages inbox")
-    except Customer.DoesNotExist:
-        messages.error(request, "Your account was not found.", extra_tags=INBOX_MESSAGE)
-        return redirect("messages inbox")
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
 
 @login_required(login_url="/login/")
@@ -1288,3 +1064,477 @@ def ensure_customer_exists(request):
         return JsonResponse({"success": True, "created": created})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+# =====================================================================================
+# MESSAGE VIEWS
+# =====================================================================================
+
+
+@login_required(login_url="/login/")
+def get_conversation_messages(request, receiver_id):
+    sender_id = request.user.id  # Assuming the user is authenticated
+    messages = DM.objects.filter(
+        sender_id__in=[sender_id, receiver_id], receiver_id__in=[sender_id, receiver_id]
+    ).order_by("sent_at")
+
+    return JsonResponse(
+        {
+            "messages": [
+                {
+                    "decoded_message": message.message.decode("utf-8"),
+                    "sender_id": message.sender_id,
+                    "receiver_id": message.receiver_id,
+                    "sent_at": message.sent_at.isoformat(),
+                }
+                for message in messages
+            ]
+        }
+    )
+
+
+@login_required(login_url="/login/")
+def messages_view(request, chat_user_id=None):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        return render(
+            request,
+            "inbox.html",
+            {
+                "conversations": [],
+                "active_chat": None,
+                "messages": [],
+                "error": "Your profile could not be found.",
+                "has_unread_messages": has_unread_messages(request.user),
+            },
+        )
+
+    # Filter DMs as before
+    all_dms = DM.objects.filter(
+        (Q(sender=user) & Q(receiver__is_activated=True))
+        | Q(receiver__deactivated_until__lt=date.today())
+        | (
+            Q(sender__is_activated=True)
+            | Q(sender__deactivated_until__lt=date.today()) & Q(receiver=user)
+        )
+    ).exclude(
+        Q(sender=user, receiver__in=user.blocked_customers.all())
+        | Q(receiver=user, sender__in=user.blocked_customers.all())
+    )
+
+    # Prepare conversations
+    participants = {}
+    for dm in all_dms:
+        other = dm.receiver if dm.sender == user else dm.sender
+        if other.id not in participants:
+            # Check if there are actually messages between these users
+            message_count = DM.objects.filter(
+                (Q(sender=user) & Q(receiver=other))
+                | (Q(sender=other) & Q(receiver=user))
+            ).count()
+
+            # Only add to participants if there are messages
+            if message_count > 0:
+                participants[other.id] = {
+                    "id": other.id,
+                    "name": other.first_name,
+                    "email": other.email,
+                    "avatar_url": "/static/images/avatar-placeholder.png",
+                    "has_unread": False,
+                }
+
+    # Check for unread messages
+    for participant_id in participants:
+        has_unread = DM.objects.filter(
+            sender_id=participant_id, receiver=user, read=False
+        ).exists()
+        participants[participant_id]["has_unread"] = has_unread
+
+    conversations = list(participants.values())
+
+    # Determine active chat
+    active_chat = None
+    if chat_user_id:
+        active_chat = get_object_or_404(Customer, id=chat_user_id)
+
+        # Check if there are messages before setting active_chat
+        message_count = DM.objects.filter(
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
+        ).count()
+
+        if message_count == 0:
+            active_chat = None
+
+    elif conversations:
+        active_chat = get_object_or_404(Customer, id=conversations[0]["id"])
+
+    # Fetch messages for the active chat
+    messages = []
+    if active_chat:
+        raw_messages = DM.objects.filter(
+            (Q(sender=user) & Q(receiver=active_chat))
+            | (Q(sender=active_chat) & Q(receiver=user))
+        ).order_by("sent_at")
+
+        # Mark messages as read
+        DM.objects.filter(sender=active_chat, receiver=user, read=False).update(
+            read=True
+        )
+
+        for msg in raw_messages:
+            try:
+                byte_data = bytes(msg.message)
+                msg.decoded_message = byte_data.decode("utf-8")
+            except Exception:
+                msg.decoded_message = "[Could not decode message]"
+            messages.append(msg)
+
+    return render(
+        request,
+        "inbox.html",
+        {
+            "conversations": conversations,
+            "active_chat": active_chat,
+            "messages": messages,
+            "has_unread_messages": has_unread_messages(request.user),
+        },
+    )
+
+
+@login_required(login_url="/login/")
+def send_message(request, chat_user_id):
+    if request.method == "POST":
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"error": "Sender not found"}, status=404)
+                messages.error(
+                    request,
+                    "Your account was not found. Please contact support.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return HttpResponse("Sender not found", status=404)
+        try:
+            recipient = Customer.objects.get(id=chat_user_id)
+        except Customer.DoesNotExist:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"error": "Recipient not found"}, status=404)
+            messages.error(
+                request,
+                "The user you're trying to message could not be found.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+
+        message_text = request.POST.get("message")
+
+        # Only able to send messages to activated users
+        if (not recipient.is_activated) and recipient.deactivated_until >= date.today():
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"error": "User is deactivated"}, status=400)
+            messages.error(
+                request,
+                "Sorry, that user has been deactivated. You can't DM them.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+
+        if isinstance(sender, Customer):
+            if sender.blocked_customers.filter(id=recipient.id).exists():
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {"error": "Cannot message blocked user"}, status=400
+                    )
+                messages.error(
+                    request,
+                    "You can't send messages to a user you've blocked.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return redirect("chat", chat_user_id=recipient.id)
+
+        if recipient == sender:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"error": "Cannot message yourself"}, status=400)
+            messages.error(
+                request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
+            )
+            return redirect("chat", chat_user_id=recipient.id)
+
+        if not message_text.strip():
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"error": "Empty message"}, status=400)
+            messages.error(
+                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
+            )
+            return redirect("chat", chat_user_id=recipient.id)
+
+        # Save the DM with read=False for new messages
+        message = DM.objects.create(
+            sender=sender,
+            receiver=recipient,
+            message=message_text.encode("utf-8"),
+            read=False,
+        )
+
+        # For AJAX requests, return success response
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True, "message_id": message.id})
+
+        # For regular form submissions, redirect as before
+        return redirect("chat", chat_user_id=recipient.id)
+
+
+@login_required(login_url="/login/")
+def send_message_generic(request):
+    if request.method == "POST":
+        try:
+            # Try to get sender from Customer
+            sender = Customer.objects.get(email=request.user.email)
+        except Customer.DoesNotExist:
+            try:
+                # If not found, try Restaurant
+                sender = Restaurant.objects.get(email=request.user.email)
+            except Restaurant.DoesNotExist:
+                # Optional: handle case where sender is neither
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"error": "Sender not found"}, status=404)
+                messages.error(
+                    request,
+                    "Your account was not found. Please contact support.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return redirect("messages inbox")
+
+        recipient_email = request.POST.get("recipient")
+        message_text = request.POST.get("message")
+
+        if not recipient_email:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse(
+                    {"error": "Please enter a recipient email address"}, status=400
+                )
+            messages.error(
+                request,
+                "Please enter a recipient email address.",
+                extra_tags=INBOX_MESSAGE,
+            )
+            return redirect("messages inbox")
+
+        if not message_text.strip():
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"error": "Message cannot be empty"}, status=400)
+            messages.error(
+                request, "Message cannot be empty.", extra_tags=INBOX_MESSAGE
+            )
+            return redirect("messages inbox")
+
+        try:
+            # First try to find the recipient as a Customer
+            recipient = Customer.objects.get(email=recipient_email)
+        except Customer.DoesNotExist:
+            # Check if recipient exists as a Restaurant
+            try:
+                restaurant_recipient = Restaurant.objects.get(email=recipient_email)
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {
+                            "error": f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts."
+                        },
+                        status=400,
+                    )
+                messages.error(
+                    request,
+                    f"'{recipient_email}' is a restaurant account. Currently, you can only message customer accounts.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+            except Restaurant.DoesNotExist:
+                # Recipient doesn't exist at all
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {
+                            "error": f"Recipient '{recipient_email}' does not exist. Please check the email address and try again."
+                        },
+                        status=404,
+                    )
+                messages.error(
+                    request,
+                    f"Recipient '{recipient_email}' does not exist. Please check the email address and try again.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+            return redirect("messages inbox")
+
+        if isinstance(sender, Customer):
+            if sender.blocked_customers.filter(id=recipient.id).exists():
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {"error": "You can't send messages to someone you've blocked."},
+                        status=400,
+                    )
+                messages.error(
+                    request,
+                    "You can't send messages to someone you've blocked.",
+                    extra_tags=INBOX_MESSAGE,
+                )
+                return redirect("messages inbox")
+
+        if recipient == sender:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse(
+                    {"error": "You can't message yourself."}, status=400
+                )
+            messages.error(
+                request, "You can't message yourself.", extra_tags=INBOX_MESSAGE
+            )
+            return redirect("messages inbox")
+
+        # Create DM with read=False for new messages
+        dm = DM.objects.create(
+            sender=sender,
+            receiver=recipient,
+            message=message_text.encode("utf-8"),
+            read=False,
+        )
+
+        # For AJAX requests, return success with chat ID
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse(
+                {"success": True, "chat_user_id": recipient.id, "message_id": dm.id}
+            )
+
+        # For regular form submissions, redirect as before
+        return redirect("chat", chat_user_id=recipient.id)
+
+
+@login_required(login_url="/login/")
+def delete_conversation(request, other_user_id, **kwargs):
+    try:
+        user = Customer.objects.get(email=request.user.email)
+        other_user = Customer.objects.get(id=other_user_id)
+
+        # Delete all messages between these two users (in both directions)
+        DM.objects.filter(
+            (Q(sender=user) & Q(receiver=other_user))
+            | (Q(sender=other_user) & Q(receiver=user))
+        ).delete()
+
+        messages.success(
+            request,
+            f"Conversation with {other_user.first_name} has been deleted.",
+            extra_tags=INBOX_MESSAGE,
+        )
+        return redirect("messages inbox")
+    except Customer.DoesNotExist:
+        messages.error(request, "Your account was not found.", extra_tags=INBOX_MESSAGE)
+        return redirect("messages inbox")
+
+
+async def stream_messages(request, chat_user_id=None):
+    """
+    Asynchronous view to stream messages for the active chat or all conversations.
+    """
+    # Get current user from the session asynchronously
+    is_authenticated = await sync_to_async(lambda: request.user.is_authenticated)()
+    if not is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
+    user_email = await sync_to_async(lambda: request.user.email)()
+
+    try:
+        # Fetch the current user asynchronously
+        user = await sync_to_async(Customer.objects.get)(email=user_email)
+    except Customer.DoesNotExist:
+        return JsonResponse({"error": "Your profile could not be found."}, status=404)
+
+    if chat_user_id:
+        try:
+            # Fetch the active chat user asynchronously
+            active_chat = await sync_to_async(Customer.objects.get)(id=chat_user_id)
+        except Customer.DoesNotExist:
+            return JsonResponse({"error": "Active chat user not found."}, status=404)
+
+        # Fetch messages for the active chat asynchronously
+        messages = await sync_to_async(list)(
+            DM.objects.filter(
+                (Q(sender=user) & Q(receiver=active_chat))
+                | (Q(sender=active_chat) & Q(receiver=user))
+            )
+            .order_by("sent_at")
+            .values("id", "sender__id", "receiver__id", "message", "sent_at", "read")
+        )
+    else:
+        # Fetch all messages for the user asynchronously
+        messages = await sync_to_async(list)(
+            DM.objects.filter(Q(sender=user) | Q(receiver=user))
+            .order_by("sent_at")
+            .values("id", "sender__id", "receiver__id", "message", "sent_at", "read")
+        )
+
+    # Decode binary messages - convert memoryview to bytes first
+    for message in messages:
+        # Convert memoryview to bytes, then decode to string
+        message["message"] = bytes(message["message"]).decode("utf-8")
+
+    return JsonResponse({"messages": messages}, safe=False)
+
+
+@login_required(login_url="/login/")
+def get_conversations(request):
+    """API endpoint to get the current user's conversations"""
+    try:
+        user = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        return JsonResponse({"error": "Your profile could not be found."}, status=404)
+
+    # Only get participants where messages actually exist between them
+    all_dms = DM.objects.filter(
+        (Q(sender=user) & Q(receiver__is_activated=True))
+        | Q(receiver__deactivated_until__lt=date.today())
+        | (
+            Q(sender__is_activated=True)
+            | Q(sender__deactivated_until__lt=date.today()) & Q(receiver=user)
+        )
+    ).exclude(
+        Q(sender=user, receiver__in=user.blocked_customers.all())
+        | Q(receiver=user, sender__in=user.blocked_customers.all())
+    )
+
+    # Prepare conversations
+    participants = {}
+    for dm in all_dms:
+        other = dm.receiver if dm.sender == user else dm.sender
+        if other.id not in participants:
+            # Check if there are actually messages between these users
+            message_count = DM.objects.filter(
+                (Q(sender=user) & Q(receiver=other))
+                | (Q(sender=other) & Q(receiver=user))
+            ).count()
+
+            # Only add to participants if there are messages
+            if message_count > 0:
+                participants[other.id] = {
+                    "id": other.id,
+                    "name": other.first_name,
+                    "email": other.email,
+                    "avatar_url": "/static/images/avatar-placeholder.png",
+                    "has_unread": False,
+                }
+
+    # Check for unread messages
+    for participant_id in participants:
+        has_unread = DM.objects.filter(
+            sender_id=participant_id, receiver=user, read=False
+        ).exists()
+        participants[participant_id]["has_unread"] = has_unread
+
+    conversations = list(participants.values())
+
+    return JsonResponse({"conversations": conversations})
