@@ -11,49 +11,64 @@
           <li class="review">
             <div class="review-main">
               <div class="review-content">
-                <span class="review-title">{{ comment.decoded_title }}</span>
-                <div class="review-restaurant">
-                  <a href="{% url 'user_profile' comment.commenter.username %}" class="restaurant-name">{{ comment.commenter.username }}</a>
+                <div class="review-header d-flex justify-content-between align-items-center">
+                  <div class="review-meta d-flex align-items-center flex-wrap gap-2">
+                    <span class="review-title">{{ comment.decoded_title }}</span>
+                    <a href="{% url 'user_profile' comment.commenter.username %}" class="restaurant-name">
+                      {{ comment.commenter.username }}</a>
+                    <span class="review-rating">
+                      Rating:
+                      {% for i in "12345" %}
+                        <i class="fa-star {% if comment.rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
+                      {% endfor %}
+                    </span>
+                    <span class="review-health">
+                      Health:
+                      {% for i in "12345" %}
+                        <i class="fa-star {% if comment.health_rating|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
+                      {% endfor %}
+                    </span>
+                    <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
+                  </div>
+                  {% if is_customer %}
+                    {% if comment.commenter_id == current_customer.id %}
+                      <form
+                        method="post"
+                        action="{% url 'delete_comment' comment.id %}"
+                        class="delete-comment-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-delete" title="Delete commemt">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    {% endif %}
+                  {% endif %}
                 </div>
-                <span class="review-rating">
-                  Rating:
-                  {% for i in "12345" %}
-                    <i class="fa-star {% if comment.rating|add:'0' >= i|add:'0' %}fas text-yellow{% else %}far{% endif %}"></i>
-                  {% endfor %}
-                </span>
-              
-                <span class="review-health">
-                  Health:
-                  {% for i in "12345" %}
-                    <i class="fa-star {% if comment.health_rating|add:'0' >= i|add:'0' %}fas text-green{% else %}far{% endif %}"></i>
-                  {% endfor %}
-                </span>
-            
-                <span class="review-date">{{ comment.posted_at|date:"F j, Y" }}</span>
-              <div>
                 <p class="review-text">{{ comment.decoded_comment }}</p>
+                <!-- Report button styled as a Bootstrap button and aligned to the right -->
+                <div class="review-actions" style="margin-left: 20px;">
+                  {% if comment.flagged %}
+                    <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+                  {% else %}
+                    <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
+                      Report
+                    </button>
+                  {% endif %}
+                    {% if comment.replies.all %}
+                      <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
+                        Show Replies
+                      </button>
+                    {% else %}
+                      <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
+                        Reply
+                      </button>
+                    {% endif %}
+                </div>
+
+
               </div>
-              <!-- Report button styled as a Bootstrap button and aligned to the right -->
-              <div class="review-actions" style="margin-left: 20px;">
-              {% if comment.flagged %}
-                <button class="btn btn-secondary btn-sm" disabled>Reported</button>
-              {% else %}
-                <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
-                  Report
-                </button>
-              {% endif %}
-                {% if comment.replies.all %}
-                  <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
-                    Show Replies
-                  </button>
-                {% else %}
-                  <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
-                    Reply
-                  </button>
-                {% endif %}
-              </div>
-            </div>
-          
+            
+
             <ul id="replies-{{ comment.id }}" class="reply-list mt-2">
               {% for reply in comment.replies.all %}
                 <li class="reply">
@@ -106,6 +121,29 @@
   color: #222;
   margin-left: 5px; 
 }
+
+.delete-comment-form {
+  margin: 0;
+  margin-right: 40px;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  padding: 0.2rem;
+  font-size: 0.85rem;
+  color: #dc3545;
+  cursor: pointer;
+  line-height: 1;
+}
+.btn-delete:hover {
+  color: #a71d2a;
+}
+.btn-delete:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 
 .review-text {
   font-size: 1rem;

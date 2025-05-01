@@ -44,10 +44,12 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
+
     try:
         current_customer = Customer.objects.get(email=request.user.email)
     except Customer.DoesNotExist:
         current_customer = None
+
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
         Q(commenter__is_activated=True)
@@ -84,6 +86,7 @@ def restaurant_detail(request, id):
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
             "is_customer": is_customer,
+            "current_customer": current_customer,
         },
     )
 
@@ -135,8 +138,8 @@ def user_profile(request, username):
     context = {
         "profile_user": user,
         "profle_customer": profile_customer,
+        "current_customer": current_customer,
         "has_unread_messages": has_unread_messages(request.user),
-        "customer": profile_customer,
         "is_owner": is_owner,
         "reviews": reviews,
         "is_blocked": is_blocked,
@@ -459,16 +462,26 @@ def unblock_user(request, user_type, username):
 
 @login_required(login_url="/login/")
 def delete_comment(request, comment_id):
-    try:
-        moderator = Moderator.objects.get(email=request.user.email)
-    except Moderator.DoesNotExist:
-        messages.error(request, "Unauthorized action.")
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    # moderators can delete any comment
+    if Moderator.objects.filter(email=request.user.email).exists():
+        comment.delete()
+        messages.success(request, "Comment deleted successfully.")
+        # redirect back to moderator profile
+        return redirect("moderator_profile", username=request.user.username)
+
+    #  customers can only delete their own
+    customer = get_object_or_404(Customer, email=request.user.email)
+    if comment.commenter_id != customer.id:
+        messages.error(request, "Unauthorized action – you can’t delete someone else's comment.")
         return redirect("home")
 
-    comment = get_object_or_404(Comment, id=comment_id)
+    restaurant_id = comment.restaurant_id
     comment.delete()
     messages.success(request, "Comment deleted successfully.")
-    return redirect("moderator_profile")
+    return redirect("restaurant_detail", id=restaurant_id)
+
 
 
 @login_required(login_url="/login/")

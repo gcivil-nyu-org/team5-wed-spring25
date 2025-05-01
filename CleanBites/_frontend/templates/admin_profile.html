@@ -24,6 +24,23 @@
     .main-body {
        padding: 15px;
     }
+    .btn-delete {
+      background: none;
+      border: none;
+      padding: 0.2rem;
+      font-size: 0.85rem;
+      color: #dc3545;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .btn-delete:hover {
+      color: #a71d2a;
+    }
+    .btn-delete:focus {
+      outline: none;
+      box-shadow: none;
+    }
+
   </style>
 </head>
 <body>
@@ -61,9 +78,26 @@
                 <td>{{ comment.posted_at }}</td>
                 <td>{{ comment.flagged_by.username }}</td>
                 <td>
-                  <button type="button" class="btn btn-outline-danger deactivateBtn" data-userid="{{ comment.commenter.id }}">
+                  <div class="d-flex gap-2">
+                    <!-- suspend/deactivate -->
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger deactivateBtn"
+                      data-userid="{{ comment.commenter.id }}">
+                      Deactivate/Suspend
+                    </button>
+                
+                    <!-- delete comment -->
+                    <form method="post" action="{% url 'delete_comment' comment.id %}" style="display:inline;" onsubmit="return confirm('Really delete this comment?');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-delete" title="Delete comment">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                  <!-- <button type="button" class="btn btn-outline-danger deactivateBtn" data-userid="{{ comment.commenter.id }}">
                     Deactivate/Suspend
-                  </button>
+                  </button> -->
                 </td>
               </tr>
               {% endfor %}
