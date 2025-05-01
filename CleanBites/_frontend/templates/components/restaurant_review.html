@@ -62,12 +62,28 @@
                   Reply
                 </button>
               {% endif %}
-              {% if comment.flagged %}
+
+              <!-- {% if comment.flagged %}
                 <button class="btn btn-secondary btn-sm" disabled>Reported</button>
               {% else %}
                 <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
                   Report
                 </button>
+              {% endif %} -->
+              {% if current_customer and comment.commenter_id != current_customer.id %}
+                {% if comment.flagged %}
+                  <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+                {% else %}
+                  <button class="btn btn-danger btn-sm report-comment-btn"
+                          data-comment-id="{{ comment.id }}">
+                    Report
+                  </button>
+                {% endif %}
+              {% else %}
+                {# for your own comments, only show “Reported” if it’s already flagged #}
+                {% if comment.flagged %}
+                  <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+                {% endif %}
               {% endif %}
               </div>
             </div>
@@ -96,7 +112,6 @@
                 <button type="submit" class="btn btn-success btn-sm">Post Reply</button>
               </form>
             </ul>
-            </div>
           </li>
           {% endfor %}
         </ul>
@@ -243,8 +258,6 @@
 }
 </style>
 <script>
-const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
-console.log(CURRENT_CUSTOMER_ID)
   // Hide all reply lists on page load
   window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reply-list').forEach(el => el.style.display = 'none');

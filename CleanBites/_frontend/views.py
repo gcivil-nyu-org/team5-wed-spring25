@@ -508,6 +508,7 @@ def delete_comment(request, comment_id):
 
     # moderators can delete any comment
     if Moderator.objects.filter(email=request.user.email).exists():
+        comment.k_voters.clear()
         comment.delete()
         messages.success(request, "Comment deleted successfully.")
         # redirect back to moderator profile
@@ -520,6 +521,7 @@ def delete_comment(request, comment_id):
         return redirect("home")
 
     restaurant_id = comment.restaurant_id
+    comment.k_voters.clear()
     comment.delete()
     messages.success(request, "Comment deleted successfully.")
     return redirect("restaurant_detail", id=restaurant_id)
@@ -891,10 +893,10 @@ def user_settings(request):
         elif "deactivate" in request.POST:
             deactivate_form = DeactivateAccountForm(request.POST)
             if deactivate_form.is_valid() and deactivate_form.cleaned_data["confirm"]:
+                messages.success(request, "Your account has been deactivated.")
                 user.is_active = False
                 user.save()
                 logout(request)
-                messages.success(request, "Your account has been deactivated.")
                 return redirect("home")
 
     return render(
