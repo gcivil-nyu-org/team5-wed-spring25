@@ -45,6 +45,11 @@ def home_view(request):
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
 
+    try:
+        current_customer = Customer.objects.get(email=request.user.email)
+    except Customer.DoesNotExist:
+        current_customer = None
+
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
         # only include comments from active customers
@@ -144,6 +149,7 @@ def user_profile(request, username):
     context = {
         "profile_user": user,
         "profle_customer": profile_customer,
+        "current_customer": current_customer,
         "current_customer": current_customer,
         "has_unread_messages": has_unread_messages(request.user),
         "is_owner": is_owner,
@@ -517,12 +523,22 @@ def delete_comment(request, comment_id):
 
     # moderators can delete any comment
     if Moderator.objects.filter(email=request.user.email).exists():
-        comment.k_voters.clear()
         comment.delete()
         messages.success(request, "Comment deleted successfully.")
         # redirect back to moderator profile
-        # return redirect("moderator_profile", username=request.user.username)
-        return redirect("moderator_profile")
+        return redirect("moderator_profile", username=request.user.username)
+
+    #  customers can only delete their own
+    customer = get_object_or_404(Customer, email=request.user.email)
+    if comment.commenter_id != customer.id:
+        messages.error(request, "Unauthorized action – you can’t delete someone else's comment.")
+        return redirect("home")
+
+    restaurant_id = comment.restaurant_id
+    comment.delete()
+    messages.success(request, "Comment deleted successfully.")
+    return redirect("restaurant_detail", id=restaurant_id)
+
 
     #  customers can only delete their own
     customer = get_object_or_404(Customer, email=request.user.email)
