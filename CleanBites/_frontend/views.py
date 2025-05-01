@@ -523,6 +523,7 @@ def delete_comment(request, comment_id):
 
     # moderators can delete any comment
     if Moderator.objects.filter(email=request.user.email).exists():
+        comment.k_voters.clear()
         comment.delete()
         messages.success(request, "Comment deleted successfully.")
         # redirect back to moderator profile
@@ -535,6 +536,7 @@ def delete_comment(request, comment_id):
         return redirect("home")
 
     restaurant_id = comment.restaurant_id
+    comment.k_voters.clear()
     comment.delete()
     messages.success(request, "Comment deleted successfully.")
     return redirect("restaurant_detail", id=restaurant_id)

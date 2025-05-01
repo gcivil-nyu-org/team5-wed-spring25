@@ -45,27 +45,46 @@
                   {% endif %}
                 </div>
                 <p class="review-text">{{ comment.decoded_comment }}</p>
-                <!-- Report button styled as a Bootstrap button and aligned to the right -->
-                <div class="review-actions" style="margin-left: 20px;">
-                  {% if comment.flagged %}
-                    <button class="btn btn-secondary btn-sm" disabled>Reported</button>
-                  {% else %}
-                    <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
-                      Report
-                    </button>
-                  {% endif %}
-                    {% if comment.replies.all %}
-                      <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
-                        Show Replies
-                      </button>
-                    {% else %}
-                      <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
-                        Reply
-                      </button>
-                    {% endif %}
-                </div>
+              </div>
+              <!-- Report button styled as a Bootstrap button and aligned to the right -->
+              <div class="review-actions" style="margin-left: 20px;">
+                <button class="btn btn-outline-success btn-sm karma-btn" 
+                    data-comment-id="{{ comment.id }}" 
+                    data-customer-id="{{ comment.commenter.id }}">
+                  <i class="fas fa-thumbs-up"></i> <span class="karma-count">{{ comment.karma }}</span>
+                </button>
+                {% if comment.replies.all %}
+                <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
+                  Show Replies
+                </button>
+              {% else %}
+                <button onclick="toggleReplies('replies-{{ comment.id }}', this)" class="btn btn-outline-primary btn-sm ml-2">
+                  Reply
+                </button>
+              {% endif %}
 
-
+              <!-- {% if comment.flagged %}
+                <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+              {% else %}
+                <button class="btn btn-danger btn-sm report-comment-btn" data-comment-id="{{ comment.id }}">
+                  Report
+                </button>
+              {% endif %} -->
+              {% if current_customer and comment.commenter_id != current_customer.id %}
+                {% if comment.flagged %}
+                  <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+                {% else %}
+                  <button class="btn btn-danger btn-sm report-comment-btn"
+                          data-comment-id="{{ comment.id }}">
+                    Report
+                  </button>
+                {% endif %}
+              {% else %}
+                {# for your own comments, only show “Reported” if it’s already flagged #}
+                {% if comment.flagged %}
+                  <button class="btn btn-secondary btn-sm" disabled>Reported</button>
+                {% endif %}
+              {% endif %}
               </div>
             
 
