@@ -517,7 +517,9 @@ def delete_comment(request, comment_id):
     #  customers can only delete their own
     customer = get_object_or_404(Customer, email=request.user.email)
     if comment.commenter_id != customer.id:
-        messages.error(request, "Unauthorized action – you can’t delete someone else's comment.")
+        messages.error(
+            request, "Unauthorized action – you can’t delete someone else's comment."
+        )
         return redirect("home")
 
     restaurant_id = comment.restaurant_id
@@ -525,7 +527,6 @@ def delete_comment(request, comment_id):
     comment.delete()
     messages.success(request, "Comment deleted successfully.")
     return redirect("restaurant_detail", id=restaurant_id)
-
 
 
 @login_required(login_url="/login/")
