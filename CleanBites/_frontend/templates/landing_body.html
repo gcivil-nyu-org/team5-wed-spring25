@@ -9,6 +9,7 @@
             margin: 0;
             font-family: 'Inter', sans-serif;
         }
+    
         header {
             display: flex;
             justify-content: space-between;
@@ -18,10 +19,12 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 100;
         }
+    
         .title {
             font-size: 1.8rem;
             font-weight: 700;
         }
+    
         .nav-buttons a {
             margin-left: 20px;
             text-decoration: none;
@@ -32,7 +35,6 @@
             margin-top: 65px; /* Add margin to push it below header */
             position: relative; 
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 70vh;
@@ -70,31 +72,33 @@
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
-        .hero p {
+    
+        .hero-section p {
             font-size: 1.25rem;
             color: #444;
             max-width: 600px;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
+    
         .gallery {
             background-color: #fff3e0;
             padding: 60px 40px;
             text-align: center;
         }
-
+    
         .gallery h2 {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 30px;
         }
-
+    
         .gallery-container {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 20px;
         }
-
+    
         .card {
             width: 180px;
             height: 180px;
@@ -102,31 +106,32 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-
+    
         .card img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }        
+        }
+    
         .scroll-container {
             display: flex;
             overflow-x: auto;
             gap: 20px;
             padding: 20px 0;
             scroll-behavior: smooth;
-          }
-
+        }
+    
         .scroll-container img {
             height: 250px;
             border-radius: 16px;
             flex-shrink: 0;
             transition: transform 0.3s ease-in-out;
-          }
-
+        }
+    
         .scroll-container img:hover {
             transform: scale(1.05);
-          }          
-    </style>
+        }
+    </style>    
 </head>
 <body style="overflow-y: auto; background: linear-gradient(to bottom right, #ffe5b4, #ffa726);">
     <section class="herobody">
@@ -151,25 +156,37 @@
                 <p>Read & Write Reviews</p>
             </div>
         </div>
-    </section> 
-    <section class="gallery">
-        <h2>Spotlight on NYC Restaurants</h2>
-        <div class="gallery-container">
-            <div class="card">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/4/47/New_york_times_square-terabass.jpg" alt="Restaurant 1">
+    </section>
+    <section class="how-it-works py-5 bg-white">
+        <div class="container text-center">
+          <h2 class="mb-5 fw-bold">How CleanBites Works</h2>
+          <div class="row justify-content-center g-4">
+            <div class="col-md-3">
+              <img src="https://img.icons8.com/ios-filled/50/search--v1.png" alt="Search" class="mb-3">
+              <p class="fw-medium">Search Restaurants</p>
             </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80" alt="Restaurant 2">
+            <div class="col-md-3">
+              <img src="https://img.icons8.com/ios-filled/50/clipboard.png" alt="Check Hygiene" class="mb-3">
+              <p class="fw-medium">Check Hygiene History</p>
             </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80" alt="Restaurant 3">
+            <div class="col-md-3">
+              <img src="https://img.icons8.com/ios-filled/50/rating.png" alt="Reviews" class="mb-3">
+              <p class="fw-medium">Read & Write Reviews</p>
             </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Restaurant 4">
-            </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80" alt="Restaurant 5">
-            </div>
+          </div>
+        </div>
+    </section>
+      
+    <section class="bg-light py-5">
+        <div class="container text-center">
+          <h2 class="fw-bold mb-4">Spotlight on NYC Restaurants</h2>
+          <div class="scroll-container">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/47/New_york_times_square-terabass.jpg" alt="NYC 1">
+            <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80" alt="NYC 2">
+            <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80" alt="NYC 3">
+            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="NYC 4">
+            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80" alt="NYC 5">
+          </div>
         </div>
     </section>
     
@@ -191,11 +208,14 @@
                     Explore the Map
                 </button>
             </div>
-            <div style="flex: 1; min-width: 300px; padding: 20px;">
-                <div style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <img src="{% static 'images/Mapasset.png' %}" alt="Restaurant Health Map" style="width: 100%; height: 80%; display: block;">
-                </div>
-            </div>
+            <!-- Image Column -->
+            <div class="col-md-6 text-center">
+                <div style="flex: 1; min-width: 300px; display: flex; align-items: center; justify-content: center;">
+                    <img src="{% static 'images/Mapasset.png' %}" 
+                         alt="Map Graphic"
+                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px; max-height: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+                  </div>                        
+          </div>
         </div>
     </section>  
     
