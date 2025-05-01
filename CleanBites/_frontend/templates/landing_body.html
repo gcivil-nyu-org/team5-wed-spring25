@@ -10,6 +10,7 @@
             font-family: 'Inter', sans-serif;
         }
     
+    
         header {
             display: flex;
             justify-content: space-between;
@@ -20,10 +21,12 @@
             z-index: 100;
         }
     
+    
         .title {
             font-size: 1.8rem;
             font-weight: 700;
         }
+    
     
         .nav-buttons a {
             margin-left: 20px;
@@ -31,42 +34,16 @@
             color: #333;
             font-weight: 500;
         }
-        .herobody {
-            margin-top: 65px; /* Add margin to push it below header */
-            position: relative; 
+    
+        .hero-section {
+            background: linear-gradient(to bottom right, #ffe5b4, #ffa726);
+            min-height: 80vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 70vh;
-            text-align: center;
-            background: url('{% static "images/hero_image.png" %}') no-repeat center center;
-            background-size: cover;
-            z-index: 1;
         }
-        .hero-content {
-            position: relative;
-            z-index: 2;
-            padding: 20px;
-            max-width: 800px;
-        }
-
-        .hero-text-container {
-            background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent white */
-            border-radius: 16px;
-            padding: 10px 40px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            max-width: 80%;
-            backdrop-filter: blur(4px); /* Creates a frosted glass effect */
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .hero-text-container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
-        }
-        
-        .hero h1 {
+    
+        .hero-section h1 {
             font-size: 3rem;
             font-weight: 800;
             margin-bottom: 10px;
@@ -74,11 +51,14 @@
         }
     
         .hero-section p {
+    
+        .hero-section p {
             font-size: 1.25rem;
             color: #444;
             max-width: 600px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            margin: 0 auto 20px;
         }
+    
     
         .gallery {
             background-color: #fff3e0;
@@ -86,11 +66,13 @@
             text-align: center;
         }
     
+    
         .gallery h2 {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 30px;
         }
+    
     
         .gallery-container {
             display: flex;
@@ -98,6 +80,7 @@
             justify-content: center;
             gap: 20px;
         }
+    
     
         .card {
             width: 180px;
@@ -107,10 +90,13 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
     
+    
         .card img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+    
         }
     
         .scroll-container {
@@ -121,6 +107,8 @@
             scroll-behavior: smooth;
         }
     
+        }
+    
         .scroll-container img {
             height: 250px;
             border-radius: 16px;
@@ -128,33 +116,24 @@
             transition: transform 0.3s ease-in-out;
         }
     
+        }
+    
         .scroll-container img:hover {
             transform: scale(1.05);
         }
     </style>    
+        }
+    </style>    
 </head>
 <body style="overflow-y: auto; background: linear-gradient(to bottom right, #ffe5b4, #ffa726);">
-    <section class="herobody">
-        <div class="hero-text-container">
-            <h1>Find the Cleanest Bites in NYC</h1>
-            <p>Explore hygiene ratings, inspection history, and reviews for restaurants in NYC.</p>
-        </div>
-    </section>
-    <section class="how-it-works" style="padding: 60px 20px; background-color: #fff;">
-        <h2 style="text-align: center; font-size: 2rem; margin-bottom: 30px;">How CleanBites Works</h2>
-        <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">
-            <div style="text-align: center; max-width: 200px;">
-                <img src="https://img.icons8.com/ios-filled/50/search--v1.png" alt="Search" style="margin-bottom: 10px;">
-                <p>Search Restaurants</p>
-            </div>
-            <div style="text-align: center; max-width: 200px;">
-                <img src="https://img.icons8.com/ios-filled/50/clipboard.png" alt="Check Hygiene" style="margin-bottom: 10px;">
-                <p>Check Hygiene History</p>
-            </div>
-            <div style="text-align: center; max-width: 200px;">
-                <img src="https://img.icons8.com/ios-filled/50/rating.png" alt="Reviews" style="margin-bottom: 10px;">
-                <p>Read & Write Reviews</p>
-            </div>
+    <section class="hero-section">
+        <div class="container text-center py-5">
+          <h1 class="display-4 fw-bold text-dark">Find the Cleanest Bites in NYC</h1>
+          <p class="lead text-muted mb-4">Explore hygiene ratings, inspection history, and reviews for 20,000+ restaurants in NYC.</p>
+          <div class="d-flex justify-content-center gap-3">
+            <a href="/map" class="btn btn-warning btn-lg rounded-pill px-4 shadow-sm">Explore the Map</a>
+            <a href="/login" class="btn btn-outline-dark btn-lg rounded-pill px-4">Log in / Sign up</a>
+          </div>
         </div>
     </section>
     <section class="how-it-works py-5 bg-white">
@@ -189,24 +168,23 @@
           </div>
         </div>
     </section>
-    
-    <section class="map-feature" style="padding: 60px 20px; background-color: #f8f9fa;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 30px;">
-            <div style="flex: 1; min-width: 300px; padding: 20px;">
-                <h2 style="font-size: 2rem; margin-bottom: 20px; color: #333;">Explore Health Ratings on the Map</h2>
-                <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px; color: #555;">
-                    CleanBites integrates restaurant health inspection data with an interactive OpenStreetMap interface, 
-                    allowing you to visually explore hygiene ratings across NYC neighborhoods.
-                </p>
-                <ul style="font-size: 1.1rem; line-height: 1.6; color: #555; padding-left: 20px;">
-                    <li>Color-coded pins showing restaurant health ratings at a glance</li>
-                    <li>Filter restaurants by inspection score, cuisine, or neighborhood</li>
-                    <li>View detailed inspection history directly from the map</li>
-                    <li>Find the cleanest dining options wherever you are in the city</li>
-                </ul>
-                <button id="exploreMapBtn" style="margin-top: 20px; padding: 12px 24px; background-color: #ff9800; color: white; border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.3s;">
-                    Explore the Map
-                </button>
+        
+    <section class="bg-white py-5">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: row; align-items: stretch; flex-wrap: wrap; gap: 30px;">
+          <div class="row align-items-center">
+            <!-- Text Column -->
+            <div class="col-md-6 mb-4 mb-md-0">
+              <h2 class="fw-bold mb-3">Explore Health Ratings on the Map</h2>
+              <p class="text-muted">
+                CleanBites integrates restaurant health inspection data with an interactive OpenStreetMap interface, allowing you to visually explore hygiene ratings across NYC neighborhoods.
+              </p>
+              <ul class="text-muted">
+                <li>Color-coded pins show health ratings at a glance</li>
+                <li>Filter by score, cuisine, or neighborhood</li>
+                <li>Access inspection history straight from the map</li>
+                <li>Find the cleanest dining options in your area</li>
+              </ul>
+              <a href="/map" class="btn btn-warning rounded-pill px-4 mt-3 shadow-sm">Explore the Map</a>
             </div>
             <!-- Image Column -->
             <div class="col-md-6 text-center">
@@ -216,47 +194,26 @@
                          style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px; max-height: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
                   </div>                        
           </div>
+            <!-- Image Column -->
+            <div class="col-md-6 text-center">
+                <div style="flex: 1; min-width: 300px; display: flex; align-items: center; justify-content: center;">
+                    <img src="{% static 'images/Mapasset.png' %}" 
+                         alt="Map Graphic"
+                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px; max-height: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+                  </div>                        
+          </div>
         </div>
-    </section>  
-    
-    <script>
-        // Add this script at the bottom of your landing_body.html
-        document.addEventListener('DOMContentLoaded', function() {
-            const exploreMapBtn = document.getElementById('exploreMapBtn');
-            
-            exploreMapBtn.addEventListener('click', function() {
-                // Check if user is authenticated based on Django template variable
-                const isAuthenticated = "{% if user.is_authenticated %}true{% else %}false{% endif %}";
-                
-                if (isAuthenticated === "true") {
-                    // If authenticated, redirect to the home/map page
-                    window.location.href = "{% url 'home' %}";
-                } else {
-                    // If not authenticated, show the login modal using Bootstrap's data-bs-toggle
-                    // This is more reliable than creating a new Modal instance
-                    const loginModalElement = document.getElementById('loginModal');
-                    
-                    // Check if Bootstrap is properly loaded
-                    if (typeof bootstrap !== 'undefined') {
-                        const loginModal = new bootstrap.Modal(loginModalElement);
-                        loginModal.show();
-                    } else {
-                        // Fallback if Bootstrap JS is not loaded properly
-                        // Use the data attribute approach as backup
-                        loginModalElement.classList.add('show');
-                        loginModalElement.style.display = 'block';
-                        document.body.classList.add('modal-open');
-                        
-                        // Create a backdrop if it doesn't exist
-                        let backdrop = document.querySelector('.modal-backdrop');
-                        if (!backdrop) {
-                            backdrop = document.createElement('div');
-                            backdrop.className = 'modal-backdrop fade show';
-                            document.body.appendChild(backdrop);
-                        }
-                    }
-                }
-            });
-        });
-    </script>
+      </section>
+      <footer style="background: linear-gradient(to top, #ffe5b4, #fff3e0); padding: 40px 20px; text-align: center; font-size: 0.95rem; color: #444; border-top: 1px solid #f1c27d;">
+        <div style="max-width: 1000px; margin: auto;">
+            <p style="font-size: 1.1rem; font-weight: 600;">🚀 Built with love by NYU Tandon students 💜</p>
+            <p>Need help? Admins are standing by with snacks 🍪</p>
+            <div style="margin: 20px 0;">
+                <a href="/about" style="margin: 0 15px; color: #d2691e; text-decoration: none;">About</a>
+                <a href="/contact" style="margin: 0 15px; color: #d2691e; text-decoration: none;">Contact</a>
+                <a href="/privacy" style="margin: 0 15px; color: #d2691e; text-decoration: none;">Privacy</a>
+            </div>
+            <p style="margin-top: 20px;">🍊 &copy; 2025 CleanBites. Stay clean, eat happy!</p>
+        </div>
+    </footer>            
 </body>
