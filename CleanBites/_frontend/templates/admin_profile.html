@@ -84,15 +84,17 @@
                 <td>{{ comment.posted_at }}</td>
                 <td>{{ comment.flagged_by.username }}</td>
                 <td>
-                  <div class="d-flex gap-2">
-                    <!-- suspend/deactivate -->
-                    <button
-                      type="button"
-                      class="btn btn-outline-danger deactivateBtn"
-                      data-userid="{{ comment.commenter.id }}">
-                      Deactivate/Suspend
-                    </button>
-                
+                  <td>
+                    <div class="d-flex gap-2">
+                      <!-- suspend/deactivate -->
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger deactivateBtn"
+                        data-userid="{{ comment.commenter.id }}">
+                        Deactivate/Suspend
+                      </button>
+                  </td>
+                  <td>
                     <!-- delete comment -->
                     <form method="post" action="{% url 'delete_comment' comment.id %}" style="display:inline;" onsubmit="return confirm('Really delete this comment?');">
                       {% csrf_token %}
@@ -100,10 +102,10 @@
                         <i class="fas fa-trash"></i>
                       </button>
                     </form>
+                  </td>
+                
+
                   </div>
-                  <!-- <button type="button" class="btn btn-outline-danger deactivateBtn" data-userid="{{ comment.commenter.id }}">
-                    Deactivate/Suspend
-                  </button> -->
                 </td>
               </tr>
               {% endfor %}

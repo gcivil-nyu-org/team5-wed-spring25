@@ -512,7 +512,8 @@ def delete_comment(request, comment_id):
         comment.delete()
         messages.success(request, "Comment deleted successfully.")
         # redirect back to moderator profile
-        return redirect("moderator_profile", username=request.user.username)
+        # return redirect("moderator_profile", username=request.user.username)
+        return redirect("moderator_profile")
 
     #  customers can only delete their own
     customer = get_object_or_404(Customer, email=request.user.email)
