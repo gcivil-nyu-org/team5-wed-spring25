@@ -62,7 +62,7 @@
             <ul id="replies-{{ comment.id }}" class="reply-list mt-2">
               {% for reply in comment.replies.all %}
                 <li class="reply">
-                  <a href="{% url 'user_profile' comment.commenter.username %}">{{ reply.commenter.username }}</a>
+                  <a href="{% url 'user_profile' reply.commenter.username %}">{{ reply.commenter.username }}</a>
                   <span class="reply-date">({{ reply.posted_at|date:"F j, Y" }})</span>
                   <button class="btn btn-outline-success btn-sm karma-btn" 
                     data-comment-id="{{ reply.id }}" 

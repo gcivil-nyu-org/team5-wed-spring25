@@ -173,13 +173,11 @@ def toggle_karma(request):
             voted = True
         author.save()
         comment.save()
-        customer.save()
-
         return JsonResponse(
             {
                 "success": True,
                 "karma": comment.karma,
-                "karmatotal": customer.karmatotal,
+                "karmatotal": author.karmatotal,
                 "voted": voted,
             }
         )
