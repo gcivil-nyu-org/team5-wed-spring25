@@ -1,0 +1,22 @@
+branch-defaults:
+  default:
+    environment: CleanBites-amznlnx-docker-stable-env
+    group_suffix: null
+environment-defaults:
+  CleanBites-amznlnx-docker-stable-env:
+    branch: null
+    repository: null
+global:
+  application_name: CleanBites-amznlnx-docker-stable
+  branch: null
+  default_ec2_keyname: clean-bites
+  default_platform: Docker running on 64bit Amazon Linux 2023
+  default_region: us-west-2
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  profile: eb-cli
+  repository: null
+  sc: null
+  workspace_type: Application
