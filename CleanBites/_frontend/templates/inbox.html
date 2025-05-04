@@ -56,9 +56,9 @@
     <div class="container p-0">
   
       <h1 class="h3 mb-3">Inbox</h1>
-      <div id="chat-container" style="height: 70vh; display: flex; flex-direction: column;">
-      <div class="card" style="height: 70vh; display: flex; flex-direction: column;">
-        <div class="row g-0" style="height: 70vh;">
+      <div id="chat-container" style="height: 80%; display: flex; flex-direction: column; min-height: 500px;">
+      <div class="card" style="height: 80%; display: flex; flex-direction: column; min-height: 500px;">
+        <div class="row g-0" style="height: 80%; min-height: 500px;">
   
           <!-- Left Panel: Conversations -->
           <div class="col-12 col-lg-5 col-xl-3 border-end" style="border-right: 1px solid #dee2e6;">
@@ -145,7 +145,7 @@
             {% endif %}
   
             <!-- Messages Thread -->
-            <div class="flex-grow-1 overflow-auto chat-messages p-4">
+            <div class="flex-grow-1 overflow-auto chat-messages p-4" style=" max-height: 500px;overflow-y: auto;">
               {% for message in messages %}
               <div class="chat-message mb-4 d-flex {% if active_chat.id == message.sender_id %}justify-content-start{% else %}justify-content-end{% endif %}">
                 {% if active_chat.id == message.sender_id %}
