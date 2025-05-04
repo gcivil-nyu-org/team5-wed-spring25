@@ -76,15 +76,16 @@
   /* Toggle Button Styling */
   .toggle-wrapper {
     position: fixed;
-    bottom: 20px;
+    bottom: 0px;
     left: 50%;
+    width: 100%;
     transform: translateX(-50%);
     z-index: 1003;
     transition: bottom 0.3s ease;
   }
   
   .toggle-wrapper.shifted {
-    bottom: 65vh; /* Just enough to rise above modal without looking awkward */
+    bottom: 0px; /* Just enough to rise above modal without looking awkward */
   }
   
   .toggle-btn {
@@ -92,9 +93,10 @@
     background: #fff;
     color: #333;
     border: 1px solid #ccc;
-    border-radius: 8px;
+    border-radius: 0px;
     font-weight: bold;
     cursor: pointer;
+    width: 100%;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   </style>
