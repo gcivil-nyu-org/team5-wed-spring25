@@ -40,11 +40,11 @@ class RestaurantViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        rating = self.request.query_params.get('rating', None)
-        
+        rating = self.request.query_params.get("rating", None)
+
         if rating:
             try:
-                ratings = rating.split(',')
+                ratings = rating.split(",")
                 rating_filter = Q()
                 if "A" in ratings:
                     rating_filter |= Q(hygiene_rating__lte=13)
@@ -55,7 +55,7 @@ class RestaurantViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(rating_filter)
             except ValueError:
                 pass  # Ignore invalid ratings
-                
+
         return queryset
 
 
