@@ -35,6 +35,7 @@
   }
   
   .violation-modal.show {
+    bottom: 40px;
     transform: translateY(0%);
   }
   
@@ -126,7 +127,7 @@
     container.innerHTML = "Loading...";
   
     try {
-      const res = await fetch("/api/restaurants/restaurants/?ordering=-inspection_date&limit=50");
+      const res = await fetch("/api/restaurants/restaurants/?ordering=-inspection_date");
   
       // Defensive check for failed fetch
       if (!res.ok) {
