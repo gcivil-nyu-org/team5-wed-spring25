@@ -16,6 +16,7 @@
             padding: 20px 40px;
             background-color: #ffffff;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 100;
         }
         .title {
             font-size: 1.8rem;
@@ -28,23 +29,36 @@
             font-weight: 500;
         }
         .herobody {
+            margin-top: 65px; /* Add margin to push it below header */
+            position: relative; 
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 70vh;
             text-align: center;
-            background: linear-gradient(to bottom right, #ffe5b4, #ffa726);
+            background: url('{% static "images/hero_image.png" %}') no-repeat center center;
+            background-size: cover;
+            z-index: 1;
         }
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+            max-width: 800px;
+        }
+        
         .hero h1 {
             font-size: 3rem;
             font-weight: 800;
             margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
         .hero p {
             font-size: 1.25rem;
             color: #444;
             max-width: 600px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
         .gallery {
             background-color: #fff3e0;

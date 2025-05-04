@@ -20,7 +20,7 @@
     {% if user.is_authenticated %}
         {% include 'components/header_nofilter.html' %}
     {% else %}
-        <nav class="apple-navbar">
+        <nav class="apple-navbar" style="z-index: 100;">
             <div class="navbar-left">
               <a href="{% url 'home' %}">
                 <img src="{% static 'images/logo.png' %}" style="width: auto; height: 40px; max-width: 100%; display: block;">
