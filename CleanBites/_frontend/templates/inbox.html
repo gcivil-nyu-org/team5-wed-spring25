@@ -56,9 +56,9 @@
     <div class="container p-0">
   
       <h1 class="h3 mb-3">Inbox</h1>
-      <div id="chat-container" style="height: 80vh; display: flex; flex-direction: column;">
-      <div class="card" style="height: 80vh; display: flex; flex-direction: column;">
-        <div class="row g-0" style="height: 80vh;">
+      <div id="chat-container" style="height: 80%; display: flex; flex-direction: column; min-height: 500px;">
+      <div class="card" style="height: 80%; display: flex; flex-direction: column; min-height: 500px;">
+        <div class="row g-0" style="height: 80%; min-height: 500px;">
   
           <!-- Left Panel: Conversations -->
           <div class="col-12 col-lg-5 col-xl-3 border-end" style="border-right: 1px solid #dee2e6;">
@@ -145,7 +145,7 @@
             {% endif %}
   
             <!-- Messages Thread -->
-            <div class="flex-grow-1 overflow-auto chat-messages p-4" style="height: 500px;">
+            <div class="flex-grow-1 overflow-auto chat-messages p-4" style=" max-height: 500px;overflow-y: auto;">
               {% for message in messages %}
               <div class="chat-message mb-4 d-flex {% if active_chat.id == message.sender_id %}justify-content-start{% else %}justify-content-end{% endif %}">
                 {% if active_chat.id == message.sender_id %}
@@ -260,61 +260,70 @@
 </script>
 
 <script>
-  async function pollMessages(chatUserId = null) {
+    async function pollMessages(chatUserId = null) {
       try {
           const response = await fetch(`/stream_messages/${chatUserId || ''}`);
           const data = await response.json();
-
-          if (data.messages) {
+  
+          if (data.messages && data.messages.length > 0) {
               const messagesContainer = document.querySelector(".chat-messages");
-              messagesContainer.innerHTML = ""; // Clear existing messages
-
-              data.messages.forEach((message) => {
-                  const userId = parseInt(document.getElementById("userId").value);
-                  const activeChatId = parseInt(document.getElementById("activeChatId").value);
-                  
-                  // Match the template logic: if active_chat.id (activeChatId) equals message.sender_id, 
-                  // it's a message FROM the chat partner TO the current user
-                  const isFromPartner = message.sender__id === activeChatId;
-                  
-                  const messageDiv = document.createElement("div");
-                  messageDiv.className = `chat-message mb-4 d-flex ${
-                      isFromPartner ? "justify-content-start" : "justify-content-end"
-                  }`;
-
-                  // Build HTML based on whether this is a message from the partner or from the current user
-                  let html = '';
-                  
-                  // For messages from partner, show avatar on left
-                  if (isFromPartner) {
-                      html += `<img src="/static/images/avatar-placeholder.png" class="rounded-circle mr-1" width="40" height="40">`;
-                  }
-                  
-                  // Message content
-                  html += `<div style="padding-left: 5px; padding-right: 5px;">
-                      <div class="flex-shrink-1 rounded py-2 px-3 ${
-                          isFromPartner ? "bg-light" : "bg-primary text-white"
-                      }" style="padding: 5px;">
-                          ${message.message}
-                      </div>
-                      <div class="text-muted small mt-1 ${
-                          isFromPartner ? "text-left" : "text-right"
-                      }">
-                          ${new Date(message.sent_at).toLocaleString()}
-                      </div>
-                  </div>`;
-                  
-                  // For messages from current user, show avatar on right
-                  if (!isFromPartner) {
-                      html += `<img src="/static/images/avatar-placeholder.png" class="rounded-circle ml-1" width="40" height="40">`;
-                  }
-                  
-                  messageDiv.innerHTML = html;
-                  messagesContainer.appendChild(messageDiv);
-              });
               
-              // Scroll to the bottom of the messages container
-              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              // Check if the content has actually changed before updating
+              const currentMessages = Array.from(messagesContainer.children)
+                  .filter(el => el.classList.contains('chat-message'))
+                  .length;
+                  
+              // Only update if the message count has changed
+              if (currentMessages !== data.messages.length) {
+                  messagesContainer.innerHTML = ""; // Clear existing messages
+  
+                  data.messages.forEach((message) => {
+                      const userId = parseInt(document.getElementById("userId").value);
+                      const activeChatId = parseInt(document.getElementById("activeChatId").value);
+                      
+                      // Match the template logic: if active_chat.id (activeChatId) equals message.sender_id, 
+                      // it's a message FROM the chat partner TO the current user
+                      const isFromPartner = message.sender__id === activeChatId;
+                      
+                      const messageDiv = document.createElement("div");
+                      messageDiv.className = `chat-message mb-4 d-flex ${
+                          isFromPartner ? "justify-content-start" : "justify-content-end"
+                      }`;
+  
+                      // Build HTML based on whether this is a message from the partner or from the current user
+                      let html = '';
+                      
+                      // For messages from partner, show avatar on left
+                      if (isFromPartner) {
+                          html += `<img src="/static/images/avatar-placeholder.png" class="rounded-circle mr-1" width="40" height="40">`;
+                      }
+                      
+                      // Message content
+                      html += `<div style="padding-left: 5px; padding-right: 5px;">
+                          <div class="flex-shrink-1 rounded py-2 px-3 ${
+                              isFromPartner ? "bg-light" : "bg-primary text-white"
+                          }" style="padding: 5px;">
+                              ${message.message}
+                          </div>
+                          <div class="text-muted small mt-1 ${
+                              isFromPartner ? "text-left" : "text-right"
+                          }">
+                              ${new Date(message.sent_at).toLocaleString()}
+                          </div>
+                      </div>`;
+                      
+                      // For messages from current user, show avatar on right
+                      if (!isFromPartner) {
+                          html += `<img src="/static/images/avatar-placeholder.png" class="rounded-circle ml-1" width="40" height="40">`;
+                      }
+                      
+                      messageDiv.innerHTML = html;
+                      messagesContainer.appendChild(messageDiv);
+                  });
+                  
+                  // Scroll to the bottom of the messages container only when content changed
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              }
           }
       } catch (error) {
           console.error("Error polling messages:", error);
