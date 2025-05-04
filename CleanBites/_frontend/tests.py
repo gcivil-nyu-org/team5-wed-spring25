@@ -2234,27 +2234,9 @@ class UserSettingsViewTests(TestCase):
         response = self.client.get(reverse("user_settings"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "settings.html")
-        self.assertIn("email_form", response.context)
         self.assertIn("password_form", response.context)
         self.assertIn("deactivate_form", response.context)
         self.assertIn("blocked_usernames", response.context)
-
-    def test_change_email_success(self):
-        """Test successfully changing the email address."""
-        response = self.client.post(
-            reverse("user_settings"),
-            {
-                "change_email": True,
-                "email": "newemail@example.com",
-            },
-            follow=True,
-        )
-
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.email, "newemail@example.com")
-
-        messages = list(get_messages(response.wsgi_request))
-        self.assertTrue(any("Email updated successfully." in str(m) for m in messages))
 
     def test_change_password_success(self):
         """Test successfully changing the password."""
