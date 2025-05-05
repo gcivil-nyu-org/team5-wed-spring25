@@ -150,12 +150,10 @@ def toggle_karma(request):
     if request.method == "POST":
         data = json.loads(request.body)
         comment_id = data.get("comment_id")
-        customer_id = data.get("customer_id")
-
+        customer = get_object_or_404(Customer, username=request.user.username)
         # Fetch comment and customer
         try:
             comment = Comment.objects.get(id=comment_id)
-            customer = Customer.objects.get(id=customer_id)
             author = comment.commenter
         except (Comment.DoesNotExist, Customer.DoesNotExist):
             return JsonResponse({"error": "Comment or Customer not found"}, status=404)
@@ -224,7 +222,7 @@ def profile_router(request, username):
         user_obj = Restaurant.objects.get(username=username)
 
         try:
-            current_customer = Customer.objects.get(username=request.user.username)
+            current_customer = get_object_or_404(Customer, username=request.user.username)
         except Customer.DoesNotExist:
             current_customer = None
 

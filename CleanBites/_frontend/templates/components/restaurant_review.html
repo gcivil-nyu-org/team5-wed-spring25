@@ -207,14 +207,12 @@
 }
 </style>
 <script>
-const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
   // Hide all reply lists on page load
   window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reply-list').forEach(el => el.style.display = 'none');
   });
 
   function toggleReplies(id, btn) {
-    const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
     console.log(CURRENT_CUSTOMER_ID)
     const el = document.getElementById(id);
     const isHidden = el.style.display === "none";
@@ -225,7 +223,6 @@ const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
   document.querySelectorAll('.karma-btn').forEach(function (button) {
     button.addEventListener('click', function () {
       const commentId = this.dataset.commentId;
-      const customerId = CURRENT_CUSTOMER_ID;
       const karmaCountEl = this.querySelector('.karma-count');
 
       fetch("{% url 'toggle_karma' %}", {
@@ -234,7 +231,7 @@ const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
           'Content-Type': 'application/json',
           'X-CSRFToken': '{{ csrf_token }}',
         },
-        body: JSON.stringify({ comment_id: commentId, customer_id: customerId })
+        body: JSON.stringify({ comment_id: commentId })
       })
         .then(response => response.json())
         .then(data => {
