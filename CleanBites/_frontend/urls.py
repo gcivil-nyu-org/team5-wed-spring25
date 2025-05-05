@@ -45,7 +45,7 @@ urlpatterns = [
     ),
     path("bookmarks/", views.bookmarks_view, name="bookmarks_view"),
     path(
-        "deactivate_account/<str:user_type>/<int:user_id>/",
+        "deactivate_account/<str:user_type>/<int:user_id>/<int:comment_id>/",
         views.deactivate_account,
         name="deactivate_account",
     ),
