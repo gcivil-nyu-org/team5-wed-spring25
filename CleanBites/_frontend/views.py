@@ -40,6 +40,7 @@ def home_view(request):
     context = {"has_unread_messages": has_unread_messages(request.user)}
     return render(request, "home.html", context)
 
+
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)

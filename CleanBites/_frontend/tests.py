@@ -804,7 +804,9 @@ class ModeratorViewTests(TestCase):
             rating=4,
             health_rating=3,
         )
-        url = reverse("deactivate_account", args=["customer", self.customer1.id, comment.id])
+        url = reverse(
+            "deactivate_account", args=["customer", self.customer1.id, comment.id]
+        )
         response = self.client.post(url)
         self.customer1.refresh_from_db()
         self.assertFalse(self.customer1.is_activated)
@@ -841,7 +843,9 @@ class ModeratorViewTests(TestCase):
             rating=4,
             health_rating=3,
         )
-        url = reverse("deactivate_account", args=["restaurant", restaurant.id, comment.id])
+        url = reverse(
+            "deactivate_account", args=["restaurant", restaurant.id, comment.id]
+        )
         response = self.client.post(url)
 
         restaurant.refresh_from_db()
