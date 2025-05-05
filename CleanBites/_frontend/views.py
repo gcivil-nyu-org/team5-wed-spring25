@@ -154,7 +154,7 @@ def admin_profile(request, username):
     return render(request, "admin_profile.html", context)
 
 
-@csrf_exempt
+@login_required(login_url="/login/")
 def toggle_karma(request):
     if request.method == "POST":
         data = json.loads(request.body)
