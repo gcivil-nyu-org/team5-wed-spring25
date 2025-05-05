@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
-from .forms import Review, EmailChangeForm, DeactivateAccountForm
+from .forms import Review, DeactivateAccountForm
 from django.http import JsonResponse
 from django.db.models import Avg
 import json
@@ -44,16 +44,25 @@ def home_view(request):
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
+
     try:
         current_customer = Customer.objects.get(email=request.user.email)
     except Customer.DoesNotExist:
         current_customer = None
+
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
         Q(commenter__is_activated=True)
         | Q(commenter__deactivated_until__lt=date.today()),
         parent__isnull=True,  # only include comments from active customers
-    ).order_by("-posted_at")
+    )
+
+    if current_customer:
+        reviews = reviews.exclude(
+            commenter_id__in=current_customer.blocked_customers.all()
+        )
+    reviews = reviews.order_by("-posted_at")
+
     avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))[
         "rating__avg"
     ]
@@ -129,8 +138,8 @@ def user_profile(request, username):
     context = {
         "profile_user": user,
         "profle_customer": profile_customer,
+        "current_customer": current_customer,
         "has_unread_messages": has_unread_messages(request.user),
-        "customer": profile_customer,
         "is_owner": is_owner,
         "reviews": reviews,
         "is_blocked": is_blocked,
@@ -222,7 +231,6 @@ def update_restaurant_profile_view(request):
 def profile_router(request, username):
     try:
         user_obj = Restaurant.objects.get(username=username)
-
         try:
             current_customer = Customer.objects.get(username=request.user.username)
         except Customer.DoesNotExist:
@@ -469,7 +477,7 @@ def block_user(request, user_type, username):
         messages.error(request, "Invalid user type.")
         return redirect("home")
     blocker.blocked_customers.add(target)
-    messages.success(request, f"You have blocked {target}.")
+    messages.success(request, f"You have blocked {target}({username}).")
     return redirect("home")
 
 
@@ -494,16 +502,30 @@ def unblock_user(request, user_type, username):
 
 @login_required(login_url="/login/")
 def delete_comment(request, comment_id):
-    try:
-        moderator = Moderator.objects.get(email=request.user.email)
-    except Moderator.DoesNotExist:
-        messages.error(request, "Unauthorized action.")
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    # moderators can delete any comment
+    if Moderator.objects.filter(email=request.user.email).exists():
+        comment.k_voters.clear()
+        comment.delete()
+        messages.success(request, "Comment deleted successfully.")
+        # redirect back to moderator profile
+        # return redirect("moderator_profile", username=request.user.username)
+        return redirect("moderator_profile")
+
+    #  customers can only delete their own
+    customer = get_object_or_404(Customer, email=request.user.email)
+    if comment.commenter_id != customer.id:
+        messages.error(
+            request, "Unauthorized action – you can’t delete someone else's comment."
+        )
         return redirect("home")
 
-    comment = get_object_or_404(Comment, id=comment_id)
+    restaurant_id = comment.restaurant_id
+    comment.k_voters.clear()
     comment.delete()
     messages.success(request, "Comment deleted successfully.")
-    return redirect("moderator_profile")
+    return redirect("restaurant_detail", id=restaurant_id)
 
 
 @login_required(login_url="/login/")
@@ -841,7 +863,6 @@ def user_settings(request):
     user = request.user
 
     # Pre-fill forms
-    email_form = EmailChangeForm(instance=user)
     password_form = PasswordChangeForm(user=user)
     deactivate_form = DeactivateAccountForm()
 
@@ -853,14 +874,8 @@ def user_settings(request):
     except Customer.DoesNotExist:
         pass
     if request.method == "POST":
-        if "change_email" in request.POST:
-            email_form = EmailChangeForm(request.POST, instance=user)
-            if email_form.is_valid():
-                email_form.save()
-                messages.success(request, "Email updated successfully.")
-                return redirect("user_settings")
 
-        elif "change_password" in request.POST:
+        if "change_password" in request.POST:
             password_form = PasswordChangeForm(user, request.POST)
             if password_form.is_valid():
                 password_form.save()
@@ -871,17 +886,16 @@ def user_settings(request):
         elif "deactivate" in request.POST:
             deactivate_form = DeactivateAccountForm(request.POST)
             if deactivate_form.is_valid() and deactivate_form.cleaned_data["confirm"]:
+                messages.success(request, "Your account has been deactivated.")
                 user.is_active = False
                 user.save()
                 logout(request)
-                messages.success(request, "Your account has been deactivated.")
                 return redirect("home")
 
     return render(
         request,
         "settings.html",
         {
-            "email_form": email_form,
             "password_form": password_form,
             "deactivate_form": deactivate_form,
             "blocked_usernames": blocked_usernames,

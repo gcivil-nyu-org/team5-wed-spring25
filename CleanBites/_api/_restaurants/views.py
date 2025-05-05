@@ -38,6 +38,26 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     # Ordering: allow ?ordering=inspection_date (or ?ordering=-inspection_date for descending)
     ordering_fields = ["inspection_date", "hygiene_rating"]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        rating = self.request.query_params.get("rating", None)
+
+        if rating:
+            try:
+                ratings = rating.split(",")
+                rating_filter = Q()
+                if "A" in ratings:
+                    rating_filter |= Q(hygiene_rating__lte=13)
+                if "B" in ratings:
+                    rating_filter |= Q(hygiene_rating__gte=14, hygiene_rating__lte=27)
+                if "C" in ratings:
+                    rating_filter |= Q(hygiene_rating__gte=28)
+                queryset = queryset.filter(rating_filter)
+            except ValueError:
+                pass  # Ignore invalid ratings
+
+        return queryset
+
 
 class RestaurantListView(generics.ListAPIView):
     queryset = Restaurant.objects.all()
