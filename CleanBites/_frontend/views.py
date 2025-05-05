@@ -47,9 +47,10 @@ def restaurant_detail(request, id):
 
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
+        # only include comments from active customers
         Q(commenter__is_activated=True)
         | Q(commenter__deactivated_until__lt=date.today()),
-        parent__isnull=True,  # only include comments from active customers
+        parent__isnull=True,
     )
 
     if Moderator.objects.filter(email=request.user.email).exists():
@@ -78,6 +79,7 @@ def restaurant_detail(request, id):
         is_owner = True
 
     is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+    is_customer = not Moderator.objects.filter(username=request.user.username).exists()
 
     return render(
         request,
