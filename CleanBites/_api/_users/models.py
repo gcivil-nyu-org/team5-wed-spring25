@@ -19,6 +19,7 @@ class Customer(models.Model):
         # related_name='blocked_by',
         blank=True,
     )
+    aboutme = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
