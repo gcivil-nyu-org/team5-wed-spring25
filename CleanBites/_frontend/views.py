@@ -40,35 +40,6 @@ def home_view(request):
     context = {"has_unread_messages": has_unread_messages(request.user)}
     return render(request, "home.html", context)
 
-
-@login_required(login_url="/login/")
-def delete_comment(request, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-
-    # moderators can delete any comment
-    if Moderator.objects.filter(email=request.user.email).exists():
-        comment.k_voters.clear()
-        comment.delete()
-        messages.success(request, "Comment deleted successfully.")
-        # redirect back to moderator profile
-        # return redirect("moderator_profile", username=request.user.username)
-        return redirect("moderator_profile")
-
-    #  customers can only delete their own
-    customer = get_object_or_404(Customer, email=request.user.email)
-    if comment.commenter_id != customer.id:
-        messages.error(
-            request, "Unauthorized action – you can’t delete someone else's comment."
-        )
-        return redirect("home")
-
-    restaurant_id = comment.restaurant_id
-    comment.k_voters.clear()
-    comment.delete()
-    messages.success(request, "Comment deleted successfully.")
-    return redirect("restaurant_detail", id=restaurant_id)
-
-
 @login_required(login_url="/login/")
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
