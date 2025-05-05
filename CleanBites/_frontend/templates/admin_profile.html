@@ -70,6 +70,7 @@
                 <th>Posted at</th>
                 <th>Flagged by</th>
                 <th>Action</th>
+                <th>Delete Comment</th>
               </tr>
             </thead>
             <tbody>
@@ -84,28 +85,24 @@
                 <td>{{ comment.posted_at }}</td>
                 <td>{{ comment.flagged_by.username }}</td>
                 <td>
-                  <td>
-                    <div class="d-flex gap-2">
-                      <!-- suspend/deactivate -->
-                      <button
-                        type="button"
-                        class="btn btn-outline-danger deactivateBtn"
-                        data-userid="{{ comment.commenter.id }}">
-                        Deactivate/Suspend
-                      </button>
-                  </td>
-                  <td>
-                    <!-- delete comment -->
-                    <form method="post" action="{% url 'delete_comment' comment.id %}" style="display:inline;" onsubmit="return confirm('Really delete this comment?');">
-                      {% csrf_token %}
-                      <button type="submit" class="btn-delete" title="Delete comment">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </form>
-                  </td>
-                
-
-                  </div>
+                  <div class="d-flex gap-2">
+                    <!-- suspend/deactivate -->
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger deactivateBtn"
+                      data-userid="{{ comment.commenter.id }}"
+                      data-commentid="{{ comment.id }}">
+                      Deactivate/Suspend
+                    </button>
+                </td>
+                <td>
+                  <!-- delete comment -->
+                  <form method="post" action="{% url 'delete_comment' comment.id %}" style="display:inline;" onsubmit="return confirm('Really delete this comment?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-delete" title="Delete comment">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
                 </td>
               </tr>
               {% endfor %}
@@ -240,8 +237,9 @@
           var btn = e.target.closest(".deactivateBtn");
           if (btn) {
               var userId = btn.getAttribute("data-userid");
+              var commentId = btn.getAttribute("data-commentid");
               document.getElementById("modalUserId").value = userId;
-              document.getElementById("deactivateForm").action = "/deactivate_account/customer/" + userId + "/";
+              document.getElementById("deactivateForm").action = "/deactivate_account/customer/" + userId + "/" + commentId + "/";
               var deactivateModal = new bootstrap.Modal(deactivateModalEl);
               deactivateModal.show();
           }
