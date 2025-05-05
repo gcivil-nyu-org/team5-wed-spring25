@@ -45,11 +45,6 @@ def home_view(request):
 def restaurant_detail(request, id):
     restaurant = get_object_or_404(Restaurant, id=id)
 
-    try:
-        current_customer = Customer.objects.get(email=request.user.email)
-    except Customer.DoesNotExist:
-        current_customer = None
-
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
         Q(commenter__is_activated=True)
@@ -57,10 +52,18 @@ def restaurant_detail(request, id):
         parent__isnull=True,  # only include comments from active customers
     )
 
-    if current_customer:
-        reviews = reviews.exclude(
-            commenter_id__in=current_customer.blocked_customers.all()
-        )
+    if Moderator.objects.filter(email=request.user.email).exists():
+        user = Moderator.objects.get(email=request.user.email)
+    elif Customer.objects.filter(email=request.user.email).exists():
+        user = Customer.objects.get(email=request.user.email)
+        reviews = reviews.exclude(commenter_id__in=user.blocked_customers.all())
+    else:
+        user = Restaurant.objects.get(email=request.user.email)
+    # try:
+    #     current_customer = Customer.objects.get(email=request.user.email)
+    # except Customer.DoesNotExist:
+    #     current_customer = None
+
     reviews = reviews.order_by("-posted_at")
 
     avg_rating = reviews.filter(parent__isnull=True).aggregate(Avg("rating"))[
@@ -69,6 +72,7 @@ def restaurant_detail(request, id):
     avg_health = reviews.filter(parent__isnull=True).aggregate(Avg("health_rating"))[
         "health_rating__avg"
     ]
+
     is_owner = False
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
@@ -86,7 +90,7 @@ def restaurant_detail(request, id):
             "is_owner": is_owner,
             "has_unread_messages": has_unread_messages(request.user),
             "is_customer": is_customer,
-            "current_customer": current_customer,
+            "current_user": user,
         },
     )
 
@@ -232,7 +236,7 @@ def profile_router(request, username):
     try:
         user_obj = Restaurant.objects.get(username=username)
         try:
-            current_customer = Customer.objects.get(email=request.user.email)
+            current_customer = Customer.objects.get(username=request.user.username)
         except Customer.DoesNotExist:
             current_customer = None
 
@@ -428,7 +432,7 @@ def moderator_profile_view(request):
 
 
 @login_required(login_url="/login/")
-def deactivate_account(request, user_type, user_id):
+def deactivate_account(request, user_type, user_id, comment_id):
     # verify user is a moderator
     try:
         moderator = Moderator.objects.get(email=request.user.email)
@@ -454,6 +458,13 @@ def deactivate_account(request, user_type, user_id):
         # suspension
         else:
             user_obj.deactivated_until = deactivated_until
+            # delete original comment
+            try:
+                flagged = Comment.objects.get(id=comment_id)
+                flagged.k_voters.clear()
+                flagged.delete()
+            except Comment.DoesNotExist:
+                messages.warning(request, "Comment to delete wasn’t found.")
         user_obj.is_activated = False
         user_obj.save()
         return redirect("moderator_profile")
@@ -557,7 +568,6 @@ def report_comment(request):
                     {"success": False, "error": "Flagger not found"}, status=404
                 )
 
-            # Use generic foreign key fields to store the flagger
             comment.flagged_by_content_type = ContentType.objects.get_for_model(flagger)
             comment.flagged_by_object_id = flagger.id
             comment.save()
