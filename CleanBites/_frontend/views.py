@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from _frontend.utils import has_unread_messages
-from .forms import Review, EmailChangeForm, DeactivateAccountForm
+from .forms import Review, DeactivateAccountForm
 from django.http import JsonResponse
 from django.db.models import Avg
 import json
@@ -188,13 +188,11 @@ def toggle_karma(request):
             voted = True
         author.save()
         comment.save()
-        customer.save()
-
         return JsonResponse(
             {
                 "success": True,
                 "karma": comment.karma,
-                "karmatotal": customer.karmatotal,
+                "karmatotal": author.karmatotal,
                 "voted": voted,
             }
         )
@@ -240,7 +238,7 @@ def profile_router(request, username):
     try:
         user_obj = Restaurant.objects.get(username=username)
         try:
-            current_customer = Customer.objects.get(email=request.user.email)
+            current_customer = Customer.objects.get(username=request.user.username)
         except Customer.DoesNotExist:
             current_customer = None
 
@@ -877,7 +875,6 @@ def user_settings(request):
     user = request.user
 
     # Pre-fill forms
-    email_form = EmailChangeForm(instance=user)
     password_form = PasswordChangeForm(user=user)
     deactivate_form = DeactivateAccountForm()
 
@@ -889,14 +886,8 @@ def user_settings(request):
     except Customer.DoesNotExist:
         pass
     if request.method == "POST":
-        if "change_email" in request.POST:
-            email_form = EmailChangeForm(request.POST, instance=user)
-            if email_form.is_valid():
-                email_form.save()
-                messages.success(request, "Email updated successfully.")
-                return redirect("user_settings")
 
-        elif "change_password" in request.POST:
+        if "change_password" in request.POST:
             password_form = PasswordChangeForm(user, request.POST)
             if password_form.is_valid():
                 password_form.save()
@@ -917,7 +908,6 @@ def user_settings(request):
         request,
         "settings.html",
         {
-            "email_form": email_form,
             "password_form": password_form,
             "deactivate_form": deactivate_form,
             "blocked_usernames": blocked_usernames,
