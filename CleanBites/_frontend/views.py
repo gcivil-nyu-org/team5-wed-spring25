@@ -1438,11 +1438,6 @@ def delete_conversation(request, other_user_id, **kwargs):
             | (Q(sender=other_user) & Q(receiver=user))
         ).delete()
 
-        messages.success(
-            request,
-            f"Conversation with {other_user.first_name} has been deleted.",
-            extra_tags=INBOX_MESSAGE,
-        )
         return redirect("messages inbox")
     except Customer.DoesNotExist:
         messages.error(request, "Your account was not found.", extra_tags=INBOX_MESSAGE)
