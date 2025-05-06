@@ -288,15 +288,26 @@
 }
 </style>
 <script>
-const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
   // Hide all reply lists on page load
   window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reply-list').forEach(el => el.style.display = 'none');
   });
-
+  function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === name + '=') {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
   function toggleReplies(id, btn) {
-    const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
-    console.log(CURRENT_CUSTOMER_ID)
     const el = document.getElementById(id);
     const isHidden = el.style.display === "none";
     el.style.display = isHidden ? "block" : "none";
@@ -306,16 +317,15 @@ const CURRENT_CUSTOMER_ID = {{ current_customer.id|default:"null"}};
   document.querySelectorAll('.karma-btn').forEach(function (button) {
     button.addEventListener('click', function () {
       const commentId = this.dataset.commentId;
-      const customerId = CURRENT_CUSTOMER_ID;
       const karmaCountEl = this.querySelector('.karma-count');
 
       fetch("{% url 'toggle_karma' %}", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': '{{ csrf_token }}',
+          'X-CSRFToken': csrftoken,
         },
-        body: JSON.stringify({ comment_id: commentId, customer_id: customerId })
+        body: JSON.stringify({ comment_id: commentId })
       })
         .then(response => response.json())
         .then(data => {
