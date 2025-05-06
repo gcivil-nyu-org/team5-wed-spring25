@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CleanBites NYC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="overflow-y: auto; background: linear-gradient(to bottom right, #ffe5b4, #ffa726);">
+    <!-- Hero Section -->
+    <section class="hero-section" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(to bottom right, #ffe5b4, #ffa726);">
+        <div class="container text-center py-5">
+          <h1 class="display-4 fw-bold text-dark">Find the Cleanest Bites in NYC</h1>
+          <p class="lead text-muted mb-4">Explore hygiene ratings, inspection history, and reviews for 20,000+ restaurants in NYC.</p>
+          <div class="d-flex justify-content-center gap-3">
+            <a href="/map" class="btn btn-warning btn-lg rounded-pill px-4 shadow-sm">Explore the Map</a>
+            <a href="/login" class="btn btn-outline-dark btn-lg rounded-pill px-4">Log in / Sign up</a>
+          </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="how-it-works py-5 bg-white">
+        <div class="container text-center">
+          <h2 class="mb-5 fw-bold">How CleanBites Works</h2>
+          <div class="row justify-content-center g-4">
+            <div class="col-md-3">
+              <img src="https://img.icons8.com/ios-filled/50/search--v1.png" alt="Search" class="mb-3">
+              <p class="fw-medium">Search Restaurants</p>
+            </div>
+            <div class="col-md-3">
+              <img src="https://img.icons8.com/ios-filled/50/clipboard.png" alt="Check Hygiene" class="mb-3">
+              <p class="fw-medium">Check Hygiene History</p>
+            </div>
+            <div class="col-md-3">
+              <img src="https://img.icons8.com/ios-filled/50/rating.png" alt="Reviews" class="mb-3">
+              <p class="fw-medium">Read & Write Reviews</p>
+            </div>
+          </div>
+        </div>
+    </section>
+
+    <!-- Scrollable Gallery -->
+    <section class="bg-light py-5">
+        <div class="container text-center">
+          <h2 class="fw-bold mb-4">Spotlight on NYC Restaurants</h2>
+          <div style="display: flex; overflow-x: auto; gap: 20px; padding: 20px 0; scroll-behavior: smooth;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/47/New_york_times_square-terabass.jpg" alt="NYC 1" style="height: 250px; border-radius: 16px;">
+            <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80" alt="NYC 2" style="height: 250px; border-radius: 16px;">
+            <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80" alt="NYC 3" style="height: 250px; border-radius: 16px;">
+            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="NYC 4" style="height: 250px; border-radius: 16px;">
+            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80" alt="NYC 5" style="height: 250px; border-radius: 16px;">
+          </div>
+        </div>
+    </section>
+
+    <!-- Map Feature Section -->
+    <section class="bg-white py-5">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: row; align-items: stretch; flex-wrap: wrap; gap: 30px;">
+          <div class="row align-items-center">
+            <div class="col-md-6 mb-4 mb-md-0">
+              <h2 class="fw-bold mb-3">Explore Health Ratings on the Map</h2>
+              <p class="text-muted">
+                CleanBites integrates restaurant health inspection data with an interactive OpenStreetMap interface, allowing you to visually explore hygiene ratings across NYC neighborhoods.
+              </p>
+              <ul class="text-muted">
+                <li>Color-coded pins show health ratings at a glance</li>
+                <li>Filter by score, cuisine, or neighborhood</li>
+                <li>Access inspection history straight from the map</li>
+                <li>Find the cleanest dining options in your area</li>
+              </ul>
+              <a href="/map" class="btn btn-warning rounded-pill px-4 mt-3 shadow-sm">Explore the Map</a>
+            </div>
+            <div class="col-md-6 text-center">
+                <div style="min-width: 300px;">
+                    <img src="{% static 'images/Mapasset.png' %}" 
+                         alt="Map Graphic"
+                         style="width: 100%; height: auto; border-radius: 16px; max-height: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+                  </div>                        
+          </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background: linear-gradient(to top, #ffe5b4, #fff3e0); padding: 40px 20px; text-align: center; font-size: 0.95rem; color: #444; border-top: 1px solid #f1c27d;">
+        <div style="max-width: 1000px; margin: auto;">
+            <p style="font-size: 1.1rem; font-weight: 600;">🚀 Built with love by NYU Tandon students 💜</p>
+            <p>Need help? Admins are standing by with snacks 🍪</p>
+            <div style="margin: 20px 0;">
+                <a href="/about" style="margin: 0 15px; color: #d2691e; text-decoration: none;">About</a>
+                <a href="/contact" style="margin: 0 15px; color: #d2691e; text-decoration: none;">Contact</a>
+                <a href="/privacy" style="margin: 0 15px; color: #d2691e; text-decoration: none;">Privacy</a>
+            </div>
+            <p style="margin-top: 20px;">🍊 &copy; 2025 CleanBites. Stay clean, eat happy!</p>
+        </div>
+    </footer>
+</body>
+</html>

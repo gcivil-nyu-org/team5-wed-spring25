@@ -34,39 +34,14 @@
             </div>
         </nav>
     {% endif %}
+    {% include "landing_body.html" %}
     {% include 'components/messages_modal.html' %}
+
     <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-…"
         crossorigin="anonymous">
     </script>
-    
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-br from-orange-300 to-orange-500 py-16 px-6 flex flex-col md:flex-row items-center justify-between">
-      <div class="max-w-xl text-center md:text-left">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-          Find the Cleanest Bites in NYC
-        </h1>
-        <p class="text-white mb-6 text-lg">
-          Explore hygiene ratings, inspection history, and reviews for <strong>20,000+</strong> restaurants in NYC.
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-          <a href="/map" class="bg-red-500 text-white px-6 py-3 rounded-full font-semibold shadow-md hover:bg-red-600 transition duration-200">
-            Explore the Map
-          </a>
-          <a href="/login" class="bg-white text-orange-600 px-6 py-3 rounded-full font-semibold shadow-md hover:bg-orange-100 transition duration-200">
-            Log in / Sign up
-          </a>
-        </div>
-      </div>
-    
-      <!-- Replace with map image later -->
-      <div class="hidden md:block mt-10 md:mt-0">
-        <div class="w-72 h-72 rounded-xl bg-orange-200 shadow-inner flex items-center justify-center text-white text-lg font-bold">
-          [Map Placeholder]
-        </div>
-      </div>
-    </section>
     
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
