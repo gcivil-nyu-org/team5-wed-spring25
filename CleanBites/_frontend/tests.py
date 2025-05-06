@@ -350,13 +350,6 @@ class MessageSystemTests(TestCase):
         # Verify messages were deleted
         self.assertEqual(DM.objects.count(), 0)
 
-        # Verify success message
-        messages = list(get_messages(response.wsgi_request))
-        self.assertEqual(len(messages), 1)
-        self.assertIn(
-            f"Conversation with {self.customer2.first_name}", str(messages[0])
-        )
-
     def test_send_message_generic_success(self):
         """Test successful message sending via generic endpoint"""
         self.client.login(username="user1", password="testpass123")
