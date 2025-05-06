@@ -47,9 +47,10 @@ def restaurant_detail(request, id):
 
     reviews = Comment.objects.filter(
         Q(restaurant=restaurant),
+        # only include comments from active customers
         Q(commenter__is_activated=True)
         | Q(commenter__deactivated_until__lt=date.today()),
-        parent__isnull=True,  # only include comments from active customers
+        parent__isnull=True,
     )
 
     if Moderator.objects.filter(email=request.user.email).exists():
@@ -78,6 +79,7 @@ def restaurant_detail(request, id):
         is_owner = True
 
     is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+    is_customer = not Moderator.objects.filter(username=request.user.username).exists()
 
     return render(
         request,
@@ -158,17 +160,15 @@ def admin_profile(request, username):
     return render(request, "admin_profile.html", context)
 
 
-@csrf_exempt
+@login_required(login_url="/login/")
 def toggle_karma(request):
     if request.method == "POST":
         data = json.loads(request.body)
         comment_id = data.get("comment_id")
-        customer_id = data.get("customer_id")
-
+        customer = get_object_or_404(Customer, username=request.user.username)
         # Fetch comment and customer
         try:
             comment = Comment.objects.get(id=comment_id)
-            customer = Customer.objects.get(id=customer_id)
             author = comment.commenter
         except (Comment.DoesNotExist, Customer.DoesNotExist):
             return JsonResponse({"error": "Comment or Customer not found"}, status=404)
