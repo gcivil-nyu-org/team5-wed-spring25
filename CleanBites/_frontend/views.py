@@ -230,9 +230,7 @@ def profile_router(request, username):
     try:
         user_obj = Restaurant.objects.get(username=username)
         try:
-            current_customer = get_object_or_404(
-                Customer, username=request.user.username
-            )
+            current_customer = Customer.objects.get(username=request.user.username)
         except Customer.DoesNotExist:
             current_customer = None
 
