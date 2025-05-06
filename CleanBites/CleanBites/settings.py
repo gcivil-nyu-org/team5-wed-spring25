@@ -28,7 +28,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))  # Make sure this path is c
 SECRET_KEY = "django-insecure-sv-x4mn5*eh6!r5=g@pk24v5=rc!_@8@^85rhyb*a9ho7miys^"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DJANGO_DEBUG_MODE", default=True)
 
 ALLOWED_HOSTS = [
     "ec2-54-190-192-108.us-west-2.compute.amazonaws.com",

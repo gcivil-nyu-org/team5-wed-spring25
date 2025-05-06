@@ -205,9 +205,7 @@
         const MIN_MARKER_ZOOM = 1;
 
         // Function to update markers dynamically without reloading the map GLOBAL
-        window.updateMarkers = function (data) {
-            console.log("🗺 Updating markers on the map...");
-    
+        window.updateMarkers = function (data) {   
             // Clear old markers before adding new ones
             window.markersLayer.clearLayers();
 
@@ -218,16 +216,6 @@
                 const latlng = L.latLng(coords[1], coords[0]);
                 return bounds.contains(latlng);
             });
-
-            if (visibleFeatures.length === 0) {
-                console.warn("⚠️ No visible features within bounds.");
-                return;
-            }
-    
-            if (!data.features || data.features.length === 0) {
-                console.warn("⚠️ No features found in response.");
-                return;
-            }
     
             // Add new markers based on GeoJSON data
             L.geoJSON({ ...data, features: visibleFeatures }, {
@@ -261,14 +249,11 @@
                   return marker;
                 }
             }).addTo(window.markersLayer);
-    
-            console.log("✅ Markers updated successfully!");
         };
     
 
         // Function to fetch data and update markers
         function updateMapData() {
-            console.log("🔄 Fetching initial restaurant data...");
             fetch('/api/restaurants/geojson/')
                 .then(response => response.json())
                 .then(data => {
@@ -284,7 +269,6 @@
             fetch('/api/restaurants/geojson/')
                 .then(response => response.json())
                 .then(data => {
-                    console.log("✅ Reset GeoJSON data received:", data);
                     window.updateMarkers(data);
 
                     if (window.parent && typeof window.parent.onMapResetComplete === "function") {
@@ -323,8 +307,6 @@
         
             // Center and zoom the map
             map.setView(latlng, 15);
-        
-            console.log("📍 Geocode marker placed at:", latlng);
             updateMapData();
         };
 
