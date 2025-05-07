@@ -78,8 +78,7 @@ def restaurant_detail(request, id):
     if request.user.is_authenticated and request.user.username == restaurant.username:
         is_owner = True
 
-    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
-    is_customer = not Moderator.objects.filter(username=request.user.username).exists()
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists() and not Moderator.objects.filter(username=request.user.username).exists()
 
     return render(
         request,
@@ -99,7 +98,7 @@ def restaurant_detail(request, id):
 
 @login_required(login_url="/login/")
 def dynamic_map_view(request):
-    is_customer = not Restaurant.objects.filter(username=request.user.username).exists()
+    is_customer = not Restaurant.objects.filter(username=request.user.username).exists() and not Moderator.objects.filter(username=request.user.username).exists()
     context = {
         "has_unread_messages": has_unread_messages(request.user),
         "is_customer": is_customer,
@@ -258,6 +257,8 @@ def profile_router(request, username):
 
         reviews = reviews.order_by("-posted_at")
 
+        is_customer = not Restaurant.objects.filter(username=request.user.username).exists() and not Moderator.objects.filter(username=request.user.username).exists()
+
         return render(
             request,
             "maps/restaurant_detail.html",
@@ -266,6 +267,7 @@ def profile_router(request, username):
                 "is_owner": is_owner,
                 "reviews": reviews,
                 "has_unread_messages": has_unread_messages(request.user),
+                "is_customer": is_customer
             },
         )
     except Restaurant.DoesNotExist:
