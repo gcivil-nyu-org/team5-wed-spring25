@@ -9,6 +9,14 @@
   <link rel="stylesheet" href="{% static 'landing/css/styles.css' %}">
   <link rel="stylesheet" href="{% static 'home/home.css' %}">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+  />
   <style>
     html, body {
       padding-top: 60px; /* Adds a gap between the header and the content */
@@ -16,8 +24,8 @@
       margin: 0;
       background-color: #ffedd3;
     }
-    .container {
-      max-width: 700px;
+    .restaurant-container {
+      max-width: 950px;
       margin: 60px auto; 
       padding: 15px;
       background: white;
@@ -34,6 +42,15 @@
       object-fit: cover;
       border-radius: 12px;
     }
+    .profile-dropdown {
+      position: relative;
+    }
+    .profile-dropdown .dropdown-menu {
+      top: 100%;
+      right: 0;
+      left: auto;
+    }
+
     .average-ratings {
     margin: 10px 0 20px;
     font-size: 1rem;
@@ -154,7 +171,7 @@
     }
     /* Responsive adjustments */
     @media (max-width: 768px) {
-      .container {
+      .restaurant-container {
         padding: 20px;
         margin: 20px;
       }
@@ -175,7 +192,7 @@
   </script>
   <div style="min-height: 100%; padding-top: 85px; background-color: #ffedd3;">
     <div style="height: 90vh; overflow-y: auto;">
-      <div class="container">
+      <div class="restaurant-container">
           <div class="restaurant-header">
               <h1 class="h3 mb-3">{{ restaurant.name }}</h1>
           </div>
@@ -249,13 +266,13 @@
               </form>
           </div>
           {% if is_customer %}
-          <a href="{% url 'addreview' restaurant.id %}" id="add-review-btn" class="btn">
-              Write a review
-          </a>
+            <a href="{% url 'addreview' restaurant.id %}" id="add-review-btn" class="btn">
+                Write a review
+            </a>
           {% endif %}
         </div>
       </div>
-          <div class="container">
+          <div class="restaurant-container">
             {% include "components/restaurant_review.html" with restaurant=restaurant reviews=reviews %}
           </div>
     
