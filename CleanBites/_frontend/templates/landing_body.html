@@ -22,8 +22,10 @@
             justify-content: center;
             height: 70vh;
             text-align: center;
-            background: url('{% static "images/hero_image.png" %}') no-repeat center center;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0.2)),
+            url('{% static "images/hero_image.png" %}') no-repeat center center;
             background-size: cover;
+            background-blend-mode: overlay;
         }
 
         .hero-text-container {
