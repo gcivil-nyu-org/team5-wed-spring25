@@ -1,5 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>CleanBites NYC</title>
@@ -8,77 +9,90 @@
         body {
             margin: 0;
             font-family: 'Inter', sans-serif;
+            overflow-y: auto;
+            background-color: #fffefb;
         }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 40px;
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            z-index: 100;
-        }
-        .title {
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-        .nav-buttons a {
-            margin-left: 20px;
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
-        }
+
         .herobody {
-            margin-top: 65px; /* Add margin to push it below header */
-            position: relative; 
+            margin-top: 65px;
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 70vh;
             text-align: center;
-            background: url('{% static "images/hero_image.png" %}') no-repeat center center;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0.2)),
+            url('{% static "images/hero_image.png" %}') no-repeat center center;
             background-size: cover;
-            z-index: 1;
-        }
-        .hero-content {
-            position: relative;
-            z-index: 2;
-            padding: 20px;
-            max-width: 800px;
+            background-blend-mode: overlay;
         }
 
         .hero-text-container {
-            background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent white */
-            border-radius: 16px;
-            padding: 10px 40px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            max-width: 80%;
-            backdrop-filter: blur(4px); /* Creates a frosted glass effect */
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 20px;
+            padding: 30px 60px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(6px);
+            text-align: center;
+            max-width: 90%;
         }
-        
-        .hero-text-container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
-        }
-        
-        .hero h1 {
-            font-size: 3rem;
+
+        .hero-text-container h1 {
+            font-size: 2.8rem;
             font-weight: 800;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            color: #222;
+            margin-bottom: 15px;
         }
-        .hero p {
-            font-size: 1.25rem;
-            color: #444;
-            max-width: 600px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+
+        .hero-text-container p {
+            font-size: 1.2rem;
+            color: #333;
         }
+
+        .hero-text-container .btns {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .btn-orange {
+            background-color: #ff9800;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+
+        .btn-orange:hover {
+            background-color: #fb8c00;
+        }
+
+        .btn-outline {
+            background-color: white;
+            color: #333;
+            border: 2px solid #333;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-outline:hover {
+            background-color: #f1f1f1;
+        }
+
         .gallery {
             background-color: #fff3e0;
-            padding: 60px 40px;
+            padding: 64px 20px;
             text-align: center;
         }
 
@@ -90,52 +104,83 @@
 
         .gallery-container {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .card {
-            width: 180px;
-            height: 180px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }        
-        .scroll-container {
-            display: flex;
             overflow-x: auto;
             gap: 20px;
             padding: 20px 0;
             scroll-behavior: smooth;
-          }
+        }
 
-        .scroll-container img {
+        .gallery-container img {
             height: 250px;
             border-radius: 16px;
             flex-shrink: 0;
             transition: transform 0.3s ease-in-out;
-          }
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 
-        .scroll-container img:hover {
+        }
+
+        .gallery-container img:hover {
             transform: scale(1.05);
-          }          
+        }
+
+        .map-feature {
+            padding: 60px 20px;
+            background-color: #f8f9fa;
+        }
+
+        .map-feature .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .map-feature img {
+            width: 100%;
+            border-radius: 16px;
+            max-height: 320px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        footer {
+            background: linear-gradient(to top, #ffe5b4, #fff3e0);
+            padding: 40px 20px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #444;
+            border-top: 1px solid #f1c27d;
+        }
+
+        footer p {
+            margin: 10px 0;
+        }
+
+        footer a {
+            margin: 0 15px;
+            color: #d2691e;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
-<body style="overflow-y: auto; background: linear-gradient(to bottom right, #ffe5b4, #ffa726);">
+<body>
     <section class="herobody">
         <div class="hero-text-container">
             <h1>Find the Cleanest Bites in NYC</h1>
-            <p>Explore hygiene ratings, inspection history, and reviews for restaurants in NYC.</p>
+            <p>Explore hygiene ratings, inspection history, and reviews for 20,000+ restaurants in NYC.</p>
+            <div class="btns">
+                <button class="btn-orange" id="exploreMapBtn">Explore the Map</button>
+                <a href="/login" class="btn-outline">Log in / Sign up</a>
+            </div>
         </div>
     </section>
-    <section class="how-it-works" style="padding: 60px 20px; background-color: #fff;">
+
+    <section class="how-it-works" style="padding: 60px 20px; background-color: #fcf5eb; border-top: 1px solid #f4d3a1;">
         <h2 style="text-align: center; font-size: 2rem; margin-bottom: 30px;">How CleanBites Works</h2>
         <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">
             <div style="text-align: center; max-width: 200px;">
@@ -151,92 +196,85 @@
                 <p>Read & Write Reviews</p>
             </div>
         </div>
-    </section> 
+    </section>    
+
     <section class="gallery">
-        <h2>Spotlight on NYC Restaurants</h2>
+        <h2>Spotlight: NYC’s Best Restaurants</h2>
         <div class="gallery-container">
-            <div class="card">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/4/47/New_york_times_square-terabass.jpg" alt="Restaurant 1">
-            </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80" alt="Restaurant 2">
-            </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80" alt="Restaurant 3">
-            </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Restaurant 4">
-            </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80" alt="Restaurant 5">
-            </div>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/47/New_york_times_square-terabass.jpg" alt="NYC 1">
+            <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80" alt="NYC 2">
+            <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80" alt="Iconic NYC Dining">
+            <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="NYC 4">
+            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80" alt="NYC 5">
         </div>
     </section>
-    
-    <section class="map-feature" style="padding: 60px 20px; background-color: #f8f9fa;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 30px;">
-            <div style="flex: 1; min-width: 300px; padding: 20px;">
+
+    <section class="map-feature">
+        <div class="container">
+            <div style="flex: 1; min-width: 300px;">
                 <h2 style="font-size: 2rem; margin-bottom: 20px; color: #333;">Explore Health Ratings on the Map</h2>
                 <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px; color: #555;">
                     CleanBites integrates restaurant health inspection data with an interactive OpenStreetMap interface, 
                     allowing you to visually explore hygiene ratings across NYC neighborhoods.
                 </p>
-                <ul style="font-size: 1.1rem; line-height: 1.6; color: #555; padding-left: 20px;">
+                <ul style="font-size: 1.1rem; line-height: 1.8; color: #555; padding-left: 24px;">
                     <li>Color-coded pins showing restaurant health ratings at a glance</li>
                     <li>Filter restaurants by inspection score, cuisine, or neighborhood</li>
                     <li>View detailed inspection history directly from the map</li>
                     <li>Find the cleanest dining options wherever you are in the city</li>
                 </ul>
-                <button id="exploreMapBtn" style="margin-top: 20px; padding: 12px 24px; background-color: #ff9800; color: white; border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.3s;">
-                    Explore the Map
-                </button>
+                <button class="btn-orange" id="exploreMapBtnBottom" style="margin-top: 20px;">Explore the Map</button>
             </div>
-            <div style="flex: 1; min-width: 300px; padding: 20px;">
-                <div style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <img src="{% static 'images/Mapasset.png' %}" alt="Restaurant Health Map" style="width: 100%; height: 80%; display: block;">
-                </div>
+            <div style="flex: 1; min-width: 300px;">
+                <img src="{% static 'images/Mapasset.png' %}" alt="Restaurant Health Map">
             </div>
         </div>
-    </section>  
-    
+    </section>
+
+    <footer>
+        <p style="font-size: 1.1rem; font-weight: 600;">🚀 Built with love by NYU Tandon students 💜</p>
+        <p>Need help? Admins are standing by with snacks 🍪</p>
+        <div>
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+            <a href="/privacy">Privacy</a>
+        </div>
+        <p>🍊 &copy; 2025 CleanBites. Stay clean, eat happy!</p>
+    </footer>
+
     <script>
-        // Add this script at the bottom of your landing_body.html
         document.addEventListener('DOMContentLoaded', function() {
-            const exploreMapBtn = document.getElementById('exploreMapBtn');
-            
-            exploreMapBtn.addEventListener('click', function() {
-                // Check if user is authenticated based on Django template variable
+            function handleExploreClick() {
                 const isAuthenticated = "{% if user.is_authenticated %}true{% else %}false{% endif %}";
-                
                 if (isAuthenticated === "true") {
-                    // If authenticated, redirect to the home/map page
                     window.location.href = "{% url 'home' %}";
                 } else {
-                    // If not authenticated, show the login modal using Bootstrap's data-bs-toggle
-                    // This is more reliable than creating a new Modal instance
                     const loginModalElement = document.getElementById('loginModal');
-                    
-                    // Check if Bootstrap is properly loaded
-                    if (typeof bootstrap !== 'undefined') {
+                    if (typeof bootstrap !== 'undefined' && loginModalElement) {
                         const loginModal = new bootstrap.Modal(loginModalElement);
                         loginModal.show();
-                    } else {
-                        // Fallback if Bootstrap JS is not loaded properly
-                        // Use the data attribute approach as backup
+                    } else if (loginModalElement) {
                         loginModalElement.classList.add('show');
                         loginModalElement.style.display = 'block';
                         document.body.classList.add('modal-open');
-                        
-                        // Create a backdrop if it doesn't exist
                         let backdrop = document.querySelector('.modal-backdrop');
                         if (!backdrop) {
                             backdrop = document.createElement('div');
                             backdrop.className = 'modal-backdrop fade show';
                             document.body.appendChild(backdrop);
                         }
+                    } else {
+                        window.location.href = "/login";
                     }
                 }
-            });
+            }
+
+            const topBtn = document.getElementById('exploreMapBtn');
+            const bottomBtn = document.getElementById('exploreMapBtnBottom');
+
+            if (topBtn) topBtn.addEventListener('click', handleExploreClick);
+            if (bottomBtn) bottomBtn.addEventListener('click', handleExploreClick);
         });
     </script>
 </body>
+</html>
